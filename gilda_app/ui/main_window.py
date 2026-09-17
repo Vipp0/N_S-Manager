@@ -80,24 +80,29 @@ class MainWindow(FluentWindow):
     def _setup_logo(self) -> None:
         if APP_ICON_PATH.exists():
             self.setWindowIcon(QIcon(str(APP_ICON_PATH)))
+            # FluentTitleBar.iconLabel (la piccola icona nell'angolo in alto a
+            # sinistra della title bar) si aggiorna da solo alla windowIcon, non
+            # serve altro codice per quella.
 
-        # In più, mostra il logo "Black Desert Online" in cima al pannello di
-        # navigazione (in alto a sinistra nell'interfaccia). panel.topLayout non è
-        # un'API pubblica documentata di qfluentwidgets: se in una versione futura
-        # cambiasse struttura, saltiamo semplicemente questa parte invece di far
-        # crashare l'app.
         if not LOGO_PATH.exists():
             return
+        # Il pannello di navigazione a sinistra è largo solo ~46px da collassato:
+        # inserire lì il logo lo tagliava quasi subito. La title bar invece ha
+        # tantissimo spazio libero tra l'iconLabel/titleLabel e i pulsanti
+        # min/max/chiudi (riempito da uno stretch), quindi ci sostituiamo alla
+        # scritta testuale del titolo con il logo vero "Black Desert Online".
+        # self.titleBar/hBoxLayout non sono API pubbliche documentate di
+        # qfluentwidgets: se in una versione futura cambiasse struttura,
+        # saltiamo semplicemente questa parte invece di far crashare l'app.
         try:
-            # logo.png è già ritagliato stretto al contenuto reale (niente bordo
-            # trasparente), quindi scalarlo per altezza dà una scritta leggibile
-            # invece di rimpicciolire anche il padding vuoto attorno al testo.
-            pixmap = QPixmap(str(LOGO_PATH)).scaledToHeight(34, Qt.SmoothTransformation)
-            logo_label = QLabel(self.navigationInterface.panel)
+            title_bar = self.titleBar
+            title_bar.titleLabel.hide()
+            pixmap = QPixmap(str(LOGO_PATH)).scaledToHeight(30, Qt.SmoothTransformation)
+            logo_label = QLabel(title_bar)
             logo_label.setPixmap(pixmap)
-            logo_label.setFixedSize(pixmap.width() + 12, 42)
-            logo_label.setAlignment(Qt.AlignCenter)
-            self.navigationInterface.panel.topLayout.insertWidget(0, logo_label, 0, Qt.AlignTop)
+            logo_label.setFixedSize(pixmap.size())
+            index = title_bar.hBoxLayout.indexOf(title_bar.titleLabel)
+            title_bar.hBoxLayout.insertWidget(index, logo_label, 0, Qt.AlignLeft | Qt.AlignVCenter)
         except AttributeError:
             pass
 
