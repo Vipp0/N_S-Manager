@@ -49,8 +49,7 @@ class StatsPage(QScrollArea):
     def refresh(self) -> None:
         while self.main_layout.count() > 1:
             item = self.main_layout.takeAt(1)
-            if item.widget():
-                item.widget().deleteLater()
+            self._clear_item(item)
 
         conn = self.get_conn()
 
@@ -105,6 +104,17 @@ class StatsPage(QScrollArea):
         )
 
         self.main_layout.addStretch(1)
+
+    def _clear_item(self, item) -> None:
+        widget = item.widget()
+        if widget is not None:
+            widget.setParent(None)
+            widget.deleteLater()
+            return
+        layout = item.layout()
+        if layout is not None:
+            while layout.count():
+                self._clear_item(layout.takeAt(0))
 
     def _trend_chart_card(self, conn) -> CardWidget:
         card = CardWidget()
