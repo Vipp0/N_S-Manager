@@ -64,16 +64,31 @@ def update_member(
     discord_name: str | None,
     nations: list[str],
     note: str | None = None,
+    data_inserimento: str | None = None,
+    update_date: bool = False,
     commit: bool = True,
 ) -> None:
-    conn.execute(
-        """
-        UPDATE members
-        SET family_name = ?, main_name = ?, discord_name = ?, note = ?, updated_at = datetime('now')
-        WHERE id = ?
-        """,
-        (family_name, main_name, discord_name, note, member_id),
-    )
+    """update_date=False (default, usato dall'import) lascia invariato data_inserimento;
+    update_date=True (usato dal form di modifica) lo imposta al valore passato, anche None."""
+    if update_date:
+        conn.execute(
+            """
+            UPDATE members
+            SET family_name = ?, main_name = ?, discord_name = ?, note = ?,
+                data_inserimento = ?, updated_at = datetime('now')
+            WHERE id = ?
+            """,
+            (family_name, main_name, discord_name, note, data_inserimento, member_id),
+        )
+    else:
+        conn.execute(
+            """
+            UPDATE members
+            SET family_name = ?, main_name = ?, discord_name = ?, note = ?, updated_at = datetime('now')
+            WHERE id = ?
+            """,
+            (family_name, main_name, discord_name, note, member_id),
+        )
     conn.execute("DELETE FROM member_nations WHERE member_id = ?", (member_id,))
     for ord_idx, nation in enumerate(nations):
         conn.execute(

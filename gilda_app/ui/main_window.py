@@ -97,6 +97,7 @@ class MainWindow(FluentWindow):
                 nations=values["nations"],
                 status=status,
                 note=values["note"],
+                data_inserimento=values["data_inserimento"],
             )
             self.refresh_all()
             self._notify("Membro aggiunto", f"{values['family_name']} aggiunto a {STATUS_LABELS[status]}.")
@@ -113,6 +114,8 @@ class MainWindow(FluentWindow):
                 discord_name=values["discord_name"],
                 nations=values["nations"],
                 note=values["note"],
+                data_inserimento=values["data_inserimento"],
+                update_date=True,
             )
             self.refresh_all()
             self._notify("Membro aggiornato", f"{values['family_name']} è stato aggiornato.")

@@ -31,4 +31,5 @@ Il risultato è in `dist/GestionaleGilda/` — una cartella (non un unico `.exe`
 - `gilda_app/db/` — schema SQLite versionato, connessione, backup, statistiche
 - `gilda_app/importer/` — import/export da e verso Excel (.xlsx)
 - `gilda_app/ui/` — finestra principale e dialog (PySide6 + PySide6-Fluent-Widgets)
+- `gilda_app/resources/flags/` — PNG delle bandiere (una per codice ISO alpha-2), generate una tantum con `scripts/extract_flags.py` e committate nel repo; non serve rigenerarle a meno di voler aggiungere una nazione mancante
 - `tests/` — test automatici su import, CRUD e statistiche

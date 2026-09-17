@@ -6,7 +6,9 @@ a = Analysis(
     ["gilda_app/main.py"],
     pathex=[],
     binaries=[],
-    datas=[],
+    # Le PNG delle bandiere sono dati, non moduli Python: PyInstaller non le include
+    # automaticamente seguendo gli import, vanno elencate esplicitamente qui.
+    datas=[("gilda_app/resources/flags", "gilda_app/resources/flags")],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
