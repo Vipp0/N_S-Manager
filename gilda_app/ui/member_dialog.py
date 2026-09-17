@@ -1,8 +1,24 @@
-from PySide6.QtCore import QDate
-from PySide6.QtWidgets import QHBoxLayout, QLabel, QWidget
-from qfluentwidgets import CalendarPicker, CheckBox, LineEdit, MessageBoxBase, PlainTextEdit, SubtitleLabel
+from PySide6.QtCore import QDate, Qt
+from PySide6.QtWidgets import QCompleter, QHBoxLayout, QLabel, QWidget
+from qfluentwidgets import CalendarPicker, CheckBox, EditableComboBox, LineEdit, MessageBoxBase, PlainTextEdit, SubtitleLabel
 
 from gilda_app.models.member import Member
+from gilda_app.utils.countries import ALL_COUNTRIES
+
+
+def _make_nation_combo(parent, placeholder: str) -> EditableComboBox:
+    combo = EditableComboBox(parent)
+    combo.setPlaceholderText(placeholder)
+    combo.addItems(ALL_COUNTRIES)
+    # addItems seleziona automaticamente il primo elemento della lista: lo annulliamo
+    # per lasciare il campo vuoto finche' l'utente non sceglie/digita una nazione.
+    combo.setCurrentIndex(-1)
+    completer = QCompleter(ALL_COUNTRIES, combo)
+    completer.setCaseSensitivity(Qt.CaseInsensitive)
+    completer.setFilterMode(Qt.MatchContains)
+    completer.setCompletionMode(QCompleter.PopupCompletion)
+    combo.setCompleter(completer)
+    return combo
 
 
 class MemberDialog(MessageBoxBase):
@@ -22,10 +38,8 @@ class MemberDialog(MessageBoxBase):
         self.main_edit.setPlaceholderText("Main Name")
         self.discord_edit = LineEdit(self)
         self.discord_edit.setPlaceholderText("Discord Name")
-        self.nation1_edit = LineEdit(self)
-        self.nation1_edit.setPlaceholderText("Nazione")
-        self.nation2_edit = LineEdit(self)
-        self.nation2_edit.setPlaceholderText("Seconda nazione (opzionale)")
+        self.nation1_edit = _make_nation_combo(self, "Nazione")
+        self.nation2_edit = _make_nation_combo(self, "Seconda nazione (opzionale)")
 
         self.date_check = CheckBox("Registra la data di ingresso in gilda", self)
         self.date_picker = CalendarPicker(self)
