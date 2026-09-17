@@ -1,4 +1,4 @@
-from PySide6.QtCore import QTimer, Qt, Signal
+from PySide6.QtCore import QEvent, Qt, Signal
 from PySide6.QtGui import QFont, QGuiApplication
 from PySide6.QtWidgets import QAbstractItemView, QHBoxLayout, QTableWidgetItem, QVBoxLayout, QWidget
 from qfluentwidgets import Action, FluentIcon as FIF
@@ -10,8 +10,8 @@ from gilda_app.utils.flags import combined_flag_icon, nations_text
 
 NUMBER_COLUMN = 0
 NATION_COLUMN = 3
-TABLE_FONT = QFont("Segoe UI", 12)
-HEADER_FONT = QFont("Segoe UI", 12, QFont.DemiBold)
+TABLE_FONT = QFont("Segoe UI", 14)
+HEADER_FONT = QFont("Segoe UI", 14, QFont.DemiBold)
 
 
 def _columns() -> list[str]:
@@ -62,14 +62,20 @@ class MemberListPage(QWidget):
         self.table.setHorizontalHeaderLabels(self._columns)
         self.table.setFont(TABLE_FONT)
         self.table.horizontalHeader().setFont(HEADER_FONT)
-        self.table.verticalHeader().setDefaultSectionSize(48)
+        self.table.verticalHeader().setDefaultSectionSize(54)
         self.table.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.table.setSelectionMode(QAbstractItemView.SingleSelection)
         self.table.setSortingEnabled(True)
+        self.table.horizontalHeader().setSortIndicator(1, Qt.AscendingOrder)
         self.table.verticalHeader().hide()
         self.table.horizontalHeader().setStretchLastSection(True)
-        self.table.horizontalHeader().sortIndicatorChanged.connect(self._on_sort_changed)
+        # La colonna N. è un identificativo fisso del membro (posizione nell'elenco
+        # alfabetico al momento del caricamento), non ha senso ordinarci la tabella:
+        # un event filter sul viewport dell'header (dove arrivano davvero gli eventi
+        # mouse, essendo QHeaderView un QAbstractItemView) intercetta e ignora i click
+        # su questa colonna prima che raggiungano l'ordinamento automatico di Qt.
+        self.table.horizontalHeader().viewport().installEventFilter(self)
         self.table.setContextMenuPolicy(Qt.CustomContextMenu)
         self.table.customContextMenuRequested.connect(self._show_context_menu)
         self.table.doubleClicked.connect(self._on_double_click)
@@ -81,7 +87,7 @@ class MemberListPage(QWidget):
         self.table.setRowCount(len(members))
         for row, member in enumerate(members):
             values = [
-                "",  # numero progressivo, assegnato da _renumber()
+                str(row + 1),
                 member.family_name,
                 member.main_name,
                 nations_text(member.nations),
@@ -101,20 +107,15 @@ class MemberListPage(QWidget):
         self.table.resizeColumnsToContents()
         self._apply_filter(self.search_box.text())
 
-    def _on_sort_changed(self, *_args) -> None:
-        # Il riordino effettivo delle righe da parte di Qt avviene subito dopo questo
-        # segnale: rimandiamo la rinumerazione al giro successivo dell'event loop.
-        QTimer.singleShot(0, self._renumber)
-
-    def _renumber(self) -> None:
-        n = 1
-        for row in range(self.table.rowCount()):
-            if self.table.isRowHidden(row):
-                continue
-            item = self.table.item(row, NUMBER_COLUMN)
-            if item is not None:
-                item.setText(str(n))
-                n += 1
+    def eventFilter(self, obj, event) -> bool:
+        if obj is self.table.horizontalHeader().viewport() and event.type() in (
+            QEvent.MouseButtonPress,
+            QEvent.MouseButtonRelease,
+            QEvent.MouseButtonDblClick,
+        ):
+            if self.table.horizontalHeader().logicalIndexAt(event.pos()) == NUMBER_COLUMN:
+                return True
+        return super().eventFilter(obj, event)
 
     def _apply_filter(self, text: str) -> None:
         text = text.strip().lower()
@@ -128,7 +129,6 @@ class MemberListPage(QWidget):
                 if self.table.item(row, col) is not None
             )
             self.table.setRowHidden(row, not match)
-        self._renumber()
 
     def _member_at_row(self, row: int) -> Member | None:
         item = self.table.item(row, NUMBER_COLUMN)

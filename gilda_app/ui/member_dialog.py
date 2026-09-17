@@ -1,11 +1,29 @@
 from PySide6.QtCore import QDate, Qt
-from PySide6.QtWidgets import QCompleter, QHBoxLayout, QLabel, QWidget
-from qfluentwidgets import CalendarPicker, CheckBox, EditableComboBox, LineEdit, MessageBoxBase, PlainTextEdit, SubtitleLabel
+from PySide6.QtWidgets import QCompleter, QHBoxLayout, QLabel, QScrollArea, QVBoxLayout, QWidget
+from qfluentwidgets import CalendarPicker, CheckBox, EditableComboBox, LineEdit, MessageBoxBase, PlainTextEdit, StrongBodyLabel, SubtitleLabel
 
 from gilda_app.i18n import tr
-from gilda_app.models.member import Member
+from gilda_app.models.member import STATUS_ATTIVO, STATUS_EX_MEMBRO, Member, status_label
 from gilda_app.utils.countries import canonical_name, country_choices
 from gilda_app.utils.flags import display_nation
+
+
+def _format_history_line(row) -> str:
+    date = row["changed_at"][:10]
+    if row["previous_status"] is None:
+        line = tr("history.joined", date=date, status=status_label(row["new_status"]))
+    elif row["previous_status"] == STATUS_EX_MEMBRO and row["new_status"] == STATUS_ATTIVO:
+        line = tr("history.rejoined", date=date)
+    else:
+        line = tr(
+            "history.transition",
+            date=date,
+            prev=status_label(row["previous_status"]),
+            new=status_label(row["new_status"]),
+        )
+    if row["note"]:
+        line += tr("history.note_suffix", note=row["note"])
+    return line
 
 
 def _make_nation_combo(parent, placeholder: str) -> EditableComboBox:
@@ -27,7 +45,7 @@ def _make_nation_combo(parent, placeholder: str) -> EditableComboBox:
 class MemberDialog(MessageBoxBase):
     """Form di inserimento/modifica membro. Family Name obbligatorio."""
 
-    def __init__(self, parent=None, member: Member | None = None):
+    def __init__(self, parent=None, member: Member | None = None, history: list | None = None):
         super().__init__(parent)
         self.member = member
         is_edit = member is not None
@@ -75,8 +93,28 @@ class MemberDialog(MessageBoxBase):
         self.viewLayout.addWidget(date_row)
         self.viewLayout.addWidget(QLabel(tr("label.note"), self))
         self.viewLayout.addWidget(self.note_edit)
+
+        if is_edit:
+            self.viewLayout.addWidget(StrongBodyLabel(tr("label.history"), self))
+            history_container = QWidget(self)
+            history_layout = QVBoxLayout(history_container)
+            history_layout.setContentsMargins(0, 0, 0, 0)
+            history_layout.setSpacing(2)
+            if history:
+                for row in history:
+                    history_layout.addWidget(QLabel(_format_history_line(row), history_container))
+            else:
+                history_layout.addWidget(QLabel(tr("history.empty"), history_container))
+            history_layout.addStretch(1)
+
+            history_scroll = QScrollArea(self)
+            history_scroll.setWidget(history_container)
+            history_scroll.setWidgetResizable(True)
+            history_scroll.setFixedHeight(140)
+            self.viewLayout.addWidget(history_scroll)
+
         self.viewLayout.addWidget(self.error_label)
-        self.widget.setMinimumWidth(360)
+        self.widget.setMinimumWidth(380)
 
         if member is not None:
             self.family_edit.setText(member.family_name)

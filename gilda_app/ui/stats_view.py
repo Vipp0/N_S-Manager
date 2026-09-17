@@ -7,6 +7,7 @@ from qfluentwidgets import CardWidget, StrongBodyLabel, SubtitleLabel
 from gilda_app.db import stats
 from gilda_app.i18n import tr
 from gilda_app.models.member import STATUS_ATTIVO, STATUS_BANNATO, STATUS_EX_MEMBRO
+from gilda_app.utils.flags import display_nation
 
 # Numero minimo di membri con data di ingresso nota prima di mostrare la hall of fame,
 # per non classificare come "più anziani" un gruppo di persone importate lo stesso giorno.
@@ -170,12 +171,20 @@ class StatsPage(QScrollArea):
         layout = QVBoxLayout(card)
         layout.addWidget(StrongBodyLabel(tr("stats.nation_chart"), card))
 
-        rows = stats.nation_distribution(conn, STATUS_ATTIVO)[:10]
+        # Il conteggio grezzo è per stringa esatta salvata nel DB: varianti/alias della
+        # stessa nazione (es. "Uk" e "United Kingdom") altrimenti apparirebbero come
+        # barre separate. Le riaggreghiamo per nome risolto prima di prendere il top 10.
+        aggregated: dict[str, int] = {}
+        for row in stats.nation_distribution(conn, STATUS_ATTIVO):
+            name = display_nation(row["nation"])
+            aggregated[name] = aggregated.get(name, 0) + row["cnt"]
+        top_nations = sorted(aggregated.items(), key=lambda item: item[1], reverse=True)[:10]
+
         bar_set = QBarSet(tr("stats.current_members"))
         categories = []
-        for row in rows:
-            bar_set.append(row["cnt"])
-            categories.append(row["nation"])
+        for name, cnt in top_nations:
+            bar_set.append(cnt)
+            categories.append(name)
 
         series = QBarSeries()
         series.append(bar_set)

@@ -89,12 +89,13 @@ def translate_country_name(english_name: str, lang: str) -> str:
 
 def display_nation(nation: str) -> str:
     """Nome nazione nella lingua corrente dell'app, risolvendo alias/typo quando possibile.
-    Se la nazione non è riconosciuta, ritorna il testo originale così com'è salvato."""
-    from gilda_app.i18n import get_language  # import qui per evitare un ciclo a livello di modulo
+    Se la nazione non è vuota ma non è riconosciuta (dato sporco), ritorna "Sconosciuta"/"Unknown"
+    invece del testo grezzo salvato."""
+    from gilda_app.i18n import get_language, tr  # import qui per evitare un ciclo a livello di modulo
 
     alpha2 = _alpha2_for(nation)
     if not alpha2:
-        return nation
+        return tr("nation.unknown") if nation.strip() else nation
     country = pycountry.countries.get(alpha_2=alpha2)
     return translate_country_name(country.name, get_language())
 

@@ -11,6 +11,7 @@ from gilda_app.db.database import (
     delete_member,
     find_duplicate,
     get_members,
+    get_status_history,
     move_member_status,
     reset_database,
     set_setting,
@@ -119,7 +120,8 @@ class MainWindow(FluentWindow):
             )
 
     def _on_edit(self, member: Member) -> None:
-        dialog = MemberDialog(self, member=member)
+        history = get_status_history(self.conn, member.id)
+        dialog = MemberDialog(self, member=member, history=history)
         if dialog.exec():
             values = dialog.values()
             update_member(
