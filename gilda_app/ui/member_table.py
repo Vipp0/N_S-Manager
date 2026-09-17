@@ -143,6 +143,18 @@ class MemberListPage(QWidget):
         member_id = item.data(Qt.UserRole)
         return next((m for m in self._members if m.id == member_id), None)
 
+    def select_member_by_id(self, member_id: int) -> None:
+        """Seleziona e mostra la riga di un membro (usato dalla ricerca globale per
+        saltare direttamente al risultato): azzera un eventuale filtro locale attivo,
+        perché altrimenti la riga cercata potrebbe restare nascosta."""
+        self.search_box.clear()
+        for row in range(self.table.rowCount()):
+            item = self.table.item(row, NUMBER_COLUMN)
+            if item is not None and item.data(Qt.UserRole) == member_id:
+                self.table.selectRow(row)
+                self.table.scrollToItem(item)
+                break
+
     def _on_double_click(self, index) -> None:
         member = self._member_at_row(index.row())
         if member is not None:

@@ -2,10 +2,10 @@ import sqlite3
 from pathlib import Path
 
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QIcon, QPixmap
+from PySide6.QtGui import QIcon, QKeySequence, QPixmap, QShortcut
 from PySide6.QtWidgets import QApplication, QFileDialog, QLabel
 from qfluentwidgets import FluentIcon as FIF
-from qfluentwidgets import FluentWindow, InfoBar, InfoBarPosition, MessageBox, NavigationItemPosition
+from qfluentwidgets import FluentWindow, InfoBar, InfoBarPosition, MessageBox, NavigationItemPosition, TransparentToolButton
 
 from gilda_app.db.backup import backup_database
 from gilda_app.db.database import (
@@ -22,6 +22,7 @@ from gilda_app.i18n import tr
 from gilda_app.importer.excel_export import export_workbook
 from gilda_app.importer.excel_import import import_row, parse_workbook
 from gilda_app.models.member import STATUS_ATTIVO, STATUS_BANNATO, STATUS_EX_MEMBRO, Member, status_label
+from gilda_app.ui.global_search import GlobalSearchDialog
 from gilda_app.ui.import_dialog import ImportPreviewDialog
 from gilda_app.ui.member_dialog import MemberDialog
 from gilda_app.ui.member_table import MemberListPage
@@ -46,7 +47,8 @@ class MainWindow(FluentWindow):
 
         self.setWindowTitle(tr("window.title"))
         self.resize(1100, 720)
-        self._setup_logo()
+        self._setup_title_bar()
+        QShortcut(QKeySequence.Find, self, activated=self._on_global_search)
 
         self.pages: dict[str, MemberListPage] = {}
         for status in STATUS_ORDER:
@@ -77,34 +79,53 @@ class MainWindow(FluentWindow):
         self.navigationInterface.setCurrentItem(self.pages[STATUS_ATTIVO].objectName())
         self.refresh_all()
 
-    def _setup_logo(self) -> None:
+    def _setup_title_bar(self) -> None:
         if APP_ICON_PATH.exists():
             self.setWindowIcon(QIcon(str(APP_ICON_PATH)))
             # FluentTitleBar.iconLabel (la piccola icona nell'angolo in alto a
             # sinistra della title bar) si aggiorna da solo alla windowIcon, non
             # serve altro codice per quella.
 
-        if not LOGO_PATH.exists():
-            return
-        # Il pannello di navigazione a sinistra è largo solo ~46px da collassato:
-        # inserire lì il logo lo tagliava quasi subito. La title bar invece ha
-        # tantissimo spazio libero tra l'iconLabel/titleLabel e i pulsanti
-        # min/max/chiudi (riempito da uno stretch), quindi ci sostituiamo alla
-        # scritta testuale del titolo con il logo vero "Black Desert Online".
         # self.titleBar/hBoxLayout non sono API pubbliche documentate di
-        # qfluentwidgets: se in una versione futura cambiasse struttura,
-        # saltiamo semplicemente questa parte invece di far crashare l'app.
+        # qfluentwidgets: se in una versione futura cambiasse struttura, saltiamo
+        # semplicemente il resto invece di far crashare l'app.
         try:
             title_bar = self.titleBar
+            insert_at = title_bar.hBoxLayout.indexOf(title_bar.titleLabel)
+        except AttributeError:
+            return
+        if insert_at < 0:
+            insert_at = 1
+
+        if LOGO_PATH.exists():
+            # Il pannello di navigazione a sinistra è largo solo ~46px da collassato:
+            # inserire lì il logo lo tagliava quasi subito. La title bar invece ha
+            # tantissimo spazio libero tra l'iconLabel/titleLabel e i pulsanti
+            # min/max/chiudi (riempito da uno stretch), quindi ci sostituiamo alla
+            # scritta testuale del titolo con il logo vero "Black Desert Online".
             title_bar.titleLabel.hide()
             pixmap = QPixmap(str(LOGO_PATH)).scaledToHeight(30, Qt.SmoothTransformation)
             logo_label = QLabel(title_bar)
             logo_label.setPixmap(pixmap)
             logo_label.setFixedSize(pixmap.size())
-            index = title_bar.hBoxLayout.indexOf(title_bar.titleLabel)
-            title_bar.hBoxLayout.insertWidget(index, logo_label, 0, Qt.AlignLeft | Qt.AlignVCenter)
-        except AttributeError:
-            pass
+            title_bar.hBoxLayout.insertWidget(insert_at, logo_label, 0, Qt.AlignLeft | Qt.AlignVCenter)
+            insert_at += 1
+
+        search_btn = TransparentToolButton(title_bar)
+        search_btn.setIcon(FIF.SEARCH)
+        search_btn.setFixedSize(32, 32)
+        search_btn.setToolTip(tr("search.global.tooltip"))
+        search_btn.clicked.connect(self._on_global_search)
+        title_bar.hBoxLayout.insertWidget(insert_at, search_btn, 0, Qt.AlignLeft | Qt.AlignVCenter)
+
+    def _on_global_search(self) -> None:
+        dialog = GlobalSearchDialog(self, self.conn)
+        if dialog.exec():
+            result = dialog.selected_member()
+            if result is not None:
+                status, member_id = result
+                self.switchTo(self.pages[status])
+                self.pages[status].select_member_by_id(member_id)
 
     # -- refresh -----------------------------------------------------
     def refresh_all(self) -> None:

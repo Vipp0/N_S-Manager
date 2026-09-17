@@ -51,6 +51,16 @@ STRINGS: dict[str, dict[str, str]] = {
     "menu.move": {"it": "Sposta in un'altra lista", "en": "Move to another list"},
     "menu.delete": {"it": "Elimina", "en": "Delete"},
 
+    # -- Ricerca globale (tutte e 3 le schede) -----------------------------
+    "search.global.tooltip": {"it": "Cerca in tutte le liste", "en": "Search across all lists"},
+    "search.global.title": {"it": "Cerca in tutte le liste", "en": "Search across all lists"},
+    "search.global.placeholder": {
+        "it": "Cerca per nome, nazione, discord in Attuali, Ex membri e Bannati...",
+        "en": "Search by name, nation, discord across Current, Former and Banned...",
+    },
+    "search.global.column.status": {"it": "Lista", "en": "List"},
+    "search.global.go": {"it": "Vai al membro", "en": "Go to member"},
+
     # -- Form membro ------------------------------------------------------
     "dialog.edit_member.title": {"it": "Modifica membro", "en": "Edit member"},
     "dialog.new_member.title": {"it": "Nuovo membro", "en": "New member"},
@@ -79,6 +89,7 @@ STRINGS: dict[str, dict[str, str]] = {
     "error.family_name_required": {"it": "Family Name è obbligatorio.", "en": "Family Name is required."},
     "button.save": {"it": "Salva", "en": "Save"},
     "button.cancel": {"it": "Annulla", "en": "Cancel"},
+    "button.close": {"it": "Chiudi", "en": "Close"},
 
     # -- Spostamento tra liste --------------------------------------------
     "dialog.move.title": {"it": "Sposta {name}", "en": "Move {name}"},
