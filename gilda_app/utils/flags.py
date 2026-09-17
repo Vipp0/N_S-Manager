@@ -47,6 +47,15 @@ _ALIASES = {
 
 FLAGS_DIR = Path(__file__).resolve().parent.parent / "resources" / "flags"
 
+# Dimensioni native delle PNG in FLAGS_DIR (vedi scripts/extract_flags.py) e spaziatura
+# usata quando se ne affiancano due per la doppia nazionalità: esposte qui perché
+# member_table.py deve impostare l'iconSize della tabella sullo stesso valore, per
+# evitare che Qt debba scalare (e quindi sfocare) l'icona più grande possibile (2 bandiere).
+FLAG_WIDTH = 72
+FLAG_HEIGHT = 48
+FLAG_SPACING = 3
+MAX_FLAG_ICON_SIZE = (FLAG_WIDTH * 2 + FLAG_SPACING, FLAG_HEIGHT)
+
 _alpha2_cache: dict[str, str | None] = {}
 _pixmap_cache: dict[str, QPixmap | None] = {}
 _generic_pixmap: QPixmap | None = None
@@ -104,7 +113,7 @@ def _generic_flag_pixmap() -> QPixmap:
     """Bandierina segnaposto (bianca con bordo) per nazioni non riconosciute."""
     global _generic_pixmap
     if _generic_pixmap is None:
-        width, height = 36, 24
+        width, height = FLAG_WIDTH, FLAG_HEIGHT
         pixmap = QPixmap(width, height)
         pixmap.fill(Qt.white)
         painter = QPainter(pixmap)
@@ -137,9 +146,8 @@ def combined_flag_icon(nations: list[str]) -> QIcon | None:
 
     pixmaps = [flag_pixmap(n) for n in nations]
 
-    spacing = 3
     height = max(p.height() for p in pixmaps)
-    width = sum(p.width() for p in pixmaps) + spacing * (len(pixmaps) - 1)
+    width = sum(p.width() for p in pixmaps) + FLAG_SPACING * (len(pixmaps) - 1)
 
     canvas = QPixmap(width, height)
     canvas.fill(Qt.transparent)
@@ -147,7 +155,7 @@ def combined_flag_icon(nations: list[str]) -> QIcon | None:
     x = 0
     for pixmap in pixmaps:
         painter.drawPixmap(x, (height - pixmap.height()) // 2, pixmap)
-        x += pixmap.width() + spacing
+        x += pixmap.width() + FLAG_SPACING
     painter.end()
 
     return QIcon(canvas)

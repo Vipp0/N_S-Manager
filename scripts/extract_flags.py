@@ -16,6 +16,10 @@ FLAGPY_DIR = Path(sys.argv[1]) if len(sys.argv) > 1 else Path(
     r"C:\Users\Fabrizio\AppData\Local\Temp\flagcheck\flagpy\flags"
 )
 OUT_DIR = Path(__file__).resolve().parent.parent / "gilda_app" / "resources" / "flags"
+# 72x48 (stesso rapporto 3:2 della prima estrazione, doppia risoluzione): le bandierine
+# nella tabella membri risultavano troppo piccole/poco leggibili, specie con doppia
+# nazionalita' affiancata.
+FLAG_SIZE = (72, 48)
 
 # Alpha2 -> nome file flagpy per i casi dove flagpy usa nomi diversi da pycountry
 # (prefisso "The_", "Georgia_(Country)" per disambiguare dallo stato USA, ecc).
@@ -66,7 +70,7 @@ def main() -> None:
         with open(pkl_path, "rb") as f:
             arr = pickle.load(f)
         img = Image.fromarray(arr)
-        img = img.resize((36, 24), Image.LANCZOS)
+        img = img.resize(FLAG_SIZE, Image.LANCZOS)
         img.save(OUT_DIR / f"{alpha2}.png")
 
     print(f"Estratte {len(alpha2_to_file)} bandiere in {OUT_DIR}")

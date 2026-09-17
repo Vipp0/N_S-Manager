@@ -1,4 +1,4 @@
-from PySide6.QtCore import QEvent, Qt, Signal
+from PySide6.QtCore import QEvent, QSize, Qt, Signal
 from PySide6.QtGui import QFont, QGuiApplication
 from PySide6.QtWidgets import QAbstractItemView, QHBoxLayout, QTableWidgetItem, QVBoxLayout, QWidget
 from qfluentwidgets import Action, FluentIcon as FIF
@@ -6,7 +6,7 @@ from qfluentwidgets import PrimaryPushButton, RoundMenu, SearchLineEdit, StrongB
 
 from gilda_app.i18n import tr
 from gilda_app.models.member import Member, status_label
-from gilda_app.utils.flags import combined_flag_icon, nations_text
+from gilda_app.utils.flags import MAX_FLAG_ICON_SIZE, combined_flag_icon, nations_text
 from gilda_app.utils.scrollbar import widen_scrollbar_on_hover
 
 NUMBER_COLUMN = 0
@@ -63,7 +63,11 @@ class MemberListPage(QWidget):
         self.table.setHorizontalHeaderLabels(self._columns)
         self.table.setFont(TABLE_FONT)
         self.table.horizontalHeader().setFont(HEADER_FONT)
-        self.table.verticalHeader().setDefaultSectionSize(54)
+        self.table.verticalHeader().setDefaultSectionSize(60)
+        # Stessa dimensione della bandiera combinata più grande possibile (2 bandiere
+        # affiancate): così Qt non deve scalare l'icona (altrimenti risulterebbe sfocata
+        # o, di default, troppo piccola visto che l'iconSize di base di Qt è 16x16).
+        self.table.setIconSize(QSize(*MAX_FLAG_ICON_SIZE))
         self.table.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.table.setSelectionMode(QAbstractItemView.SingleSelection)
