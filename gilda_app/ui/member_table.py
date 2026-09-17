@@ -1,4 +1,4 @@
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import QTimer, Qt, Signal
 from PySide6.QtGui import QFont, QGuiApplication
 from PySide6.QtWidgets import QAbstractItemView, QHBoxLayout, QTableWidgetItem, QVBoxLayout, QWidget
 from qfluentwidgets import Action, FluentIcon as FIF
@@ -8,13 +8,15 @@ from gilda_app.i18n import tr
 from gilda_app.models.member import Member, status_label
 from gilda_app.utils.flags import combined_flag_icon, nations_text
 
-NATION_COLUMN = 2
-TABLE_FONT = QFont("Segoe UI", 11)
-HEADER_FONT = QFont("Segoe UI", 11, QFont.DemiBold)
+NUMBER_COLUMN = 0
+NATION_COLUMN = 3
+TABLE_FONT = QFont("Segoe UI", 12)
+HEADER_FONT = QFont("Segoe UI", 12, QFont.DemiBold)
 
 
 def _columns() -> list[str]:
     return [
+        tr("column.number"),
         tr("column.family_name"),
         tr("column.main_name"),
         tr("column.nation"),
@@ -60,13 +62,14 @@ class MemberListPage(QWidget):
         self.table.setHorizontalHeaderLabels(self._columns)
         self.table.setFont(TABLE_FONT)
         self.table.horizontalHeader().setFont(HEADER_FONT)
-        self.table.verticalHeader().setDefaultSectionSize(44)
+        self.table.verticalHeader().setDefaultSectionSize(48)
         self.table.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.table.setSelectionMode(QAbstractItemView.SingleSelection)
         self.table.setSortingEnabled(True)
         self.table.verticalHeader().hide()
         self.table.horizontalHeader().setStretchLastSection(True)
+        self.table.horizontalHeader().sortIndicatorChanged.connect(self._on_sort_changed)
         self.table.setContextMenuPolicy(Qt.CustomContextMenu)
         self.table.customContextMenuRequested.connect(self._show_context_menu)
         self.table.doubleClicked.connect(self._on_double_click)
@@ -78,6 +81,7 @@ class MemberListPage(QWidget):
         self.table.setRowCount(len(members))
         for row, member in enumerate(members):
             values = [
+                "",  # numero progressivo, assegnato da _renumber()
                 member.family_name,
                 member.main_name,
                 nations_text(member.nations),
@@ -97,6 +101,21 @@ class MemberListPage(QWidget):
         self.table.resizeColumnsToContents()
         self._apply_filter(self.search_box.text())
 
+    def _on_sort_changed(self, *_args) -> None:
+        # Il riordino effettivo delle righe da parte di Qt avviene subito dopo questo
+        # segnale: rimandiamo la rinumerazione al giro successivo dell'event loop.
+        QTimer.singleShot(0, self._renumber)
+
+    def _renumber(self) -> None:
+        n = 1
+        for row in range(self.table.rowCount()):
+            if self.table.isRowHidden(row):
+                continue
+            item = self.table.item(row, NUMBER_COLUMN)
+            if item is not None:
+                item.setText(str(n))
+                n += 1
+
     def _apply_filter(self, text: str) -> None:
         text = text.strip().lower()
         for row in range(self.table.rowCount()):
@@ -105,13 +124,14 @@ class MemberListPage(QWidget):
                 continue
             match = any(
                 text in (self.table.item(row, col).text().lower())
-                for col in range(self.table.columnCount())
+                for col in range(1, self.table.columnCount())
                 if self.table.item(row, col) is not None
             )
             self.table.setRowHidden(row, not match)
+        self._renumber()
 
     def _member_at_row(self, row: int) -> Member | None:
-        item = self.table.item(row, 0)
+        item = self.table.item(row, NUMBER_COLUMN)
         if item is None:
             return None
         member_id = item.data(Qt.UserRole)

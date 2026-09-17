@@ -129,15 +129,26 @@ def common_ban_reasons(conn: sqlite3.Connection, limit: int = 5) -> list[sqlite3
     ).fetchall()
 
 
+def dated_members_count(conn: sqlite3.Connection, status: str = STATUS_ATTIVO) -> int:
+    """Quanti membri con questo status hanno una data di ingresso realmente nota
+    (non quella, uguale per tutti, del giorno dell'import iniziale)."""
+    return conn.execute(
+        "SELECT COUNT(*) FROM members WHERE status = ? AND data_inserimento IS NOT NULL",
+        (status,),
+    ).fetchone()[0]
+
+
 def hall_of_fame(conn: sqlite3.Connection, limit: int = 10) -> list[sqlite3.Row]:
+    """Membri attuali ordinati per anzianità, basata sulla data di ingresso nota
+    (members.data_inserimento), non sullo storico movimenti: per i membri importati
+    in blocco quest'ultimo coincide col giorno dell'import per tutti, quindi non
+    direbbe nulla sull'anzianità reale."""
     return conn.execute(
         """
-        SELECT m.family_name AS family_name, m.main_name AS main_name, MIN(sh.changed_at) AS since
-        FROM members m
-        JOIN status_history sh ON sh.member_id = m.id
-        WHERE m.status = ?
-        GROUP BY m.id
-        ORDER BY since ASC
+        SELECT family_name AS family_name, main_name AS main_name, data_inserimento AS since
+        FROM members
+        WHERE status = ? AND data_inserimento IS NOT NULL
+        ORDER BY data_inserimento ASC
         LIMIT ?
         """,
         (STATUS_ATTIVO, limit),

@@ -28,6 +28,7 @@ from gilda_app.ui.progress_dialog import ImportProgressDialog
 from gilda_app.ui.reset_dialog import ResetConfirmDialog
 from gilda_app.ui.settings_page import SettingsPage
 from gilda_app.ui.stats_view import StatsPage
+from gilda_app.utils.restart import restart_app
 
 STATUS_ORDER = [STATUS_ATTIVO, STATUS_EX_MEMBRO, STATUS_BANNATO]
 
@@ -78,6 +79,12 @@ class MainWindow(FluentWindow):
 
     def _on_language_changed(self, lang_code: str) -> None:
         set_setting(self.conn, "language", lang_code)
+        box = MessageBox(tr("dialog.restart.title"), tr("dialog.restart.body"), self)
+        box.yesButton.setText(tr("button.restart_now"))
+        box.cancelButton.setText(tr("button.later"))
+        if box.exec():
+            self.conn.close()
+            restart_app()
 
     def _notify(self, title: str, content: str, error: bool = False) -> None:
         method = InfoBar.error if error else InfoBar.success

@@ -28,10 +28,6 @@ class SettingsPage(QWidget):
         self.language_combo.setCurrentIndex(self._lang_codes.index(get_language()))
         self.language_combo.currentIndexChanged.connect(self._on_language_changed)
         language_layout.addWidget(self.language_combo)
-        self.language_hint = StrongBodyLabel(tr("settings.language_hint"), language_card)
-        self.language_hint.setStyleSheet("font-weight: normal; color: gray;")
-        self.language_hint.hide()
-        language_layout.addWidget(self.language_hint)
         layout.addWidget(language_card)
 
         import_card = CardWidget(self)
@@ -63,5 +59,4 @@ class SettingsPage(QWidget):
 
     def _on_language_changed(self, index: int) -> None:
         code = self._lang_codes[index]
-        self.language_hint.show()
         self.language_changed.emit(code)

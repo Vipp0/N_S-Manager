@@ -8,6 +8,10 @@ from gilda_app.db import stats
 from gilda_app.i18n import tr
 from gilda_app.models.member import STATUS_ATTIVO, STATUS_BANNATO, STATUS_EX_MEMBRO
 
+# Numero minimo di membri con data di ingresso nota prima di mostrare la hall of fame,
+# per non classificare come "più anziani" un gruppo di persone importate lo stesso giorno.
+MIN_DATED_MEMBERS_FOR_HALL_OF_FAME = 3
+
 
 def _stat_card(title: str, value: str) -> CardWidget:
     card = CardWidget()
@@ -102,16 +106,21 @@ class StatsPage(QScrollArea):
             )
         )
 
-        hall_of_fame = stats.hall_of_fame(conn)
-        self.main_layout.addWidget(
-            _list_card(
-                tr("stats.hall_of_fame"),
-                [
-                    tr("stats.hall_of_fame_line", name=r["family_name"], main=r["main_name"], since=r["since"][:10])
-                    for r in hall_of_fame
-                ],
+        # La hall of fame ha senso solo se un numero minimo di membri ha una data di
+        # ingresso realmente nota: appena importato il database, tutti risultano
+        # "iscritti" lo stesso giorno (quello dell'import), quindi la classifica
+        # sarebbe priva di significato finché non si accumulano dati reali.
+        if stats.dated_members_count(conn, STATUS_ATTIVO) >= MIN_DATED_MEMBERS_FOR_HALL_OF_FAME:
+            hall_of_fame = stats.hall_of_fame(conn)
+            self.main_layout.addWidget(
+                _list_card(
+                    tr("stats.hall_of_fame"),
+                    [
+                        tr("stats.hall_of_fame_line", name=r["family_name"], main=r["main_name"], since=r["since"][:10])
+                        for r in hall_of_fame
+                    ],
+                )
             )
-        )
 
         self.main_layout.addStretch(1)
 

@@ -8,6 +8,8 @@ from gilda_app.db.stats import (
     active_members_trend,
     avg_tenure_days,
     counts_by_status,
+    dated_members_count,
+    hall_of_fame,
     nation_distribution,
     rejoin_rate,
     top_rejoiners,
@@ -77,3 +79,21 @@ def test_avg_tenure_and_trend(conn):
 
     trend = active_members_trend(conn)
     assert trend == [("2026-01", 0)]
+
+
+def test_hall_of_fame_uses_known_dates_only(conn):
+    # Membri importati in blocco: data_inserimento sconosciuta (None), come da import reale.
+    add_member(conn, "Importato1", "M1", "d1", ["Italy"], STATUS_ATTIVO, data_inserimento=None)
+    add_member(conn, "Importato2", "M2", "d2", ["Italy"], STATUS_ATTIVO, data_inserimento=None)
+
+    assert dated_members_count(conn, STATUS_ATTIVO) == 0
+    assert hall_of_fame(conn) == []
+
+    # Un membro inserito manualmente con data di ingresso nota compare invece in classifica.
+    add_member(conn, "Rossi", "Mario", "d3", ["Italy"], STATUS_ATTIVO, data_inserimento="2025-06-01")
+
+    assert dated_members_count(conn, STATUS_ATTIVO) == 1
+    ranking = hall_of_fame(conn)
+    assert len(ranking) == 1
+    assert ranking[0]["family_name"] == "Rossi"
+    assert ranking[0]["since"] == "2025-06-01"

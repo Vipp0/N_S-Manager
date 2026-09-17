@@ -10,7 +10,7 @@ _current_language = DEFAULT_LANGUAGE
 
 STRINGS: dict[str, dict[str, str]] = {
     # -- Stati membro --------------------------------------------------
-    "status.attivo": {"it": "Attuali", "en": "Current"},
+    "status.attivo": {"it": "Membri attuali", "en": "Current members"},
     "status.ex_membro": {"it": "Ex membri", "en": "Former members"},
     "status.bannato": {"it": "Bannati", "en": "Banned"},
 
@@ -36,6 +36,7 @@ STRINGS: dict[str, dict[str, str]] = {
     },
 
     # -- Tabella membri --------------------------------------------------
+    "column.number": {"it": "N.", "en": "No."},
     "column.family_name": {"it": "Family Name", "en": "Family Name"},
     "column.main_name": {"it": "Main Name", "en": "Main Name"},
     "column.nation": {"it": "Nazione", "en": "Nation"},
@@ -86,10 +87,13 @@ STRINGS: dict[str, dict[str, str]] = {
     # -- Impostazioni --------------------------------------------------------
     "settings.title": {"it": "Impostazioni", "en": "Settings"},
     "settings.language_label": {"it": "Lingua", "en": "Language"},
-    "settings.language_hint": {
-        "it": "Riavvia l'applicazione per applicare la nuova lingua.",
-        "en": "Restart the application to apply the new language.",
+    "dialog.restart.title": {"it": "Riavvia l'applicazione", "en": "Restart the application"},
+    "dialog.restart.body": {
+        "it": "Per applicare la nuova lingua è necessario riavviare l'applicazione. Vuoi riavviarla adesso?",
+        "en": "Restarting the application is required to apply the new language. Do you want to restart now?",
     },
+    "button.restart_now": {"it": "Riavvia ora", "en": "Restart now"},
+    "button.later": {"it": "Più tardi", "en": "Later"},
     "settings.import": {"it": "Importa da Excel...", "en": "Import from Excel..."},
     "settings.export": {"it": "Esporta in Excel...", "en": "Export to Excel..."},
     "settings.reset": {"it": "Azzera database", "en": "Reset database"},

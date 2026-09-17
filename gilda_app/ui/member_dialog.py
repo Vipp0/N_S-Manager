@@ -4,17 +4,19 @@ from qfluentwidgets import CalendarPicker, CheckBox, EditableComboBox, LineEdit,
 
 from gilda_app.i18n import tr
 from gilda_app.models.member import Member
-from gilda_app.utils.countries import ALL_COUNTRIES
+from gilda_app.utils.countries import canonical_name, country_choices
+from gilda_app.utils.flags import display_nation
 
 
 def _make_nation_combo(parent, placeholder: str) -> EditableComboBox:
+    choices = country_choices()
     combo = EditableComboBox(parent)
     combo.setPlaceholderText(placeholder)
-    combo.addItems(ALL_COUNTRIES)
+    combo.addItems(choices)
     # addItems seleziona automaticamente il primo elemento della lista: lo annulliamo
     # per lasciare il campo vuoto finche' l'utente non sceglie/digita una nazione.
     combo.setCurrentIndex(-1)
-    completer = QCompleter(ALL_COUNTRIES, combo)
+    completer = QCompleter(choices, combo)
     completer.setCaseSensitivity(Qt.CaseInsensitive)
     completer.setFilterMode(Qt.MatchContains)
     completer.setCompletionMode(QCompleter.PopupCompletion)
@@ -81,9 +83,9 @@ class MemberDialog(MessageBoxBase):
             self.main_edit.setText(member.main_name)
             self.discord_edit.setText(member.discord_name)
             if len(member.nations) > 0:
-                self.nation1_edit.setText(member.nations[0])
+                self.nation1_edit.setText(display_nation(member.nations[0]))
             if len(member.nations) > 1:
-                self.nation2_edit.setText(member.nations[1])
+                self.nation2_edit.setText(display_nation(member.nations[1]))
             if member.note:
                 self.note_edit.setPlainText(member.note)
 
@@ -107,7 +109,11 @@ class MemberDialog(MessageBoxBase):
         return True
 
     def values(self) -> dict:
-        nations = [n.strip() for n in (self.nation1_edit.text(), self.nation2_edit.text()) if n.strip()]
+        nations = [
+            canonical_name(n.strip())
+            for n in (self.nation1_edit.text(), self.nation2_edit.text())
+            if n.strip()
+        ]
         data_inserimento = self.date_picker.getDate().toString("yyyy-MM-dd") if self.date_check.isChecked() else None
         return {
             "family_name": self.family_edit.text().strip(),
