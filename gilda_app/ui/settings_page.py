@@ -32,7 +32,10 @@ class SettingsPage(QWidget):
         reset_card = CardWidget(self)
         reset_layout = QVBoxLayout(reset_card)
         reset_btn = PushButton(FIF.DELETE, "Azzera database", reset_card)
-        reset_btn.setStyleSheet("color: #c42b1c;")
+        # Aggiunge il colore al QSS esistente di qfluentwidgets invece di sovrascriverlo:
+        # setStyleSheet sostituisce l'intero stylesheet del pulsante (incluso il padding
+        # riservato all'icona), causando la sovrapposizione icona/testo.
+        reset_btn.setStyleSheet(reset_btn.styleSheet() + "\nPushButton { color: #c42b1c; }")
         reset_btn.clicked.connect(self.reset_requested)
         reset_layout.addWidget(reset_btn)
         layout.addWidget(reset_card)

@@ -1,6 +1,6 @@
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import QAbstractItemView, QHBoxLayout, QTableWidgetItem, QVBoxLayout, QWidget
-from PySide6.QtGui import QGuiApplication
+from PySide6.QtGui import QFont, QGuiApplication
 from qfluentwidgets import Action, FluentIcon as FIF
 from qfluentwidgets import PrimaryPushButton, RoundMenu, SearchLineEdit, StrongBodyLabel, TableWidget
 
@@ -8,6 +8,12 @@ from gilda_app.models.member import STATUS_LABELS, Member
 from gilda_app.utils.flags import flags_and_text
 
 COLUMNS = ["Family Name", "Main Name", "Nation", "Discord Name", "Note"]
+NATION_COLUMN = 2
+
+# Le emoji bandiera sono coppie di "regional indicator symbol" che vengono legate in
+# un'unica bandiera solo da un font che supporta questa combinazione (es. Segoe UI Emoji
+# su Windows). Con il font di default Qt mostra solo la lettera "in scatola".
+_FLAG_FONT = QFont("Segoe UI Emoji")
 
 
 class MemberListPage(QWidget):
@@ -70,6 +76,8 @@ class MemberListPage(QWidget):
             for col, value in enumerate(values):
                 item = QTableWidgetItem(value)
                 item.setData(Qt.UserRole, member.id)
+                if col == NATION_COLUMN:
+                    item.setFont(_FLAG_FONT)
                 self.table.setItem(row, col, item)
         self.table.setSortingEnabled(True)
         self._apply_filter(self.search_box.text())

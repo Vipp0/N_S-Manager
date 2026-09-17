@@ -29,6 +29,7 @@ def add_member(
     status: str,
     data_inserimento: str | None = None,
     note: str | None = None,
+    commit: bool = True,
 ) -> int:
     cur = conn.execute(
         """
@@ -50,7 +51,8 @@ def add_member(
         """,
         (member_id, status, note),
     )
-    conn.commit()
+    if commit:
+        conn.commit()
     return member_id
 
 
@@ -62,6 +64,7 @@ def update_member(
     discord_name: str | None,
     nations: list[str],
     note: str | None = None,
+    commit: bool = True,
 ) -> None:
     conn.execute(
         """
@@ -77,7 +80,8 @@ def update_member(
             "INSERT INTO member_nations (member_id, nation, ord) VALUES (?, ?, ?)",
             (member_id, nation, ord_idx),
         )
-    conn.commit()
+    if commit:
+        conn.commit()
 
 
 def delete_member(conn: sqlite3.Connection, member_id: int) -> None:

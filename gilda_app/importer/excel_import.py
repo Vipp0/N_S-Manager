@@ -94,14 +94,27 @@ def parse_workbook(path: Path) -> ImportPreview:
     return ImportPreview(rows=all_rows, sheet_reports=reports)
 
 
-def import_row(conn: sqlite3.Connection, row: ImportRow, on_duplicate: str = "skip") -> str:
-    """Inserisce una riga nel DB. on_duplicate: 'skip' | 'update' | 'insert'. Ritorna l'esito."""
+def import_row(conn: sqlite3.Connection, row: ImportRow, on_duplicate: str = "skip", commit: bool = True) -> str:
+    """Inserisce una riga nel DB. on_duplicate: 'skip' | 'update' | 'insert'. Ritorna l'esito.
+
+    commit=False permette di raggruppare un import in blocco in un'unica transazione,
+    che il chiamante chiude con un solo conn.commit() finale (molto più veloce di un
+    commit per riga su centinaia di righe)."""
     existing = find_duplicate(conn, row.family_name, row.main_name)
     if existing is not None:
         if on_duplicate == "skip":
             return "skipped"
         if on_duplicate == "update":
-            update_member(conn, existing["id"], row.family_name, row.main_name, row.discord_name, row.nations, existing["note"])
+            update_member(
+                conn,
+                existing["id"],
+                row.family_name,
+                row.main_name,
+                row.discord_name,
+                row.nations,
+                existing["note"],
+                commit=commit,
+            )
             return "updated"
         # on_duplicate == "insert": inserisce comunque come nuova voce
 
@@ -114,6 +127,7 @@ def import_row(conn: sqlite3.Connection, row: ImportRow, on_duplicate: str = "sk
         status=row.status,
         data_inserimento=None,
         note=None,
+        commit=commit,
     )
     return "inserted"
 
@@ -123,10 +137,11 @@ def run_initial_import(conn: sqlite3.Connection, path: Path) -> dict:
     preview = parse_workbook(path)
     outcome = {"inserted": 0, "skipped_duplicate": 0}
     for row in preview.rows:
-        result = import_row(conn, row, on_duplicate="skip")
+        result = import_row(conn, row, on_duplicate="skip", commit=False)
         if result == "inserted":
             outcome["inserted"] += 1
         elif result == "skipped":
             outcome["skipped_duplicate"] += 1
+    conn.commit()
     outcome["sheet_reports"] = preview.sheet_reports
     return outcome

@@ -1,7 +1,7 @@
 import sqlite3
 from pathlib import Path
 
-from PySide6.QtWidgets import QFileDialog
+from PySide6.QtWidgets import QApplication, QFileDialog
 from qfluentwidgets import FluentIcon as FIF
 from qfluentwidgets import FluentWindow, InfoBar, InfoBarPosition, MessageBox, NavigationItemPosition
 
@@ -22,6 +22,7 @@ from gilda_app.ui.import_dialog import ImportPreviewDialog
 from gilda_app.ui.member_dialog import MemberDialog
 from gilda_app.ui.member_table import MemberListPage
 from gilda_app.ui.move_dialog import MoveDialog
+from gilda_app.ui.progress_dialog import ImportProgressDialog
 from gilda_app.ui.reset_dialog import ResetConfirmDialog
 from gilda_app.ui.settings_page import SettingsPage
 from gilda_app.ui.stats_view import StatsPage
@@ -164,9 +165,21 @@ class MainWindow(FluentWindow):
         backup_database(self.db_path, "import")
         policy = dialog.duplicate_policy()
         outcome = {"inserted": 0, "updated": 0, "skipped": 0}
-        for row in preview.rows:
-            result = import_row(self.conn, row, on_duplicate=policy)
-            outcome[result if result != "skipped" else "skipped"] = outcome.get(result, 0) + 1
+        total = len(preview.rows)
+
+        progress = ImportProgressDialog(self)
+        progress.show()
+        QApplication.processEvents()
+        try:
+            for i, row in enumerate(preview.rows, start=1):
+                result = import_row(self.conn, row, on_duplicate=policy, commit=False)
+                outcome[result] = outcome.get(result, 0) + 1
+                if i % 10 == 0 or i == total:
+                    progress.set_progress(i, total)
+                    QApplication.processEvents()
+            self.conn.commit()
+        finally:
+            progress.close()
 
         self.refresh_all()
         self._notify(
