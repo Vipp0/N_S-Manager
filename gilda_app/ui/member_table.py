@@ -63,7 +63,7 @@ class MemberListPage(QWidget):
         self.table.setHorizontalHeaderLabels(self._columns)
         self.table.setFont(TABLE_FONT)
         self.table.horizontalHeader().setFont(HEADER_FONT)
-        self.table.verticalHeader().setDefaultSectionSize(60)
+        self.table.verticalHeader().setDefaultSectionSize(52)
         # Stessa dimensione della bandiera combinata più grande possibile (2 bandiere
         # affiancate): così Qt non deve scalare l'icona (altrimenti risulterebbe sfocata
         # o, di default, troppo piccola visto che l'iconSize di base di Qt è 16x16).

@@ -16,10 +16,10 @@ FLAGPY_DIR = Path(sys.argv[1]) if len(sys.argv) > 1 else Path(
     r"C:\Users\Fabrizio\AppData\Local\Temp\flagcheck\flagpy\flags"
 )
 OUT_DIR = Path(__file__).resolve().parent.parent / "gilda_app" / "resources" / "flags"
-# 72x48 (stesso rapporto 3:2 della prima estrazione, doppia risoluzione): le bandierine
-# nella tabella membri risultavano troppo piccole/poco leggibili, specie con doppia
-# nazionalita' affiancata.
-FLAG_SIZE = (72, 48)
+# 48x32 (stesso rapporto 3:2 della prima estrazione a 36x24): un compromesso tra le
+# bandierine troppo piccole di partenza e i 72x48 di un tentativo successivo, risultato
+# poi eccessivo.
+FLAG_SIZE = (48, 32)
 
 # Alpha2 -> nome file flagpy per i casi dove flagpy usa nomi diversi da pycountry
 # (prefisso "The_", "Georgia_(Country)" per disambiguare dallo stato USA, ecc).

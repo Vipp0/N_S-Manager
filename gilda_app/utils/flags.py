@@ -51,8 +51,8 @@ FLAGS_DIR = Path(__file__).resolve().parent.parent / "resources" / "flags"
 # usata quando se ne affiancano due per la doppia nazionalità: esposte qui perché
 # member_table.py deve impostare l'iconSize della tabella sullo stesso valore, per
 # evitare che Qt debba scalare (e quindi sfocare) l'icona più grande possibile (2 bandiere).
-FLAG_WIDTH = 72
-FLAG_HEIGHT = 48
+FLAG_WIDTH = 48
+FLAG_HEIGHT = 32
 FLAG_SPACING = 3
 MAX_FLAG_ICON_SIZE = (FLAG_WIDTH * 2 + FLAG_SPACING, FLAG_HEIGHT)
 
