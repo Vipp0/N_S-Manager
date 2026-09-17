@@ -5,6 +5,7 @@ from PySide6.QtWidgets import QGridLayout, QLabel, QScrollArea, QVBoxLayout, QWi
 from qfluentwidgets import CardWidget, StrongBodyLabel, SubtitleLabel
 
 from gilda_app.db import stats
+from gilda_app.i18n import tr
 from gilda_app.models.member import STATUS_ATTIVO, STATUS_BANNATO, STATUS_EX_MEMBRO
 
 
@@ -23,7 +24,7 @@ def _list_card(title: str, lines: list[str]) -> CardWidget:
     layout = QVBoxLayout(card)
     layout.addWidget(StrongBodyLabel(title, card))
     if not lines:
-        layout.addWidget(QLabel("Nessun dato disponibile.", card))
+        layout.addWidget(QLabel(tr("stats.no_data"), card))
     for line in lines:
         layout.addWidget(QLabel(line, card))
     return card
@@ -42,7 +43,7 @@ class StatsPage(QScrollArea):
         self.main_layout = QVBoxLayout(self.content)
         self.main_layout.setContentsMargins(24, 20, 24, 20)
         self.main_layout.setSpacing(16)
-        self.main_layout.addWidget(SubtitleLabel("Statistiche", self.content))
+        self.main_layout.addWidget(SubtitleLabel(tr("stats.title"), self.content))
 
         self.refresh()
 
@@ -55,22 +56,25 @@ class StatsPage(QScrollArea):
 
         counts = stats.counts_by_status(conn)
         cards_layout = QGridLayout()
-        cards_layout.addWidget(_stat_card("Membri attuali", str(counts[STATUS_ATTIVO])), 0, 0)
-        cards_layout.addWidget(_stat_card("Ex membri", str(counts[STATUS_EX_MEMBRO])), 0, 1)
-        cards_layout.addWidget(_stat_card("Bannati", str(counts[STATUS_BANNATO])), 0, 2)
-        cards_layout.addWidget(_stat_card("Totale storico", str(counts["totale_storico"])), 0, 3)
+        cards_layout.addWidget(_stat_card(tr("stats.current_members"), str(counts[STATUS_ATTIVO])), 0, 0)
+        cards_layout.addWidget(_stat_card(tr("stats.former_members"), str(counts[STATUS_EX_MEMBRO])), 0, 1)
+        cards_layout.addWidget(_stat_card(tr("stats.banned"), str(counts[STATUS_BANNATO])), 0, 2)
+        cards_layout.addWidget(_stat_card(tr("stats.total_history"), str(counts["totale_storico"])), 0, 3)
         self.main_layout.addLayout(cards_layout)
 
         avg_tenure = stats.avg_tenure_days(conn)
-        tenure_text = f"{avg_tenure:.0f} giorni" if avg_tenure is not None else "n/d"
+        tenure_text = tr("stats.avg_tenure_days", days=avg_tenure) if avg_tenure is not None else tr("stats.avg_tenure_unknown")
         rate = stats.rejoin_rate(conn)
         recent = stats.recent_changes(conn, days=30)
 
         cards_layout2 = QGridLayout()
-        cards_layout2.addWidget(_stat_card("Permanenza media prima di uscire", tenure_text), 0, 0)
-        cards_layout2.addWidget(_stat_card("Tasso di rientro", f"{rate:.1f}%"), 0, 1)
+        cards_layout2.addWidget(_stat_card(tr("stats.avg_tenure"), tenure_text), 0, 0)
+        cards_layout2.addWidget(_stat_card(tr("stats.rejoin_rate"), f"{rate:.1f}%"), 0, 1)
         cards_layout2.addWidget(
-            _stat_card("Movimenti ultimi 30 giorni", f"+{recent.get(STATUS_ATTIVO, 0)} / -{recent.get(STATUS_EX_MEMBRO, 0) + recent.get(STATUS_BANNATO, 0)}"),
+            _stat_card(
+                tr("stats.recent_changes"),
+                f"+{recent.get(STATUS_ATTIVO, 0)} / -{recent.get(STATUS_EX_MEMBRO, 0) + recent.get(STATUS_BANNATO, 0)}",
+            ),
             0,
             2,
         )
@@ -82,24 +86,30 @@ class StatsPage(QScrollArea):
         top_rejoiners = stats.top_rejoiners(conn)
         self.main_layout.addWidget(
             _list_card(
-                "Membri con più rientri",
-                [f"{r['family_name']} ({r['main_name']}) — {r['rejoin_count']} rientri" for r in top_rejoiners],
+                tr("stats.top_rejoiners"),
+                [
+                    tr("stats.top_rejoiners_line", name=r["family_name"], main=r["main_name"], count=r["rejoin_count"])
+                    for r in top_rejoiners
+                ],
             )
         )
 
         ban_reasons = stats.common_ban_reasons(conn)
         self.main_layout.addWidget(
             _list_card(
-                "Motivi di ban più comuni",
-                [f"{r['note']} — {r['cnt']} casi" for r in ban_reasons],
+                tr("stats.ban_reasons"),
+                [tr("stats.ban_reasons_line", reason=r["note"], count=r["cnt"]) for r in ban_reasons],
             )
         )
 
         hall_of_fame = stats.hall_of_fame(conn)
         self.main_layout.addWidget(
             _list_card(
-                "Hall of fame (membri attuali più anziani)",
-                [f"{r['family_name']} ({r['main_name']}) — dal {r['since'][:10]}" for r in hall_of_fame],
+                tr("stats.hall_of_fame"),
+                [
+                    tr("stats.hall_of_fame_line", name=r["family_name"], main=r["main_name"], since=r["since"][:10])
+                    for r in hall_of_fame
+                ],
             )
         )
 
@@ -119,7 +129,7 @@ class StatsPage(QScrollArea):
     def _trend_chart_card(self, conn) -> CardWidget:
         card = CardWidget()
         layout = QVBoxLayout(card)
-        layout.addWidget(StrongBodyLabel("Andamento membri attivi nel tempo", card))
+        layout.addWidget(StrongBodyLabel(tr("stats.trend_chart"), card))
 
         trend = stats.active_members_trend(conn)
         series = QLineSeries()
@@ -149,10 +159,10 @@ class StatsPage(QScrollArea):
     def _nation_chart_card(self, conn) -> CardWidget:
         card = CardWidget()
         layout = QVBoxLayout(card)
-        layout.addWidget(StrongBodyLabel("Distribuzione per nazione (membri attuali, top 10)", card))
+        layout.addWidget(StrongBodyLabel(tr("stats.nation_chart"), card))
 
         rows = stats.nation_distribution(conn, STATUS_ATTIVO)[:10]
-        bar_set = QBarSet("Membri")
+        bar_set = QBarSet(tr("stats.current_members"))
         categories = []
         for row in rows:
             bar_set.append(row["cnt"])

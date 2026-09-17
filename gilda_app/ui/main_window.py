@@ -13,11 +13,13 @@ from gilda_app.db.database import (
     get_members,
     move_member_status,
     reset_database,
+    set_setting,
     update_member,
 )
+from gilda_app.i18n import tr
 from gilda_app.importer.excel_export import export_workbook
 from gilda_app.importer.excel_import import import_row, parse_workbook
-from gilda_app.models.member import STATUS_ATTIVO, STATUS_BANNATO, STATUS_EX_MEMBRO, STATUS_LABELS, Member
+from gilda_app.models.member import STATUS_ATTIVO, STATUS_BANNATO, STATUS_EX_MEMBRO, Member, status_label
 from gilda_app.ui.import_dialog import ImportPreviewDialog
 from gilda_app.ui.member_dialog import MemberDialog
 from gilda_app.ui.member_table import MemberListPage
@@ -36,7 +38,7 @@ class MainWindow(FluentWindow):
         self.conn = conn
         self.db_path = db_path
 
-        self.setWindowTitle("Gestionale Membri Gilda")
+        self.setWindowTitle(tr("window.title"))
         self.resize(1100, 720)
 
         self.pages: dict[str, MemberListPage] = {}
@@ -51,18 +53,19 @@ class MainWindow(FluentWindow):
 
         icons = {STATUS_ATTIVO: FIF.PEOPLE, STATUS_EX_MEMBRO: FIF.HISTORY, STATUS_BANNATO: FIF.REMOVE}
         for status in STATUS_ORDER:
-            self.addSubInterface(self.pages[status], icons[status], STATUS_LABELS[status])
+            self.addSubInterface(self.pages[status], icons[status], status_label(status))
 
         self.stats_page = StatsPage(lambda: self.conn, self)
         self.stats_page.setObjectName("page_stats")
-        self.addSubInterface(self.stats_page, FIF.PIE_SINGLE, "Statistiche")
+        self.addSubInterface(self.stats_page, FIF.PIE_SINGLE, tr("nav.stats"))
 
         self.settings_page = SettingsPage(self)
         self.settings_page.setObjectName("page_settings")
         self.settings_page.import_requested.connect(self._on_import)
         self.settings_page.export_requested.connect(self._on_export)
         self.settings_page.reset_requested.connect(self._on_reset)
-        self.addSubInterface(self.settings_page, FIF.SETTING, "Impostazioni", NavigationItemPosition.BOTTOM)
+        self.settings_page.language_changed.connect(self._on_language_changed)
+        self.addSubInterface(self.settings_page, FIF.SETTING, tr("nav.settings"), NavigationItemPosition.BOTTOM)
 
         self.navigationInterface.setCurrentItem(self.pages[STATUS_ATTIVO].objectName())
         self.refresh_all()
@@ -72,6 +75,9 @@ class MainWindow(FluentWindow):
         for status, page in self.pages.items():
             page.set_members(get_members(self.conn, status))
         self.stats_page.refresh()
+
+    def _on_language_changed(self, lang_code: str) -> None:
+        set_setting(self.conn, "language", lang_code)
 
     def _notify(self, title: str, content: str, error: bool = False) -> None:
         method = InfoBar.error if error else InfoBar.success
@@ -100,7 +106,10 @@ class MainWindow(FluentWindow):
                 data_inserimento=values["data_inserimento"],
             )
             self.refresh_all()
-            self._notify("Membro aggiunto", f"{values['family_name']} aggiunto a {STATUS_LABELS[status]}.")
+            self._notify(
+                tr("notify.member_added.title"),
+                tr("notify.member_added.body", name=values["family_name"], status=status_label(status)),
+            )
 
     def _on_edit(self, member: Member) -> None:
         dialog = MemberDialog(self, member=member)
@@ -118,19 +127,21 @@ class MainWindow(FluentWindow):
                 update_date=True,
             )
             self.refresh_all()
-            self._notify("Membro aggiornato", f"{values['family_name']} è stato aggiornato.")
+            self._notify(
+                tr("notify.member_updated.title"),
+                tr("notify.member_updated.body", name=values["family_name"]),
+            )
 
     def _on_delete(self, member: Member) -> None:
         box = MessageBox(
-            "Elimina membro",
-            f"Eliminare definitivamente {member.family_name} ({member.main_name})? "
-            "L'azione non è reversibile.",
+            tr("dialog.delete.title"),
+            tr("dialog.delete.body", name=member.family_name, main=member.main_name),
             self,
         )
         if box.exec():
             delete_member(self.conn, member.id)
             self.refresh_all()
-            self._notify("Membro eliminato", f"{member.family_name} è stato eliminato.")
+            self._notify(tr("notify.member_deleted.title"), tr("notify.member_deleted.body", name=member.family_name))
 
     def _on_move(self, member: Member) -> None:
         dialog = MoveDialog(self, member=member)
@@ -141,20 +152,20 @@ class MainWindow(FluentWindow):
             move_member_status(self.conn, member.id, target, note=note)
             self.refresh_all()
             self._notify(
-                "Membro spostato",
-                f"{member.family_name} spostato in {STATUS_LABELS[target]}.",
+                tr("notify.member_moved.title"),
+                tr("notify.member_moved.body", name=member.family_name, status=status_label(target)),
             )
 
     # -- Import / Export / Reset ---------------------------------------
     def _on_import(self) -> None:
-        path_str, _ = QFileDialog.getOpenFileName(self, "Seleziona file Excel da importare", "", "Excel (*.xlsx)")
+        path_str, _ = QFileDialog.getOpenFileName(self, tr("dialog.pick_import_file"), "", "Excel (*.xlsx)")
         if not path_str:
             return
         path = Path(path_str)
         try:
             preview = parse_workbook(path)
         except (KeyError, OSError) as exc:
-            self._notify("Import fallito", f"Impossibile leggere il file: {exc}", error=True)
+            self._notify(tr("notify.import_failed.title"), tr("notify.import_failed.body", error=exc), error=True)
             return
 
         duplicate_count = sum(
@@ -186,28 +197,28 @@ class MainWindow(FluentWindow):
 
         self.refresh_all()
         self._notify(
-            "Import completato",
-            f"Inseriti: {outcome.get('inserted', 0)} · Aggiornati: {outcome.get('updated', 0)} · "
-            f"Saltati: {outcome.get('skipped', 0)}",
+            tr("notify.import_done.title"),
+            tr(
+                "notify.import_done.body",
+                inserted=outcome.get("inserted", 0),
+                updated=outcome.get("updated", 0),
+                skipped=outcome.get("skipped", 0),
+            ),
         )
 
     def _on_export(self) -> None:
-        path_str, _ = QFileDialog.getSaveFileName(self, "Esporta in Excel", "gilda_export.xlsx", "Excel (*.xlsx)")
+        path_str, _ = QFileDialog.getSaveFileName(self, tr("dialog.pick_export_file"), "gilda_export.xlsx", "Excel (*.xlsx)")
         if not path_str:
             return
         try:
             export_workbook(self.conn, Path(path_str))
         except OSError as exc:
-            self._notify("Export fallito", str(exc), error=True)
+            self._notify(tr("notify.export_failed.title"), str(exc), error=True)
             return
-        self._notify("Export completato", f"File salvato in {path_str}")
+        self._notify(tr("notify.export_done.title"), tr("notify.export_done.body", path=path_str))
 
     def _on_reset(self) -> None:
-        warn = MessageBox(
-            "Azzera database",
-            "Stai per eliminare TUTTI i membri e lo storico movimenti. Questa è la prima delle due conferme richieste.",
-            self,
-        )
+        warn = MessageBox(tr("dialog.reset_warn.title"), tr("dialog.reset_warn.body"), self)
         if not warn.exec():
             return
 
@@ -218,4 +229,4 @@ class MainWindow(FluentWindow):
         backup_database(self.db_path, "reset")
         reset_database(self.conn)
         self.refresh_all()
-        self._notify("Database azzerato", "Tutti i dati sono stati eliminati. Backup salvato in backups/.")
+        self._notify(tr("notify.reset_done.title"), tr("notify.reset_done.body"))

@@ -2,6 +2,7 @@ from PySide6.QtCore import QDate, Qt
 from PySide6.QtWidgets import QCompleter, QHBoxLayout, QLabel, QWidget
 from qfluentwidgets import CalendarPicker, CheckBox, EditableComboBox, LineEdit, MessageBoxBase, PlainTextEdit, SubtitleLabel
 
+from gilda_app.i18n import tr
 from gilda_app.models.member import Member
 from gilda_app.utils.countries import ALL_COUNTRIES
 
@@ -29,19 +30,19 @@ class MemberDialog(MessageBoxBase):
         self.member = member
         is_edit = member is not None
 
-        self.titleLabel = SubtitleLabel("Modifica membro" if is_edit else "Nuovo membro", self)
+        self.titleLabel = SubtitleLabel(tr("dialog.edit_member.title") if is_edit else tr("dialog.new_member.title"), self)
         self.viewLayout.addWidget(self.titleLabel)
 
         self.family_edit = LineEdit(self)
-        self.family_edit.setPlaceholderText("Family Name (obbligatorio)")
+        self.family_edit.setPlaceholderText(tr("field.family_name.placeholder"))
         self.main_edit = LineEdit(self)
-        self.main_edit.setPlaceholderText("Main Name")
+        self.main_edit.setPlaceholderText(tr("field.main_name.placeholder"))
         self.discord_edit = LineEdit(self)
-        self.discord_edit.setPlaceholderText("Discord Name")
-        self.nation1_edit = _make_nation_combo(self, "Nazione")
-        self.nation2_edit = _make_nation_combo(self, "Seconda nazione (opzionale)")
+        self.discord_edit.setPlaceholderText(tr("field.discord_name.placeholder"))
+        self.nation1_edit = _make_nation_combo(self, tr("field.nation1.placeholder"))
+        self.nation2_edit = _make_nation_combo(self, tr("field.nation2.placeholder"))
 
-        self.date_check = CheckBox("Registra la data di ingresso in gilda", self)
+        self.date_check = CheckBox(tr("field.date_check"), self)
         self.date_picker = CalendarPicker(self)
         self.date_picker.setDate(QDate.currentDate())
         date_row = QWidget(self)
@@ -52,25 +53,25 @@ class MemberDialog(MessageBoxBase):
         self.date_check.toggled.connect(self.date_picker.setEnabled)
 
         self.note_edit = PlainTextEdit(self)
-        self.note_edit.setPlaceholderText("Note")
+        self.note_edit.setPlaceholderText(tr("field.note.placeholder"))
         self.note_edit.setFixedHeight(70)
 
         self.error_label = QLabel(self)
         self.error_label.setStyleSheet("color: #c42b1c;")
         self.error_label.hide()
 
-        for label_text, widget in [
-            ("Family Name", self.family_edit),
-            ("Main Name", self.main_edit),
-            ("Discord Name", self.discord_edit),
-            ("Nazione 1", self.nation1_edit),
-            ("Nazione 2", self.nation2_edit),
+        for label_key, widget in [
+            ("label.family_name", self.family_edit),
+            ("label.main_name", self.main_edit),
+            ("label.discord_name", self.discord_edit),
+            ("label.nation1", self.nation1_edit),
+            ("label.nation2", self.nation2_edit),
         ]:
-            self.viewLayout.addWidget(QLabel(label_text, self))
+            self.viewLayout.addWidget(QLabel(tr(label_key), self))
             self.viewLayout.addWidget(widget)
 
         self.viewLayout.addWidget(date_row)
-        self.viewLayout.addWidget(QLabel("Note", self))
+        self.viewLayout.addWidget(QLabel(tr("label.note"), self))
         self.viewLayout.addWidget(self.note_edit)
         self.viewLayout.addWidget(self.error_label)
         self.widget.setMinimumWidth(360)
@@ -95,12 +96,12 @@ class MemberDialog(MessageBoxBase):
         else:
             self.date_check.setChecked(True)
 
-        self.yesButton.setText("Salva")
-        self.cancelButton.setText("Annulla")
+        self.yesButton.setText(tr("button.save"))
+        self.cancelButton.setText(tr("button.cancel"))
 
     def validate(self) -> bool:
         if not self.family_edit.text().strip():
-            self.error_label.setText("Family Name è obbligatorio.")
+            self.error_label.setText(tr("error.family_name_required"))
             self.error_label.show()
             return False
         return True

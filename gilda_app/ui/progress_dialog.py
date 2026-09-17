@@ -2,13 +2,15 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QDialog, QLabel, QVBoxLayout
 from qfluentwidgets import ProgressBar
 
+from gilda_app.i18n import tr
+
 
 class ImportProgressDialog(QDialog):
     """Popup non interattivo con barra di avanzamento, mostrato durante l'import."""
 
-    def __init__(self, parent=None, title: str = "Importazione in corso..."):
+    def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle(title)
+        self.setWindowTitle(tr("progress.import_title"))
         self.setModal(True)
         self.setFixedSize(360, 110)
         self.setWindowFlags(Qt.Dialog | Qt.CustomizeWindowHint | Qt.WindowTitleHint)
@@ -17,7 +19,7 @@ class ImportProgressDialog(QDialog):
         layout.setContentsMargins(20, 20, 20, 20)
         layout.setSpacing(12)
 
-        self.label = QLabel("Preparazione...", self)
+        self.label = QLabel(tr("progress.import_preparing"), self)
         layout.addWidget(self.label)
 
         self.bar = ProgressBar(self)
@@ -27,4 +29,4 @@ class ImportProgressDialog(QDialog):
     def set_progress(self, current: int, total: int) -> None:
         percent = int(current / total * 100) if total else 100
         self.bar.setValue(percent)
-        self.label.setText(f"Importazione in corso... {current}/{total} righe")
+        self.label.setText(tr("progress.import_status", current=current, total=total))

@@ -163,3 +163,17 @@ def reset_database(conn: sqlite3.Connection) -> None:
     conn.execute("DELETE FROM members")
     conn.execute("DELETE FROM sqlite_sequence WHERE name IN ('members', 'member_nations', 'status_history')")
     conn.commit()
+
+
+def get_setting(conn: sqlite3.Connection, key: str, default: str | None = None) -> str | None:
+    row = conn.execute("SELECT value FROM app_settings WHERE key = ?", (key,)).fetchone()
+    return row["value"] if row else default
+
+
+def set_setting(conn: sqlite3.Connection, key: str, value: str) -> None:
+    conn.execute(
+        "INSERT INTO app_settings (key, value) VALUES (?, ?) "
+        "ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+        (key, value),
+    )
+    conn.commit()

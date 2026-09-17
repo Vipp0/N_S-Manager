@@ -1,14 +1,26 @@
 from PySide6.QtCore import Qt, Signal
+from PySide6.QtGui import QFont, QGuiApplication
 from PySide6.QtWidgets import QAbstractItemView, QHBoxLayout, QTableWidgetItem, QVBoxLayout, QWidget
-from PySide6.QtGui import QGuiApplication
 from qfluentwidgets import Action, FluentIcon as FIF
 from qfluentwidgets import PrimaryPushButton, RoundMenu, SearchLineEdit, StrongBodyLabel, TableWidget
 
-from gilda_app.models.member import STATUS_LABELS, Member
+from gilda_app.i18n import tr
+from gilda_app.models.member import Member, status_label
 from gilda_app.utils.flags import combined_flag_icon, nations_text
 
-COLUMNS = ["Family Name", "Main Name", "Nation", "Discord Name", "Note"]
 NATION_COLUMN = 2
+TABLE_FONT = QFont("Segoe UI", 11)
+HEADER_FONT = QFont("Segoe UI", 11, QFont.DemiBold)
+
+
+def _columns() -> list[str]:
+    return [
+        tr("column.family_name"),
+        tr("column.main_name"),
+        tr("column.nation"),
+        tr("column.discord_name"),
+        tr("column.note"),
+    ]
 
 
 class MemberListPage(QWidget):
@@ -23,18 +35,19 @@ class MemberListPage(QWidget):
         super().__init__(parent)
         self.status = status
         self._members: list[Member] = []
+        self._columns = _columns()
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(24, 20, 24, 20)
         layout.setSpacing(12)
 
         header = QHBoxLayout()
-        title = StrongBodyLabel(STATUS_LABELS[status], self)
+        title = StrongBodyLabel(status_label(status), self)
         self.search_box = SearchLineEdit(self)
-        self.search_box.setPlaceholderText("Cerca per nome, nazione, discord...")
+        self.search_box.setPlaceholderText(tr("search.placeholder"))
         self.search_box.setFixedWidth(320)
         self.search_box.textChanged.connect(self._apply_filter)
-        add_btn = PrimaryPushButton(FIF.ADD, "Aggiungi membro", self)
+        add_btn = PrimaryPushButton(FIF.ADD, tr("button.add_member"), self)
         add_btn.clicked.connect(lambda: self.add_requested.emit(self.status))
         header.addWidget(title)
         header.addStretch(1)
@@ -43,8 +56,11 @@ class MemberListPage(QWidget):
         layout.addLayout(header)
 
         self.table = TableWidget(self)
-        self.table.setColumnCount(len(COLUMNS))
-        self.table.setHorizontalHeaderLabels(COLUMNS)
+        self.table.setColumnCount(len(self._columns))
+        self.table.setHorizontalHeaderLabels(self._columns)
+        self.table.setFont(TABLE_FONT)
+        self.table.horizontalHeader().setFont(HEADER_FONT)
+        self.table.verticalHeader().setDefaultSectionSize(44)
         self.table.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.table.setSelectionMode(QAbstractItemView.SingleSelection)
@@ -117,19 +133,19 @@ class MemberListPage(QWidget):
         self.table.selectRow(row)
 
         menu = RoundMenu(parent=self.table)
-        menu.addAction(Action(FIF.COPY, "Copia riga", triggered=lambda: self._copy_row(row)))
+        menu.addAction(Action(FIF.COPY, tr("menu.copy_row"), triggered=lambda: self._copy_row(row)))
         if col >= 0:
-            field_name = COLUMNS[col]
+            field_name = self._columns[col]
             menu.addAction(
-                Action(FIF.COPY, f"Copia {field_name}", triggered=lambda: self._copy_field(row, col))
+                Action(FIF.COPY, tr("menu.copy_field", field=field_name), triggered=lambda: self._copy_field(row, col))
             )
         menu.addSeparator()
-        menu.addAction(Action(FIF.EDIT, "Modifica", triggered=lambda: self.edit_requested.emit(member)))
+        menu.addAction(Action(FIF.EDIT, tr("menu.edit"), triggered=lambda: self.edit_requested.emit(member)))
         menu.addAction(
-            Action(FIF.MOVE, "Sposta in un'altra lista", triggered=lambda: self.move_requested.emit(member))
+            Action(FIF.MOVE, tr("menu.move"), triggered=lambda: self.move_requested.emit(member))
         )
         menu.addSeparator()
-        menu.addAction(Action(FIF.DELETE, "Elimina", triggered=lambda: self.delete_requested.emit(member)))
+        menu.addAction(Action(FIF.DELETE, tr("menu.delete"), triggered=lambda: self.delete_requested.emit(member)))
         menu.exec(self.table.viewport().mapToGlobal(pos))
 
     def _copy_row(self, row: int) -> None:

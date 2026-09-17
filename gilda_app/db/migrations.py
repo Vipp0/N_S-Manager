@@ -41,7 +41,18 @@ def _upgrade_1(conn: sqlite3.Connection) -> None:
     )
 
 
-MIGRATIONS = [_upgrade_1]
+def _upgrade_2(conn: sqlite3.Connection) -> None:
+    conn.executescript(
+        """
+        CREATE TABLE app_settings (
+            key TEXT PRIMARY KEY,
+            value TEXT
+        );
+        """
+    )
+
+
+MIGRATIONS = [_upgrade_1, _upgrade_2]
 
 
 def migrate(conn: sqlite3.Connection) -> None:

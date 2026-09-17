@@ -1,15 +1,14 @@
 from dataclasses import dataclass, field
 
+from gilda_app.i18n import tr
 
 STATUS_ATTIVO = "attivo"
 STATUS_EX_MEMBRO = "ex_membro"
 STATUS_BANNATO = "bannato"
 
-STATUS_LABELS = {
-    STATUS_ATTIVO: "Attuali",
-    STATUS_EX_MEMBRO: "Ex membri",
-    STATUS_BANNATO: "Bannati",
-}
+
+def status_label(status: str) -> str:
+    return tr(f"status.{status}")
 
 
 @dataclass

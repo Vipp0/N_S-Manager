@@ -1,8 +1,9 @@
 from PySide6.QtWidgets import QButtonGroup, QLabel
 from qfluentwidgets import MessageBoxBase, RadioButton, SubtitleLabel
 
+from gilda_app.i18n import tr
 from gilda_app.importer.excel_import import ImportPreview
-from gilda_app.models.member import STATUS_LABELS
+from gilda_app.models.member import status_label
 
 
 class ImportPreviewDialog(MessageBoxBase):
@@ -12,30 +13,27 @@ class ImportPreviewDialog(MessageBoxBase):
         super().__init__(parent)
         self.preview = preview
 
-        self.titleLabel = SubtitleLabel("Anteprima import", self)
+        self.titleLabel = SubtitleLabel(tr("dialog.import_preview.title"), self)
         self.viewLayout.addWidget(self.titleLabel)
 
         for report in preview.sheet_reports:
-            text = (
-                f"{report.sheet_name} → {STATUS_LABELS[report.status]}: "
-                f"{report.imported_rows} righe valide, {report.skipped_blank} righe vuote scartate"
+            text = tr(
+                "import.sheet_summary",
+                sheet=report.sheet_name,
+                status=status_label(report.status),
+                imported=report.imported_rows,
+                skipped=report.skipped_blank,
             )
             self.viewLayout.addWidget(QLabel(text, self))
 
-        self.viewLayout.addWidget(QLabel(f"\nTotale righe da importare: {len(preview.rows)}", self))
+        self.viewLayout.addWidget(QLabel(tr("import.total_rows", total=len(preview.rows)), self))
 
         if duplicate_count > 0:
-            self.viewLayout.addWidget(
-                QLabel(
-                    f"⚠ {duplicate_count} nominativi risultano già presenti nel database "
-                    "(stesso Family Name + Main Name). Cosa vuoi fare con questi duplicati?",
-                    self,
-                )
-            )
+            self.viewLayout.addWidget(QLabel(tr("import.duplicate_warning", count=duplicate_count), self))
             self.button_group = QButtonGroup(self)
-            self.skip_radio = RadioButton("Salta i duplicati (non modificarli)", self)
-            self.update_radio = RadioButton("Aggiorna i duplicati esistenti con i nuovi dati", self)
-            self.insert_radio = RadioButton("Inserisci comunque come nuove voci separate", self)
+            self.skip_radio = RadioButton(tr("import.policy_skip"), self)
+            self.update_radio = RadioButton(tr("import.policy_update"), self)
+            self.insert_radio = RadioButton(tr("import.policy_insert"), self)
             self.skip_radio.setChecked(True)
             for rb in (self.skip_radio, self.update_radio, self.insert_radio):
                 self.button_group.addButton(rb)
@@ -44,8 +42,8 @@ class ImportPreviewDialog(MessageBoxBase):
             self.skip_radio = self.update_radio = self.insert_radio = None
 
         self.widget.setMinimumWidth(420)
-        self.yesButton.setText("Conferma import")
-        self.cancelButton.setText("Annulla")
+        self.yesButton.setText(tr("button.confirm_import"))
+        self.cancelButton.setText(tr("button.cancel"))
 
     def duplicate_policy(self) -> str:
         if self.update_radio is not None and self.update_radio.isChecked():
