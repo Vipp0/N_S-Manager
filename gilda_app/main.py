@@ -5,10 +5,8 @@ from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QApplication
 from qfluentwidgets import MessageBox
 
-from gilda_app.db.backup import backup_database
 from gilda_app.db.database import connect, get_setting
 from gilda_app.i18n import DEFAULT_LANGUAGE, set_language, tr
-from gilda_app.importer.excel_import import run_initial_import
 from gilda_app.ui.main_window import MainWindow
 from gilda_app.utils.paths import db_path
 
@@ -16,8 +14,10 @@ APP_FONT_FAMILY = "Segoe UI"
 APP_FONT_POINT_SIZE = 11
 
 
-def _maybe_run_initial_import(conn, db_file: Path, parent) -> None:
-    """Se il DB è vuoto, propone di importare il file Excel esistente."""
+def _maybe_run_initial_import(conn, db_file: Path, parent: MainWindow) -> None:
+    """Se il DB è vuoto, propone di importare il file Excel esistente. Usa la stessa
+    anteprima (con segnalazione dei doppioni) del menu Impostazioni → Importa, invece
+    di un import automatico "alla cieca" con policy fissa."""
     row = conn.execute("SELECT COUNT(*) FROM members").fetchone()
     if row[0] > 0:
         return
@@ -30,14 +30,7 @@ def _maybe_run_initial_import(conn, db_file: Path, parent) -> None:
             parent,
         )
         if box.exec():
-            backup_database(db_file, "initial_import")
-            outcome = run_initial_import(conn, default_xlsx)
-            summary = "\n".join(
-                tr("import.sheet_line", sheet=r.sheet_name, imported=r.imported_rows, skipped=r.skipped_blank)
-                for r in outcome["sheet_reports"]
-            )
-            summary += tr("import.duplicates_skipped", count=outcome["skipped_duplicate"])
-            MessageBox(tr("dialog.initial_import_done.title"), summary, parent).exec()
+            parent.run_import(default_xlsx)
 
 
 def main() -> None:

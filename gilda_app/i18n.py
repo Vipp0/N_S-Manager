@@ -25,15 +25,6 @@ STRINGS: dict[str, dict[str, str]] = {
         "it": 'Il database è vuoto. Importare i dati da "{filename}" trovato nella cartella?',
         "en": 'The database is empty. Import data from "{filename}" found in the folder?',
     },
-    "dialog.initial_import_done.title": {"it": "Import completato", "en": "Import complete"},
-    "import.sheet_line": {
-        "it": "{sheet}: {imported} righe importate, {skipped} scartate",
-        "en": "{sheet}: {imported} rows imported, {skipped} skipped",
-    },
-    "import.duplicates_skipped": {
-        "it": "\nDuplicati incrociati saltati: {count}",
-        "en": "\nCross-sheet duplicates skipped: {count}",
-    },
 
     # -- Tabella membri --------------------------------------------------
     "column.number": {"it": "N.", "en": "No."},
@@ -126,9 +117,22 @@ STRINGS: dict[str, dict[str, str]] = {
         "en": "{sheet} → {status}: {imported} valid rows, {skipped} blank rows skipped",
     },
     "import.total_rows": {"it": "\nTotale righe da importare: {total}", "en": "\nTotal rows to import: {total}"},
+    "import.intra_duplicate_warning": {
+        "it": "\n⚠ {count} nominativi compaiono più volte nel file stesso (stesso Family Name + Main Name):",
+        "en": "\n⚠ {count} names appear more than once within the file itself (same Family Name + Main Name):",
+    },
+    "import.intra_duplicate_line": {
+        "it": "  {family} {main} — {sheet1} riga {row1} → {sheet2} riga {row2}",
+        "en": "  {family} {main} — {sheet1} row {row1} → {sheet2} row {row2}",
+    },
+    "import.intra_duplicate_fields_differ": {
+        "it": "(nazione o discord diversi tra le due righe: controlla)",
+        "en": "(nation or discord differ between the two rows: check)",
+    },
+    "import.intra_duplicate_more": {"it": "  ... e altri {count}", "en": "  ... and {count} more"},
     "import.duplicate_warning": {
-        "it": "⚠ {count} nominativi risultano già presenti nel database (stesso Family Name + Main Name). Cosa vuoi fare con questi duplicati?",
-        "en": "⚠ {count} names are already present in the database (same Family Name + Main Name). What do you want to do with these duplicates?",
+        "it": "\n⚠ In totale {count} duplicati (nel database e/o nel file). Cosa vuoi fare con questi duplicati?",
+        "en": "\n⚠ {count} duplicates in total (in the database and/or in the file). What do you want to do with these duplicates?",
     },
     "import.policy_skip": {"it": "Salta i duplicati (non modificarli)", "en": "Skip duplicates (don't modify them)"},
     "import.policy_update": {

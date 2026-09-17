@@ -23,6 +23,8 @@ class ImportRow:
     discord_name: str
     nations: list[str]
     status: str
+    sheet_name: str = ""
+    row_number: int = 0
 
 
 @dataclass
@@ -34,9 +36,42 @@ class SheetReport:
 
 
 @dataclass
+class DuplicateEntry:
+    """Due righe del file con lo stesso Family Name + Main Name (nello stesso foglio o
+    in fogli diversi): con la policy 'salta' scelta nell'anteprima, solo la prima viene
+    tenuta. fields_differ segnala quando conviene controllare a mano quale versione è
+    quella giusta, invece di scartare la seconda alla cieca."""
+
+    first: ImportRow
+    duplicate: ImportRow
+    fields_differ: bool
+
+
+@dataclass
 class ImportPreview:
     rows: list[ImportRow]
     sheet_reports: list[SheetReport] = field(default_factory=list)
+
+
+def find_intra_file_duplicates(rows: list[ImportRow]) -> list[DuplicateEntry]:
+    """Trova righe ripetute con lo stesso Family Name + Main Name all'interno dello
+    stesso file (es. la stessa persona inserita due volte per errore in "Old Members").
+    Non tocca il database: serve solo a mostrarle nell'anteprima import prima di
+    decidere una policy, così non vengono scartate/aggiornate "alla cieca"."""
+    seen: dict[tuple[str, str], ImportRow] = {}
+    duplicates: list[DuplicateEntry] = []
+    for row in rows:
+        key = (row.family_name.strip().lower(), (row.main_name or "").strip().lower())
+        first = seen.get(key)
+        if first is None:
+            seen[key] = row
+            continue
+        fields_differ = (
+            sorted(n.strip().lower() for n in first.nations) != sorted(n.strip().lower() for n in row.nations)
+            or (first.discord_name or "").strip().lower() != (row.discord_name or "").strip().lower()
+        )
+        duplicates.append(DuplicateEntry(first=first, duplicate=row, fields_differ=fields_differ))
+    return duplicates
 
 
 def split_nations(raw: str | None) -> list[str]:
@@ -46,13 +81,13 @@ def split_nations(raw: str | None) -> list[str]:
     return parts[:2]
 
 
-def _parse_sheet(ws, has_header: bool, skip_first_col: bool) -> tuple[list[ImportRow], int]:
+def _parse_sheet(ws, has_header: bool, skip_first_col: bool, sheet_name: str) -> tuple[list[ImportRow], int]:
     rows: list[ImportRow] = []
     skipped = 0
     min_row = 2 if has_header else 1
     offset = 1 if skip_first_col else 0
 
-    for values in ws.iter_rows(min_row=min_row, values_only=True):
+    for row_number, values in enumerate(ws.iter_rows(min_row=min_row, values_only=True), start=min_row):
         family = values[offset] if len(values) > offset else None
         main = values[offset + 1] if len(values) > offset + 1 else None
         nation_raw = values[offset + 2] if len(values) > offset + 2 else None
@@ -70,6 +105,8 @@ def _parse_sheet(ws, has_header: bool, skip_first_col: bool) -> tuple[list[Impor
                 discord_name=str(discord).strip() if discord else "",
                 nations=split_nations(nation_raw),
                 status="",
+                sheet_name=sheet_name,
+                row_number=row_number,
             )
         )
     return rows, skipped
@@ -82,7 +119,7 @@ def parse_workbook(path: Path) -> ImportPreview:
 
     for sheet_name, status, has_header, skip_first_col in SHEET_SPECS:
         ws = wb[sheet_name]
-        rows, skipped = _parse_sheet(ws, has_header, skip_first_col)
+        rows, skipped = _parse_sheet(ws, has_header, skip_first_col, sheet_name)
         for row in rows:
             row.status = status
         all_rows.extend(rows)

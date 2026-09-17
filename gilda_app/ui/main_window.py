@@ -20,7 +20,7 @@ from gilda_app.db.database import (
 )
 from gilda_app.i18n import tr
 from gilda_app.importer.excel_export import export_workbook
-from gilda_app.importer.excel_import import import_row, parse_workbook
+from gilda_app.importer.excel_import import find_intra_file_duplicates, import_row, parse_workbook
 from gilda_app.models.member import STATUS_ATTIVO, STATUS_BANNATO, STATUS_EX_MEMBRO, Member, status_label
 from gilda_app.ui.global_search import GlobalSearchDialog
 from gilda_app.ui.import_dialog import ImportPreviewDialog
@@ -224,7 +224,13 @@ class MainWindow(FluentWindow):
         path_str, _ = QFileDialog.getOpenFileName(self, tr("dialog.pick_import_file"), "", "Excel (*.xlsx)")
         if not path_str:
             return
-        path = Path(path_str)
+        self.run_import(Path(path_str))
+
+    def run_import(self, path: Path) -> None:
+        """Anteprima + import di un file Excel: usato sia dal menu Impostazioni sia
+        dal primo avvio (import automatico proposto se il database è vuoto), così
+        entrambi i casi passano dalla stessa anteprima che segnala i doppioni invece
+        di scartarli silenziosamente con la policy 'salta' di default."""
         try:
             preview = parse_workbook(path)
         except (KeyError, OSError) as exc:
@@ -234,8 +240,9 @@ class MainWindow(FluentWindow):
         duplicate_count = sum(
             1 for row in preview.rows if find_duplicate(self.conn, row.family_name, row.main_name) is not None
         )
+        intra_duplicates = find_intra_file_duplicates(preview.rows)
 
-        dialog = ImportPreviewDialog(self, preview, duplicate_count)
+        dialog = ImportPreviewDialog(self, preview, duplicate_count, intra_duplicates)
         if not dialog.exec():
             return
 

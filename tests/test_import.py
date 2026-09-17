@@ -4,7 +4,7 @@ from pathlib import Path
 import pytest
 
 from gilda_app.db.migrations import migrate
-from gilda_app.importer.excel_import import run_initial_import
+from gilda_app.importer.excel_import import find_intra_file_duplicates, parse_workbook, run_initial_import
 from gilda_app.models.member import STATUS_ATTIVO, STATUS_BANNATO, STATUS_EX_MEMBRO
 
 XLSX_PATH = Path(__file__).resolve().parent.parent / "List 2026.xlsx"
@@ -29,6 +29,21 @@ def test_initial_import_counts(conn):
 
     total_in_db = conn.execute("SELECT COUNT(*) FROM members").fetchone()[0]
     assert total_in_db == outcome["inserted"]
+
+
+def test_find_intra_file_duplicates():
+    preview = parse_workbook(XLSX_PATH)
+    duplicates = find_intra_file_duplicates(preview.rows)
+
+    assert len(duplicates) == 6
+    names = {(d.duplicate.family_name, d.duplicate.main_name) for d in duplicates}
+    assert ("MorningStarr", "DevilentX") in names
+
+    morningstarr = next(d for d in duplicates if d.duplicate.family_name == "MorningStarr")
+    assert morningstarr.fields_differ is True
+
+    smushybois = next(d for d in duplicates if d.duplicate.family_name == "Smushybois")
+    assert smushybois.fields_differ is False
 
 
 def test_double_nation_split(conn):
