@@ -11,6 +11,7 @@ a = Analysis(
     datas=[
         ("gilda_app/resources/flags", "gilda_app/resources/flags"),
         ("gilda_app/resources/logo.png", "gilda_app/resources"),
+        ("gilda_app/resources/app_icon.png", "gilda_app/resources"),
     ],
     hiddenimports=[],
     hookspath=[],
@@ -31,7 +32,7 @@ exe = EXE(
     strip=False,
     upx=False,
     console=False,
-    icon="gilda_app/resources/logo.ico",
+    icon="gilda_app/resources/app_icon.ico",
 )
 
 coll = COLLECT(

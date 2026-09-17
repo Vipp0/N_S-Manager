@@ -35,6 +35,7 @@ from gilda_app.utils.restart import restart_app
 
 STATUS_ORDER = [STATUS_ATTIVO, STATUS_EX_MEMBRO, STATUS_BANNATO]
 LOGO_PATH = Path(__file__).resolve().parent.parent / "resources" / "logo.png"
+APP_ICON_PATH = Path(__file__).resolve().parent.parent / "resources" / "app_icon.png"
 
 
 class MainWindow(FluentWindow):
@@ -77,20 +78,24 @@ class MainWindow(FluentWindow):
         self.refresh_all()
 
     def _setup_logo(self) -> None:
+        if APP_ICON_PATH.exists():
+            self.setWindowIcon(QIcon(str(APP_ICON_PATH)))
+
+        # In più, mostra il logo "Black Desert Online" in cima al pannello di
+        # navigazione (in alto a sinistra nell'interfaccia). panel.topLayout non è
+        # un'API pubblica documentata di qfluentwidgets: se in una versione futura
+        # cambiasse struttura, saltiamo semplicemente questa parte invece di far
+        # crashare l'app.
         if not LOGO_PATH.exists():
             return
-        icon = QIcon(str(LOGO_PATH))
-        self.setWindowIcon(icon)
-
-        # In più, mostra il logo in cima al pannello di navigazione (in alto a
-        # sinistra nell'interfaccia). panel.topLayout non è un'API pubblica
-        # documentata di qfluentwidgets: se in una versione futura cambiasse
-        # struttura, saltiamo semplicemente questa parte invece di far crashare l'app.
         try:
-            pixmap = QPixmap(str(LOGO_PATH)).scaledToHeight(28, Qt.SmoothTransformation)
+            # logo.png è già ritagliato stretto al contenuto reale (niente bordo
+            # trasparente), quindi scalarlo per altezza dà una scritta leggibile
+            # invece di rimpicciolire anche il padding vuoto attorno al testo.
+            pixmap = QPixmap(str(LOGO_PATH)).scaledToHeight(34, Qt.SmoothTransformation)
             logo_label = QLabel(self.navigationInterface.panel)
             logo_label.setPixmap(pixmap)
-            logo_label.setFixedSize(40, 36)
+            logo_label.setFixedSize(pixmap.width() + 12, 42)
             logo_label.setAlignment(Qt.AlignCenter)
             self.navigationInterface.panel.topLayout.insertWidget(0, logo_label, 0, Qt.AlignTop)
         except AttributeError:
