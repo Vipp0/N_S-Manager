@@ -1,4 +1,4 @@
-from PySide6.QtCharts import QBarCategoryAxis, QBarSeries, QBarSet, QChart, QChartView, QLineSeries, QValueAxis
+from PySide6.QtCharts import QAbstractBarSeries, QBarCategoryAxis, QBarSeries, QBarSet, QChart, QChartView, QLineSeries, QValueAxis
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QPainter
 from PySide6.QtWidgets import QGridLayout, QLabel, QScrollArea, QVBoxLayout, QWidget
@@ -35,6 +35,18 @@ def _list_card(title: str, lines: list[str]) -> CardWidget:
     return card
 
 
+def _integer_value_axis(min_value: int, max_value: int) -> QValueAxis:
+    """Asse dei valori con soli tick interi (niente ".0"/".5"): i nostri dati sono
+    sempre conteggi di membri, mai frazionari."""
+    axis = QValueAxis()
+    axis.setLabelFormat("%d")
+    if max_value <= min_value:
+        max_value = min_value + 1
+    axis.setRange(min_value, max_value)
+    axis.setTickCount(min(max_value - min_value, 10) + 1)
+    return axis
+
+
 class StatsPage(QScrollArea):
     """Dashboard statistiche sull'elenco membri."""
 
@@ -58,6 +70,11 @@ class StatsPage(QScrollArea):
             self._clear_item(item)
 
         conn = self.get_conn()
+        # Stessa condizione usata per la hall of fame: finché non ci sono abbastanza
+        # membri con una data di ingresso realmente nota, anche le statistiche che
+        # dipendono da dati "recenti" mostrerebbero solo il rumore del giorno
+        # dell'import (tutti i movimenti registrati nello stesso istante).
+        has_real_data = stats.dated_members_count(conn, STATUS_ATTIVO) >= MIN_DATED_MEMBERS_FOR_HALL_OF_FAME
 
         counts = stats.counts_by_status(conn)
         cards_layout = QGridLayout()
@@ -70,19 +87,20 @@ class StatsPage(QScrollArea):
         avg_tenure = stats.avg_tenure_days(conn)
         tenure_text = tr("stats.avg_tenure_days", days=avg_tenure) if avg_tenure is not None else tr("stats.avg_tenure_unknown")
         rate = stats.rejoin_rate(conn)
-        recent = stats.recent_changes(conn, days=30)
 
         cards_layout2 = QGridLayout()
         cards_layout2.addWidget(_stat_card(tr("stats.avg_tenure"), tenure_text), 0, 0)
         cards_layout2.addWidget(_stat_card(tr("stats.rejoin_rate"), f"{rate:.1f}%"), 0, 1)
-        cards_layout2.addWidget(
-            _stat_card(
-                tr("stats.recent_changes"),
-                f"+{recent.get(STATUS_ATTIVO, 0)} / -{recent.get(STATUS_EX_MEMBRO, 0) + recent.get(STATUS_BANNATO, 0)}",
-            ),
-            0,
-            2,
-        )
+        if has_real_data:
+            recent = stats.recent_changes(conn, days=30)
+            cards_layout2.addWidget(
+                _stat_card(
+                    tr("stats.recent_changes"),
+                    f"+{recent.get(STATUS_ATTIVO, 0)} / -{recent.get(STATUS_EX_MEMBRO, 0) + recent.get(STATUS_BANNATO, 0)}",
+                ),
+                0,
+                2,
+            )
         self.main_layout.addLayout(cards_layout2)
 
         self.main_layout.addWidget(self._trend_chart_card(conn))
@@ -111,7 +129,7 @@ class StatsPage(QScrollArea):
         # ingresso realmente nota: appena importato il database, tutti risultano
         # "iscritti" lo stesso giorno (quello dell'import), quindi la classifica
         # sarebbe priva di significato finché non si accumulano dati reali.
-        if stats.dated_members_count(conn, STATUS_ATTIVO) >= MIN_DATED_MEMBERS_FOR_HALL_OF_FAME:
+        if has_real_data:
             hall_of_fame = stats.hall_of_fame(conn)
             self.main_layout.addWidget(
                 _list_card(
@@ -156,7 +174,8 @@ class StatsPage(QScrollArea):
         chart.addAxis(axis_x, Qt.AlignBottom)
         series.attachAxis(axis_x)
 
-        axis_y = QValueAxis()
+        values = [v for _, v in trend] or [0]
+        axis_y = _integer_value_axis(min(0, min(values)), max(values))
         chart.addAxis(axis_y, Qt.AlignLeft)
         series.attachAxis(axis_y)
 
@@ -188,6 +207,9 @@ class StatsPage(QScrollArea):
 
         series = QBarSeries()
         series.append(bar_set)
+        series.setLabelsVisible(True)
+        series.setLabelsPosition(QAbstractBarSeries.LabelsInsideEnd)
+        series.setLabelsFormat("@value")
 
         chart = QChart()
         chart.addSeries(series)
@@ -199,7 +221,8 @@ class StatsPage(QScrollArea):
         chart.addAxis(axis_x, Qt.AlignBottom)
         series.attachAxis(axis_x)
 
-        axis_y = QValueAxis()
+        counts = [cnt for _, cnt in top_nations] or [0]
+        axis_y = _integer_value_axis(0, max(counts))
         chart.addAxis(axis_y, Qt.AlignLeft)
         series.attachAxis(axis_y)
 

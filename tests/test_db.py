@@ -10,6 +10,7 @@ from gilda_app.db.database import (
     move_member_status,
     reset_database,
     update_member,
+    update_status_history_entry,
 )
 from gilda_app.db.migrations import migrate
 from gilda_app.models.member import STATUS_ATTIVO, STATUS_BANNATO, STATUS_EX_MEMBRO
@@ -80,3 +81,46 @@ def test_reset_database(conn):
 
     new_id = add_member(conn, "Verdi", "Franco", "verdi#1234", ["Italy"], STATUS_ATTIVO)
     assert new_id == 1
+
+
+def test_add_member_with_join_date_reflects_in_history(conn):
+    member_id = add_member(
+        conn, "Rossi", "Mario", "rossi#1234", ["Italy"], STATUS_ATTIVO,
+        data_inserimento="2024-01-15", note="amico di Luigi",
+    )
+    history = get_status_history(conn, member_id)
+    assert len(history) == 1
+    assert history[0]["changed_at"].startswith("2024-01-15")
+    # la nota generale del membro non deve finire nello storico movimenti
+    assert history[0]["note"] is None
+
+
+def test_update_member_syncs_join_history_entry(conn):
+    member_id = add_member(conn, "Rossi", "Mario", "rossi#1234", ["Italy"], STATUS_ATTIVO)
+    update_member(
+        conn, member_id, "Rossi", "Mario", "rossi#1234", ["Italy"],
+        data_inserimento="2023-05-01", update_date=True,
+    )
+    history = get_status_history(conn, member_id)
+    assert history[0]["changed_at"].startswith("2023-05-01")
+
+
+def test_update_status_history_entry_syncs_join_date(conn):
+    member_id = add_member(conn, "Rossi", "Mario", "rossi#1234", ["Italy"], STATUS_ATTIVO)
+    move_member_status(conn, member_id, STATUS_BANNATO, note="prima nota")
+
+    history = get_status_history(conn, member_id)
+    join_entry_id = history[0]["id"]
+    ban_entry_id = history[1]["id"]
+
+    update_status_history_entry(conn, join_entry_id, "2022-03-10", None)
+    update_status_history_entry(conn, ban_entry_id, "2022-04-01", "nota corretta")
+
+    updated = get_status_history(conn, member_id)
+    assert updated[0]["changed_at"].startswith("2022-03-10")
+    assert updated[1]["changed_at"].startswith("2022-04-01")
+    assert updated[1]["note"] == "nota corretta"
+
+    # correggere la voce di ingresso deve aggiornare anche members.data_inserimento
+    member = get_members(conn, STATUS_BANNATO)[0]
+    assert member.data_inserimento == "2022-03-10"

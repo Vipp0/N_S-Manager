@@ -44,13 +44,26 @@ def add_member(
             "INSERT INTO member_nations (member_id, nation, ord) VALUES (?, ?, ?)",
             (member_id, nation, ord_idx),
         )
-    conn.execute(
-        """
-        INSERT INTO status_history (member_id, previous_status, new_status, note)
-        VALUES (?, NULL, ?, ?)
-        """,
-        (member_id, status, note),
-    )
+    # La nota generale del membro non è una nota sul movimento (quelle si aggiungono
+    # spostando il membro, es. motivo del ban): qui lo storico resta senza nota.
+    # changed_at riflette data_inserimento quando nota, altrimenti il momento attuale
+    # (record storico/importato senza data nota).
+    if data_inserimento:
+        conn.execute(
+            """
+            INSERT INTO status_history (member_id, previous_status, new_status, changed_at, note)
+            VALUES (?, NULL, ?, ?, NULL)
+            """,
+            (member_id, status, f"{data_inserimento} 00:00:00"),
+        )
+    else:
+        conn.execute(
+            """
+            INSERT INTO status_history (member_id, previous_status, new_status, note)
+            VALUES (?, NULL, ?, NULL)
+            """,
+            (member_id, status),
+        )
     if commit:
         conn.commit()
     return member_id
@@ -79,6 +92,14 @@ def update_member(
             WHERE id = ?
             """,
             (family_name, main_name, discord_name, note, data_inserimento, member_id),
+        )
+        # Tiene sincronizzata la voce "ingresso" (previous_status NULL) dello storico
+        # con la data corretta a mano nel form, così lo storico mostra sempre quella.
+        changed_at = f"{data_inserimento} 00:00:00" if data_inserimento else None
+        conn.execute(
+            "UPDATE status_history SET changed_at = COALESCE(?, changed_at) "
+            "WHERE member_id = ? AND previous_status IS NULL",
+            (changed_at, member_id),
         )
     else:
         conn.execute(
@@ -155,6 +176,25 @@ def get_status_history(conn: sqlite3.Connection, member_id: int) -> list[sqlite3
     return conn.execute(
         "SELECT * FROM status_history WHERE member_id = ? ORDER BY changed_at", (member_id,)
     ).fetchall()
+
+
+def update_status_history_entry(conn: sqlite3.Connection, history_id: int, date: str, note: str | None) -> None:
+    """Corregge data/nota di una voce di storico già registrata (es. per inserire a
+    posteriori una data reale al posto di quella automatica). Se la voce corretta è
+    quella di ingresso (previous_status NULL), sincronizza anche members.data_inserimento,
+    che resta la fonte usata per la hall of fame."""
+    row = conn.execute(
+        "SELECT member_id, previous_status FROM status_history WHERE id = ?", (history_id,)
+    ).fetchone()
+    if row is None:
+        return
+    conn.execute(
+        "UPDATE status_history SET changed_at = ?, note = ? WHERE id = ?",
+        (f"{date} 00:00:00", note, history_id),
+    )
+    if row["previous_status"] is None:
+        conn.execute("UPDATE members SET data_inserimento = ? WHERE id = ?", (date, row["member_id"]))
+    conn.commit()
 
 
 def reset_database(conn: sqlite3.Connection) -> None:

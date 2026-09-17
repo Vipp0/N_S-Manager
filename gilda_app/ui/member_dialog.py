@@ -1,29 +1,22 @@
 from PySide6.QtCore import QDate, Qt
-from PySide6.QtWidgets import QCompleter, QHBoxLayout, QLabel, QScrollArea, QVBoxLayout, QWidget
+from PySide6.QtWidgets import (
+    QAbstractItemView,
+    QCompleter,
+    QHBoxLayout,
+    QLabel,
+    QTableWidget,
+    QTableWidgetItem,
+    QWidget,
+)
 from qfluentwidgets import CalendarPicker, CheckBox, EditableComboBox, LineEdit, MessageBoxBase, PlainTextEdit, StrongBodyLabel, SubtitleLabel
 
+from gilda_app.db.database import get_status_history, update_status_history_entry
 from gilda_app.i18n import tr
-from gilda_app.models.member import STATUS_ATTIVO, STATUS_EX_MEMBRO, Member, status_label
+from gilda_app.models.member import Member
+from gilda_app.ui.history_entry_dialog import HistoryEntryDialog
 from gilda_app.utils.countries import canonical_name, country_choices
 from gilda_app.utils.flags import display_nation
-
-
-def _format_history_line(row) -> str:
-    date = row["changed_at"][:10]
-    if row["previous_status"] is None:
-        line = tr("history.joined", date=date, status=status_label(row["new_status"]))
-    elif row["previous_status"] == STATUS_EX_MEMBRO and row["new_status"] == STATUS_ATTIVO:
-        line = tr("history.rejoined", date=date)
-    else:
-        line = tr(
-            "history.transition",
-            date=date,
-            prev=status_label(row["previous_status"]),
-            new=status_label(row["new_status"]),
-        )
-    if row["note"]:
-        line += tr("history.note_suffix", note=row["note"])
-    return line
+from gilda_app.utils.history_format import format_history_line
 
 
 def _make_nation_combo(parent, placeholder: str) -> EditableComboBox:
@@ -43,11 +36,18 @@ def _make_nation_combo(parent, placeholder: str) -> EditableComboBox:
 
 
 class MemberDialog(MessageBoxBase):
-    """Form di inserimento/modifica membro. Family Name obbligatorio."""
+    """Form di inserimento/modifica membro. Family Name obbligatorio.
 
-    def __init__(self, parent=None, member: Member | None = None, history: list | None = None):
+    In modifica mostra anche lo storico movimenti, corregibile sul posto (doppio
+    click su una voce): questa parte scrive direttamente sul database invece di
+    passare da values(), perché deve riflettersi subito mentre il dialog resta aperto.
+    """
+
+    def __init__(self, parent=None, member: Member | None = None, conn=None):
         super().__init__(parent)
         self.member = member
+        self.conn = conn
+        self._history_rows: list = []
         is_edit = member is not None
 
         self.titleLabel = SubtitleLabel(tr("dialog.edit_member.title") if is_edit else tr("dialog.new_member.title"), self)
@@ -94,24 +94,21 @@ class MemberDialog(MessageBoxBase):
         self.viewLayout.addWidget(QLabel(tr("label.note"), self))
         self.viewLayout.addWidget(self.note_edit)
 
-        if is_edit:
+        if is_edit and conn is not None:
             self.viewLayout.addWidget(StrongBodyLabel(tr("label.history"), self))
-            history_container = QWidget(self)
-            history_layout = QVBoxLayout(history_container)
-            history_layout.setContentsMargins(0, 0, 0, 0)
-            history_layout.setSpacing(2)
-            if history:
-                for row in history:
-                    history_layout.addWidget(QLabel(_format_history_line(row), history_container))
-            else:
-                history_layout.addWidget(QLabel(tr("history.empty"), history_container))
-            history_layout.addStretch(1)
-
-            history_scroll = QScrollArea(self)
-            history_scroll.setWidget(history_container)
-            history_scroll.setWidgetResizable(True)
-            history_scroll.setFixedHeight(140)
-            self.viewLayout.addWidget(history_scroll)
+            self.history_table = QTableWidget(self)
+            self.history_table.setColumnCount(1)
+            self.history_table.horizontalHeader().hide()
+            self.history_table.verticalHeader().hide()
+            self.history_table.horizontalHeader().setStretchLastSection(True)
+            self.history_table.setEditTriggers(QAbstractItemView.NoEditTriggers)
+            self.history_table.setSelectionBehavior(QAbstractItemView.SelectRows)
+            self.history_table.setSelectionMode(QAbstractItemView.SingleSelection)
+            self.history_table.setFixedHeight(140)
+            self.history_table.doubleClicked.connect(self._on_history_double_click)
+            self.viewLayout.addWidget(self.history_table)
+            self.viewLayout.addWidget(QLabel(tr("history.hint"), self))
+            self._refresh_history()
 
         self.viewLayout.addWidget(self.error_label)
         self.widget.setMinimumWidth(380)
@@ -138,6 +135,35 @@ class MemberDialog(MessageBoxBase):
 
         self.yesButton.setText(tr("button.save"))
         self.cancelButton.setText(tr("button.cancel"))
+
+    def _refresh_history(self) -> None:
+        self._history_rows = get_status_history(self.conn, self.member.id)
+        if not self._history_rows:
+            self.history_table.setRowCount(1)
+            item = QTableWidgetItem(tr("history.empty"))
+            item.setFlags(item.flags() & ~Qt.ItemIsSelectable & ~Qt.ItemIsEnabled)
+            self.history_table.setItem(0, 0, item)
+            return
+
+        self.history_table.setRowCount(len(self._history_rows))
+        for row_idx, row in enumerate(self._history_rows):
+            item = QTableWidgetItem(format_history_line(row))
+            self.history_table.setItem(row_idx, 0, item)
+
+    def _on_history_double_click(self, index) -> None:
+        row = index.row()
+        if row >= len(self._history_rows):
+            return
+        history_row = self._history_rows[row]
+        dialog = HistoryEntryDialog(self, history_row)
+        if dialog.exec():
+            values = dialog.values()
+            update_status_history_entry(self.conn, history_row["id"], values["date"], values["note"])
+            self._refresh_history()
+            if history_row["previous_status"] is None:
+                # la correzione ha aggiornato anche members.data_inserimento: riflettila nel form
+                self.date_check.setChecked(True)
+                self.date_picker.setDate(QDate.fromString(values["date"], "yyyy-MM-dd"))
 
     def validate(self) -> bool:
         if not self.family_edit.text().strip():

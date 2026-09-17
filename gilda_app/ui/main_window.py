@@ -11,7 +11,6 @@ from gilda_app.db.database import (
     delete_member,
     find_duplicate,
     get_members,
-    get_status_history,
     move_member_status,
     reset_database,
     set_setting,
@@ -29,6 +28,7 @@ from gilda_app.ui.progress_dialog import ImportProgressDialog
 from gilda_app.ui.reset_dialog import ResetConfirmDialog
 from gilda_app.ui.settings_page import SettingsPage
 from gilda_app.ui.stats_view import StatsPage
+from gilda_app.utils.icons import ban_icon
 from gilda_app.utils.restart import restart_app
 
 STATUS_ORDER = [STATUS_ATTIVO, STATUS_EX_MEMBRO, STATUS_BANNATO]
@@ -53,7 +53,7 @@ class MainWindow(FluentWindow):
             page.add_requested.connect(self._on_add)
             self.pages[status] = page
 
-        icons = {STATUS_ATTIVO: FIF.PEOPLE, STATUS_EX_MEMBRO: FIF.HISTORY, STATUS_BANNATO: FIF.REMOVE}
+        icons = {STATUS_ATTIVO: FIF.PEOPLE, STATUS_EX_MEMBRO: FIF.HISTORY, STATUS_BANNATO: ban_icon()}
         for status in STATUS_ORDER:
             self.addSubInterface(self.pages[status], icons[status], status_label(status))
 
@@ -120,8 +120,7 @@ class MainWindow(FluentWindow):
             )
 
     def _on_edit(self, member: Member) -> None:
-        history = get_status_history(self.conn, member.id)
-        dialog = MemberDialog(self, member=member, history=history)
+        dialog = MemberDialog(self, member=member, conn=self.conn)
         if dialog.exec():
             values = dialog.values()
             update_member(
