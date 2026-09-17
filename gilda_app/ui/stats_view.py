@@ -37,13 +37,21 @@ def _list_card(title: str, lines: list[str]) -> CardWidget:
 
 def _integer_value_axis(min_value: int, max_value: int) -> QValueAxis:
     """Asse dei valori con soli tick interi (niente ".0"/".5"): i nostri dati sono
-    sempre conteggi di membri, mai frazionari."""
+    sempre conteggi di membri, mai frazionari. Forzare manualmente un numero di tick
+    che non divide il range in passi interi (es. 11 tick su un range di 25) produceva
+    passi come 2.5 e un'etichettatura instabile; applyNiceNumbers() lascia che Qt
+    scelga passi interi "puliti" da solo."""
     axis = QValueAxis()
     axis.setLabelFormat("%d")
     if max_value <= min_value:
         max_value = min_value + 1
     axis.setRange(min_value, max_value)
-    axis.setTickCount(min(max_value - min_value, 10) + 1)
+    axis.applyNiceNumbers()
+    # Per range piccoli applyNiceNumbers può comunque scegliere uno step frazionario
+    # (es. 0-1 con 6 tick = passi da 0.2): forziamo un tick per unità in questo caso.
+    span = axis.max() - axis.min()
+    if span <= 10:
+        axis.setTickCount(int(span) + 1)
     return axis
 
 

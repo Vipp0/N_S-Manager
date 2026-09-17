@@ -1,7 +1,9 @@
 import sqlite3
 from pathlib import Path
 
-from PySide6.QtWidgets import QApplication, QFileDialog
+from PySide6.QtCore import Qt
+from PySide6.QtGui import QIcon, QPixmap
+from PySide6.QtWidgets import QApplication, QFileDialog, QLabel
 from qfluentwidgets import FluentIcon as FIF
 from qfluentwidgets import FluentWindow, InfoBar, InfoBarPosition, MessageBox, NavigationItemPosition
 
@@ -32,6 +34,7 @@ from gilda_app.utils.icons import ban_icon
 from gilda_app.utils.restart import restart_app
 
 STATUS_ORDER = [STATUS_ATTIVO, STATUS_EX_MEMBRO, STATUS_BANNATO]
+LOGO_PATH = Path(__file__).resolve().parent.parent / "resources" / "logo.png"
 
 
 class MainWindow(FluentWindow):
@@ -42,6 +45,7 @@ class MainWindow(FluentWindow):
 
         self.setWindowTitle(tr("window.title"))
         self.resize(1100, 720)
+        self._setup_logo()
 
         self.pages: dict[str, MemberListPage] = {}
         for status in STATUS_ORDER:
@@ -71,6 +75,26 @@ class MainWindow(FluentWindow):
 
         self.navigationInterface.setCurrentItem(self.pages[STATUS_ATTIVO].objectName())
         self.refresh_all()
+
+    def _setup_logo(self) -> None:
+        if not LOGO_PATH.exists():
+            return
+        icon = QIcon(str(LOGO_PATH))
+        self.setWindowIcon(icon)
+
+        # In più, mostra il logo in cima al pannello di navigazione (in alto a
+        # sinistra nell'interfaccia). panel.topLayout non è un'API pubblica
+        # documentata di qfluentwidgets: se in una versione futura cambiasse
+        # struttura, saltiamo semplicemente questa parte invece di far crashare l'app.
+        try:
+            pixmap = QPixmap(str(LOGO_PATH)).scaledToHeight(28, Qt.SmoothTransformation)
+            logo_label = QLabel(self.navigationInterface.panel)
+            logo_label.setPixmap(pixmap)
+            logo_label.setFixedSize(40, 36)
+            logo_label.setAlignment(Qt.AlignCenter)
+            self.navigationInterface.panel.topLayout.insertWidget(0, logo_label, 0, Qt.AlignTop)
+        except AttributeError:
+            pass
 
     # -- refresh -----------------------------------------------------
     def refresh_all(self) -> None:

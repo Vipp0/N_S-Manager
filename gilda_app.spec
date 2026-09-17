@@ -6,9 +6,12 @@ a = Analysis(
     ["gilda_app/main.py"],
     pathex=[],
     binaries=[],
-    # Le PNG delle bandiere sono dati, non moduli Python: PyInstaller non le include
-    # automaticamente seguendo gli import, vanno elencate esplicitamente qui.
-    datas=[("gilda_app/resources/flags", "gilda_app/resources/flags")],
+    # Le PNG delle bandiere e il logo sono dati, non moduli Python: PyInstaller non
+    # le include automaticamente seguendo gli import, vanno elencate esplicitamente qui.
+    datas=[
+        ("gilda_app/resources/flags", "gilda_app/resources/flags"),
+        ("gilda_app/resources/logo.png", "gilda_app/resources"),
+    ],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
@@ -28,6 +31,7 @@ exe = EXE(
     strip=False,
     upx=False,
     console=False,
+    icon="gilda_app/resources/logo.ico",
 )
 
 coll = COLLECT(

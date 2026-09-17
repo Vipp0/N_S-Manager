@@ -7,6 +7,7 @@ from qfluentwidgets import PrimaryPushButton, RoundMenu, SearchLineEdit, StrongB
 from gilda_app.i18n import tr
 from gilda_app.models.member import Member, status_label
 from gilda_app.utils.flags import combined_flag_icon, nations_text
+from gilda_app.utils.scrollbar import widen_scrollbar_on_hover
 
 NUMBER_COLUMN = 0
 NATION_COLUMN = 3
@@ -79,6 +80,7 @@ class MemberListPage(QWidget):
         self.table.setContextMenuPolicy(Qt.CustomContextMenu)
         self.table.customContextMenuRequested.connect(self._show_context_menu)
         self.table.doubleClicked.connect(self._on_double_click)
+        widen_scrollbar_on_hover(self.table.scrollDelagate.vScrollBar)
         layout.addWidget(self.table)
 
     def set_members(self, members: list[Member]) -> None:
