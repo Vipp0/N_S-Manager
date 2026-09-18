@@ -1,7 +1,7 @@
 from PySide6.QtCharts import QAbstractBarSeries, QBarCategoryAxis, QBarSeries, QBarSet, QChart, QChartView, QLineSeries, QValueAxis
 from PySide6.QtCore import QPoint, Qt, QTimer
 from PySide6.QtGui import QCursor, QGuiApplication, QPainter
-from PySide6.QtWidgets import QGridLayout, QLabel, QScrollArea, QToolTip, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QGridLayout, QLabel, QScrollArea, QVBoxLayout, QWidget
 from qfluentwidgets import Action, CardWidget, FluentIcon as FIF, RoundMenu, StrongBodyLabel, SubtitleLabel
 
 from gilda_app.db import stats
@@ -76,6 +76,19 @@ class StatsPage(QScrollArea):
         self._nation_members: dict[str, list[Member]] = {}
         self._nation_hovered_index: int | None = None
         self._nation_view = None
+        # Tooltip fatto in casa invece di QToolTip: quest'ultimo, comparendo sotto il
+        # cursore, faceva credere a QtCharts che il mouse avesse lasciato la barra
+        # (hovered spurio) e Qt lo richiudeva subito. Un QLabel top-level trasparente
+        # agli eventi del mouse lascia passare l'hover al grafico sottostante, così la
+        # barra resta "hovered" e il tooltip resta finché non si sposta davvero.
+        self._nation_tooltip = QLabel(self, Qt.ToolTip | Qt.FramelessWindowHint | Qt.WindowTransparentForInput)
+        self._nation_tooltip.setAttribute(Qt.WA_TransparentForMouseEvents, True)
+        self._nation_tooltip.setAttribute(Qt.WA_ShowWithoutActivating, True)
+        self._nation_tooltip.setStyleSheet(
+            "QLabel { background-color: #2b2b2b; color: #ffffff;"
+            " border: 1px solid #3d3d3d; border-radius: 4px; padding: 6px 10px; font-size: 13px; }"
+        )
+        self._nation_tooltip.hide()
         # Il tooltip sulle barre compare dopo un piccolo ritardo invece che all'istante,
         # così non lampeggia mentre si muove il mouse sul grafico.
         self._nation_tooltip_timer = QTimer(self)
@@ -93,6 +106,10 @@ class StatsPage(QScrollArea):
         self.refresh()
 
     def refresh(self) -> None:
+        # Il grafico (e il suo stato hover) viene ricostruito: nascondi un eventuale
+        # tooltip rimasto aperto e ferma il ritardo in corso.
+        self._nation_tooltip_timer.stop()
+        self._nation_tooltip.hide()
         while self.main_layout.count() > 1:
             item = self.main_layout.takeAt(1)
             self._clear_item(item)
@@ -273,9 +290,10 @@ class StatsPage(QScrollArea):
     def _on_nation_bar_hovered(self, status: bool, index: int) -> None:
         self._nation_hovered_index = index if status else None
         if not status or index < 0 or index >= len(self._nation_categories):
-            # Solo fermare l'eventuale ritardo in corso: NON nascondere il tooltip
-            # già visibile (ci pensa Qt tramite la geometria passata a showText).
+            # Uscita reale dalla barra (il tooltip è trasparente al mouse, quindi non
+            # genera hovered spuri): ferma il ritardo e nascondi il tooltip.
             self._nation_tooltip_timer.stop()
+            self._nation_tooltip.hide()
             return
         # Riavvia il ritardo ad ogni cambio barra: il tooltip appare solo se il mouse
         # resta fermo su una barra, non mentre lo si trascina sul grafico.
@@ -285,18 +303,12 @@ class StatsPage(QScrollArea):
         index = self._nation_hovered_index
         if index is None or index < 0 or index >= len(self._nation_categories):
             return
-        view = self._nation_view
-        if view is None:
-            return
         name = self._nation_categories[index]
         family_names = sorted(m.family_name for m in self._nation_members.get(name, []))
-        text = "\n".join(family_names) or name
-        # Firma completa di showText: passando il widget, un rect e una durata lunga,
-        # Qt tiene il tooltip visibile finché il cursore resta dentro il rect (l'intera
-        # area del grafico) e lo nasconde da solo quando esce. Senza rect il tooltip
-        # spariva subito, perché mostrandolo sotto il cursore QtCharts genera un
-        # hovered(False) spurio e Qt lo chiudeva.
-        QToolTip.showText(QCursor.pos() + QPoint(14, 16), text, view, view.rect(), 60000)
+        self._nation_tooltip.setText("\n".join(family_names) or name)
+        self._nation_tooltip.adjustSize()
+        self._nation_tooltip.move(QCursor.pos() + QPoint(14, 16))
+        self._nation_tooltip.show()
 
     def _on_nation_context_menu(self, view: QChartView, pos) -> None:
         index = self._nation_hovered_index

@@ -1,6 +1,8 @@
+from pathlib import Path
+
 from PySide6.QtCore import QEvent, QSize, Qt, Signal
-from PySide6.QtGui import QColor, QFont, QGuiApplication
-from PySide6.QtWidgets import QAbstractItemView, QHBoxLayout, QTableWidgetItem, QVBoxLayout, QWidget
+from PySide6.QtGui import QColor, QFont, QGuiApplication, QPixmap
+from PySide6.QtWidgets import QAbstractItemView, QHBoxLayout, QLabel, QTableWidgetItem, QVBoxLayout, QWidget
 from qfluentwidgets import Action, FluentIcon as FIF
 from qfluentwidgets import PrimaryPushButton, RoundMenu, SearchLineEdit, StrongBodyLabel, TableWidget
 
@@ -15,6 +17,7 @@ NATION_COLUMN = 3
 STILL_ON_DISCORD_COLOR = QColor("#1a7f37")
 TABLE_FONT = QFont("Segoe UI", 14)
 HEADER_FONT = QFont("Segoe UI", 14, QFont.DemiBold)
+WORDMARK_PATH = Path(__file__).resolve().parent.parent / "resources" / "wordmark.png"
 
 
 def _columns(status: str) -> list[str]:
@@ -62,6 +65,13 @@ class MemberListPage(QWidget):
         add_btn.clicked.connect(lambda: self.add_requested.emit(self.status))
         header.addWidget(title)
         header.addStretch(1)
+        # Wordmark della gilda al centro dell'intestazione, tra il nome della lista
+        # (a sinistra) e la barra di ricerca (a destra).
+        if WORDMARK_PATH.exists():
+            wordmark = QLabel(self)
+            wordmark.setPixmap(QPixmap(str(WORDMARK_PATH)).scaledToHeight(40, Qt.SmoothTransformation))
+            header.addWidget(wordmark)
+            header.addStretch(1)
         header.addWidget(self.search_box)
         header.addWidget(add_btn)
         layout.addLayout(header)
