@@ -6,6 +6,7 @@ from qfluentwidgets import PrimaryPushButton, RoundMenu, SearchLineEdit, StrongB
 
 from gilda_app.i18n import tr
 from gilda_app.models.member import Member, status_label
+from gilda_app.utils.discord_format import discord_copy_text
 from gilda_app.utils.flags import MAX_FLAG_ICON_SIZE, combined_flag_icon, nations_text
 from gilda_app.utils.scrollbar import widen_scrollbar_on_hover
 
@@ -177,6 +178,9 @@ class MemberListPage(QWidget):
             menu.addAction(
                 Action(FIF.COPY, tr("menu.copy_field", field=field_name), triggered=lambda: self._copy_field(row, col))
             )
+        menu.addAction(
+            Action(FIF.SEND_FILL, tr("menu.copy_discord"), triggered=lambda: self._copy_discord(member))
+        )
         menu.addSeparator()
         menu.addAction(Action(FIF.EDIT, tr("menu.edit"), triggered=lambda: self.edit_requested.emit(member)))
         menu.addAction(
@@ -192,3 +196,6 @@ class MemberListPage(QWidget):
 
     def _copy_field(self, row: int, col: int) -> None:
         QGuiApplication.clipboard().setText(self.table.item(row, col).text())
+
+    def _copy_discord(self, member: Member) -> None:
+        QGuiApplication.clipboard().setText(discord_copy_text(member))

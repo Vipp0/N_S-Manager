@@ -39,6 +39,7 @@ STRINGS: dict[str, dict[str, str]] = {
     "button.add_member": {"it": "Aggiungi membro", "en": "Add member"},
     "menu.copy_row": {"it": "Copia riga", "en": "Copy row"},
     "menu.copy_field": {"it": "Copia {field}", "en": "Copy {field}"},
+    "menu.copy_discord": {"it": "Copia per Discord", "en": "Copy for Discord"},
     "menu.edit": {"it": "Modifica", "en": "Edit"},
     "menu.move": {"it": "Sposta in un'altra lista", "en": "Move to another list"},
     "menu.delete": {"it": "Elimina", "en": "Delete"},
@@ -188,6 +189,10 @@ STRINGS: dict[str, dict[str, str]] = {
     # -- Notifiche CRUD ------------------------------------------------------
     "notify.member_added.title": {"it": "Membro aggiunto", "en": "Member added"},
     "notify.member_added.body": {"it": "{name} aggiunto a {status}.", "en": "{name} added to {status}."},
+    "notify.member_added.body_clipboard": {
+        "it": "{name} aggiunto a {status}. Dati copiati negli appunti per Discord.",
+        "en": "{name} added to {status}. Data copied to clipboard for Discord.",
+    },
     "notify.member_updated.title": {"it": "Membro aggiornato", "en": "Member updated"},
     "notify.member_updated.body": {"it": "{name} è stato aggiornato.", "en": "{name} has been updated."},
     "notify.member_deleted.title": {"it": "Membro eliminato", "en": "Member deleted"},

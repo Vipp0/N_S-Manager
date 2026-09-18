@@ -2,7 +2,7 @@ import sqlite3
 from pathlib import Path
 
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QIcon, QKeySequence, QShortcut
+from PySide6.QtGui import QGuiApplication, QIcon, QKeySequence, QShortcut
 from PySide6.QtWidgets import QApplication, QFileDialog
 from qfluentwidgets import FluentIcon as FIF
 from qfluentwidgets import FluentWindow, InfoBar, InfoBarPosition, MessageBox, NavigationItemPosition, TransparentToolButton
@@ -32,6 +32,7 @@ from gilda_app.ui.progress_dialog import ImportProgressDialog
 from gilda_app.ui.reset_dialog import ResetConfirmDialog
 from gilda_app.ui.settings_page import SettingsPage
 from gilda_app.ui.stats_view import StatsPage
+from gilda_app.utils.discord_format import discord_copy_text
 from gilda_app.utils.icons import ban_icon
 from gilda_app.utils.restart import restart_app
 
@@ -157,7 +158,7 @@ class MainWindow(FluentWindow):
         dialog = MemberDialog(self, member=None)
         if dialog.exec():
             values = dialog.values()
-            add_member(
+            member_id = add_member(
                 self.conn,
                 family_name=values["family_name"],
                 main_name=values["main_name"],
@@ -168,9 +169,21 @@ class MainWindow(FluentWindow):
                 data_inserimento=values["data_inserimento"],
             )
             self.refresh_all()
+
+            new_member = Member(
+                id=member_id,
+                family_name=values["family_name"],
+                main_name=values["main_name"],
+                discord_name=values["discord_name"],
+                status=status,
+                data_inserimento=values["data_inserimento"],
+                note=values["note"],
+                nations=values["nations"],
+            )
+            QGuiApplication.clipboard().setText(discord_copy_text(new_member))
             self._notify(
                 tr("notify.member_added.title"),
-                tr("notify.member_added.body", name=values["family_name"], status=status_label(status)),
+                tr("notify.member_added.body_clipboard", name=values["family_name"], status=status_label(status)),
             )
 
     def _on_edit(self, member: Member) -> None:

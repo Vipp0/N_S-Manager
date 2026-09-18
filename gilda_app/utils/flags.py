@@ -109,6 +109,24 @@ def display_nation(nation: str) -> str:
     return translate_country_name(country.name, get_language())
 
 
+def display_nation_english(nation: str) -> str:
+    """Come display_nation, ma sempre in inglese indipendentemente dalla lingua
+    dell'app: usato per il testo copiato verso Discord, che deve avere un formato
+    fisso leggibile da membri di qualsiasi nazionalità. Per una nazione non
+    riconosciuta ritorna il testo grezzo così com'è (non "Unknown"): in un messaggio
+    da incollare su Discord è più utile del valore originale che di un segnaposto.
+    """
+    alpha2 = _alpha2_for(nation)
+    if not alpha2:
+        return nation.strip()
+    country = pycountry.countries.get(alpha_2=alpha2)
+    return country.name
+
+
+def nations_text_english(nations: list[str]) -> str:
+    return " / ".join(display_nation_english(n) for n in nations)
+
+
 def _generic_flag_pixmap() -> QPixmap:
     """Bandierina segnaposto (bianca con bordo) per nazioni non riconosciute."""
     global _generic_pixmap
