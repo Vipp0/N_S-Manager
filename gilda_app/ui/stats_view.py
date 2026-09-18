@@ -1,5 +1,5 @@
 from PySide6.QtCharts import QAbstractBarSeries, QBarCategoryAxis, QBarSeries, QBarSet, QChart, QChartView, QLineSeries, QValueAxis
-from PySide6.QtCore import Qt, QTimer
+from PySide6.QtCore import QPoint, Qt, QTimer
 from PySide6.QtGui import QCursor, QGuiApplication, QPainter
 from PySide6.QtWidgets import QGridLayout, QLabel, QScrollArea, QToolTip, QVBoxLayout, QWidget
 from qfluentwidgets import Action, CardWidget, FluentIcon as FIF, RoundMenu, StrongBodyLabel, SubtitleLabel
@@ -271,8 +271,12 @@ class StatsPage(QScrollArea):
     def _on_nation_bar_hovered(self, status: bool, index: int) -> None:
         self._nation_hovered_index = index if status else None
         if not status or index < 0 or index >= len(self._nation_categories):
+            # Solo fermare l'eventuale ritardo in corso: NON nascondere il tooltip
+            # già visibile. Mostrandolo sotto il cursore, QtCharts emette un hovered
+            # (False) spurio (crede che il mouse abbia lasciato la barra) subito dopo
+            # la comparsa; nasconderlo qui lo faceva sparire pur col mouse fermo. Ci
+            # pensa Qt a nasconderlo appena il mouse si muove davvero.
             self._nation_tooltip_timer.stop()
-            QToolTip.hideText()
             return
         # Riavvia il ritardo ad ogni cambio barra: il tooltip appare solo se il mouse
         # resta fermo su una barra, non mentre lo si trascina sul grafico.
@@ -284,7 +288,9 @@ class StatsPage(QScrollArea):
             return
         name = self._nation_categories[index]
         family_names = sorted(m.family_name for m in self._nation_members.get(name, []))
-        QToolTip.showText(QCursor.pos(), "\n".join(family_names) or name)
+        # Leggero offset dal cursore così il tooltip non copre esattamente il punto
+        # del mouse (riduce l'hovered spurio e non nasconde la barra sotto).
+        QToolTip.showText(QCursor.pos() + QPoint(14, 16), "\n".join(family_names) or name)
 
     def _on_nation_context_menu(self, view: QChartView, pos) -> None:
         index = self._nation_hovered_index

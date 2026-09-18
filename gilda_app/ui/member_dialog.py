@@ -113,14 +113,19 @@ class MemberDialog(MessageBoxBase):
             self.history_table.setEditTriggers(QAbstractItemView.NoEditTriggers)
             self.history_table.setSelectionBehavior(QAbstractItemView.SelectRows)
             self.history_table.setSelectionMode(QAbstractItemView.SingleSelection)
-            self.history_table.setFixedHeight(140)
+            # Le voci con nota lunga (es. motivo di uno spostamento) andavano tagliate:
+            # word wrap + altezza riga adattata le mandano a capo invece di troncarle.
+            self.history_table.setWordWrap(True)
+            self.history_table.setTextElideMode(Qt.ElideNone)
+            self.history_table.setFixedHeight(160)
             self.history_table.doubleClicked.connect(self._on_history_double_click)
             self.viewLayout.addWidget(self.history_table)
             self.viewLayout.addWidget(QLabel(tr("history.hint"), self))
             self._refresh_history()
 
         self.viewLayout.addWidget(self.error_label)
-        self.widget.setMinimumWidth(380)
+        # Form più largo: 380px era stretto e tagliava le voci di storico più lunghe.
+        self.widget.setMinimumWidth(520)
 
         if member is not None:
             self.family_edit.setText(member.family_name)
@@ -158,8 +163,12 @@ class MemberDialog(MessageBoxBase):
 
         self.history_table.setRowCount(len(self._history_rows))
         for row_idx, row in enumerate(self._history_rows):
-            item = QTableWidgetItem(format_history_line(row))
+            line = format_history_line(row)
+            item = QTableWidgetItem(line)
+            item.setToolTip(line)  # testo completo al passaggio del mouse
             self.history_table.setItem(row_idx, 0, item)
+        # Adatta l'altezza di ogni riga al testo mandato a capo (word wrap attivo).
+        self.history_table.resizeRowsToContents()
 
     def _on_history_double_click(self, index) -> None:
         row = index.row()

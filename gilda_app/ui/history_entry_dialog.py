@@ -16,7 +16,9 @@ class HistoryEntryDialog(MessageBoxBase):
 
         self.titleLabel = SubtitleLabel(tr("dialog.edit_history.title"), self)
         self.viewLayout.addWidget(self.titleLabel)
-        self.viewLayout.addWidget(QLabel(format_history_line(history_row), self))
+        history_label = QLabel(format_history_line(history_row), self)
+        history_label.setWordWrap(True)  # le voci con nota lunga vanno a capo, non troncate
+        self.viewLayout.addWidget(history_label)
 
         self.viewLayout.addWidget(QLabel(tr("label.date"), self))
         self.date_picker = FastCalendarPicker(self)
@@ -30,7 +32,7 @@ class HistoryEntryDialog(MessageBoxBase):
             self.note_edit.setPlainText(history_row["note"])
         self.viewLayout.addWidget(self.note_edit)
 
-        self.widget.setMinimumWidth(340)
+        self.widget.setMinimumWidth(460)
         self.yesButton.setText(tr("button.save"))
         self.cancelButton.setText(tr("button.cancel"))
 
