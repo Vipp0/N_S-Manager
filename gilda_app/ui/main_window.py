@@ -2,8 +2,8 @@ import sqlite3
 from pathlib import Path
 
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QIcon, QKeySequence, QPixmap, QShortcut
-from PySide6.QtWidgets import QApplication, QFileDialog, QLabel
+from PySide6.QtGui import QIcon, QKeySequence, QShortcut
+from PySide6.QtWidgets import QApplication, QFileDialog
 from qfluentwidgets import FluentIcon as FIF
 from qfluentwidgets import FluentWindow, InfoBar, InfoBarPosition, MessageBox, NavigationItemPosition, TransparentToolButton
 
@@ -27,6 +27,7 @@ from gilda_app.ui.import_dialog import ImportPreviewDialog
 from gilda_app.ui.member_dialog import MemberDialog
 from gilda_app.ui.member_table import MemberListPage
 from gilda_app.ui.move_dialog import MoveDialog
+from gilda_app.ui.notes_page import NotesPage
 from gilda_app.ui.progress_dialog import ImportProgressDialog
 from gilda_app.ui.reset_dialog import ResetConfirmDialog
 from gilda_app.ui.settings_page import SettingsPage
@@ -35,7 +36,6 @@ from gilda_app.utils.icons import ban_icon
 from gilda_app.utils.restart import restart_app
 
 STATUS_ORDER = [STATUS_ATTIVO, STATUS_EX_MEMBRO, STATUS_BANNATO]
-LOGO_PATH = Path(__file__).resolve().parent.parent / "resources" / "logo.png"
 APP_ICON_PATH = Path(__file__).resolve().parent.parent / "resources" / "app_icon.png"
 
 
@@ -64,6 +64,10 @@ class MainWindow(FluentWindow):
         for status in STATUS_ORDER:
             self.addSubInterface(self.pages[status], icons[status], status_label(status))
 
+        self.notes_page = NotesPage(lambda: self.conn, self)
+        self.notes_page.setObjectName("page_notes")
+        self.addSubInterface(self.notes_page, FIF.QUICK_NOTE, tr("nav.notes"))
+
         self.stats_page = StatsPage(lambda: self.conn, self)
         self.stats_page.setObjectName("page_stats")
         self.addSubInterface(self.stats_page, FIF.PIE_SINGLE, tr("nav.stats"))
@@ -79,6 +83,12 @@ class MainWindow(FluentWindow):
         self.navigationInterface.setCurrentItem(self.pages[STATUS_ATTIVO].objectName())
         self.refresh_all()
 
+    def closeEvent(self, event) -> None:
+        # Il blocco note salva con un ritardo dopo l'ultima battitura: se si chiude
+        # l'app proprio in quella finestra andrebbero perse le ultime modifiche.
+        self.notes_page.save()
+        super().closeEvent(event)
+
     def _setup_title_bar(self) -> None:
         if APP_ICON_PATH.exists():
             self.setWindowIcon(QIcon(str(APP_ICON_PATH)))
@@ -88,28 +98,17 @@ class MainWindow(FluentWindow):
 
         # self.titleBar/hBoxLayout non sono API pubbliche documentate di
         # qfluentwidgets: se in una versione futura cambiasse struttura, saltiamo
-        # semplicemente il resto invece di far crashare l'app.
+        # semplicemente il resto invece di far crashare l'app. Il titolo testuale
+        # ("Night_Shade Manager", vedi window.title) resta quello nativo della title
+        # bar: prima al suo posto c'era il logo "Black Desert Online" generico, che
+        # con un'icona e un nome gilda propri non avrebbe più senso qui.
         try:
             title_bar = self.titleBar
-            insert_at = title_bar.hBoxLayout.indexOf(title_bar.titleLabel)
+            insert_at = title_bar.hBoxLayout.indexOf(title_bar.titleLabel) + 1
         except AttributeError:
             return
-        if insert_at < 0:
-            insert_at = 1
-
-        if LOGO_PATH.exists():
-            # Il pannello di navigazione a sinistra è largo solo ~46px da collassato:
-            # inserire lì il logo lo tagliava quasi subito. La title bar invece ha
-            # tantissimo spazio libero tra l'iconLabel/titleLabel e i pulsanti
-            # min/max/chiudi (riempito da uno stretch), quindi ci sostituiamo alla
-            # scritta testuale del titolo con il logo vero "Black Desert Online".
-            title_bar.titleLabel.hide()
-            pixmap = QPixmap(str(LOGO_PATH)).scaledToHeight(30, Qt.SmoothTransformation)
-            logo_label = QLabel(title_bar)
-            logo_label.setPixmap(pixmap)
-            logo_label.setFixedSize(pixmap.size())
-            title_bar.hBoxLayout.insertWidget(insert_at, logo_label, 0, Qt.AlignLeft | Qt.AlignVCenter)
-            insert_at += 1
+        if insert_at <= 0:
+            insert_at = 2
 
         search_btn = TransparentToolButton(title_bar)
         search_btn.setIcon(FIF.SEARCH)

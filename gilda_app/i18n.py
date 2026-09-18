@@ -15,8 +15,9 @@ STRINGS: dict[str, dict[str, str]] = {
     "status.bannato": {"it": "Bannati", "en": "Banned"},
 
     # -- Finestra principale / navigazione ------------------------------
-    "window.title": {"it": "Gestionale Membri Gilda", "en": "Guild Members Manager"},
+    "window.title": {"it": "Night_Shade Manager", "en": "Night_Shade Manager"},
     "nav.stats": {"it": "Statistiche", "en": "Statistics"},
+    "nav.notes": {"it": "Note", "en": "Notes"},
     "nav.settings": {"it": "Impostazioni", "en": "Settings"},
 
     # -- Import iniziale (primo avvio) ------------------------------------
@@ -217,6 +218,12 @@ STRINGS: dict[str, dict[str, str]] = {
     "stats.hall_of_fame": {"it": "Hall of fame (membri attuali più anziani)", "en": "Hall of fame (longest-standing current members)"},
     "stats.hall_of_fame_line": {"it": "{name} ({main}) — dal {since}", "en": "{name} ({main}) — since {since}"},
     "stats.no_data": {"it": "Nessun dato disponibile.", "en": "No data available."},
+
+    # -- Note --------------------------------------------------------------
+    "notes.placeholder": {
+        "it": "Scrivi qui le note della gilda... vengono salvate automaticamente.",
+        "en": "Write the guild's notes here... they're saved automatically.",
+    },
 }
 
 

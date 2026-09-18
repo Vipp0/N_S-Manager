@@ -10,7 +10,6 @@ a = Analysis(
     # le include automaticamente seguendo gli import, vanno elencate esplicitamente qui.
     datas=[
         ("gilda_app/resources/flags", "gilda_app/resources/flags"),
-        ("gilda_app/resources/logo.png", "gilda_app/resources"),
         ("gilda_app/resources/app_icon.png", "gilda_app/resources"),
     ],
     hiddenimports=[],
