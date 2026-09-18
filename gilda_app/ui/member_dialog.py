@@ -19,6 +19,9 @@ from gilda_app.utils.countries import canonical_name, country_choices
 from gilda_app.utils.flags import display_nation
 from gilda_app.utils.history_format import format_history_line
 
+# Tetto all'altezza di una riga di storico con nota lunga: circa 3 righe di testo.
+MAX_HISTORY_ROW_HEIGHT = 78
+
 
 def _make_nation_combo(parent, placeholder: str) -> EditableComboBox:
     choices = country_choices()
@@ -167,8 +170,13 @@ class MemberDialog(MessageBoxBase):
             item = QTableWidgetItem(line)
             item.setToolTip(line)  # testo completo al passaggio del mouse
             self.history_table.setItem(row_idx, 0, item)
-        # Adatta l'altezza di ogni riga al testo mandato a capo (word wrap attivo).
+        # Adatta l'altezza di ogni riga al testo mandato a capo, ma con un tetto: una
+        # nota molto lunga faceva diventare la riga altissima. Oltre il tetto la riga
+        # resta compatta (2-3 righe) e il testo intero è comunque nel tooltip.
         self.history_table.resizeRowsToContents()
+        for row_idx in range(self.history_table.rowCount()):
+            if self.history_table.rowHeight(row_idx) > MAX_HISTORY_ROW_HEIGHT:
+                self.history_table.setRowHeight(row_idx, MAX_HISTORY_ROW_HEIGHT)
 
     def _on_history_double_click(self, index) -> None:
         row = index.row()

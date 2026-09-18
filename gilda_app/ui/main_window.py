@@ -2,8 +2,8 @@ import sqlite3
 from pathlib import Path
 
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QGuiApplication, QIcon, QKeySequence, QShortcut
-from PySide6.QtWidgets import QApplication, QFileDialog
+from PySide6.QtGui import QGuiApplication, QIcon, QKeySequence, QPixmap, QShortcut
+from PySide6.QtWidgets import QApplication, QFileDialog, QLabel
 from qfluentwidgets import FluentIcon as FIF
 from qfluentwidgets import FluentWindow, InfoBar, InfoBarPosition, MessageBox, NavigationItemPosition, TransparentToolButton
 
@@ -38,6 +38,7 @@ from gilda_app.utils.restart import restart_app
 
 STATUS_ORDER = [STATUS_ATTIVO, STATUS_EX_MEMBRO, STATUS_BANNATO]
 APP_ICON_PATH = Path(__file__).resolve().parent.parent / "resources" / "app_icon.png"
+WORDMARK_PATH = Path(__file__).resolve().parent.parent / "resources" / "wordmark.png"
 
 
 class MainWindow(FluentWindow):
@@ -99,17 +100,27 @@ class MainWindow(FluentWindow):
 
         # self.titleBar/hBoxLayout non sono API pubbliche documentate di
         # qfluentwidgets: se in una versione futura cambiasse struttura, saltiamo
-        # semplicemente il resto invece di far crashare l'app. Il titolo testuale
-        # ("Night_Shade Manager", vedi window.title) resta quello nativo della title
-        # bar: prima al suo posto c'era il logo "Black Desert Online" generico, che
-        # con un'icona e un nome gilda propri non avrebbe più senso qui.
+        # semplicemente il resto invece di far crashare l'app.
         try:
             title_bar = self.titleBar
-            insert_at = title_bar.hBoxLayout.indexOf(title_bar.titleLabel) + 1
+            insert_at = title_bar.hBoxLayout.indexOf(title_bar.titleLabel)
         except AttributeError:
             return
-        if insert_at <= 0:
-            insert_at = 2
+        if insert_at < 0:
+            insert_at = 1
+
+        # Al posto del titolo testuale ("Night_Shade Manager") mostra il wordmark
+        # grafico della gilda (scritta scontornata dalla locandina + "Manager" in
+        # font gotico simile). Il file è ad alta risoluzione e viene scalato in
+        # altezza qui, così resta nitido.
+        if WORDMARK_PATH.exists():
+            title_bar.titleLabel.hide()
+            pixmap = QPixmap(str(WORDMARK_PATH)).scaledToHeight(34, Qt.SmoothTransformation)
+            wordmark_label = QLabel(title_bar)
+            wordmark_label.setPixmap(pixmap)
+            wordmark_label.setFixedSize(pixmap.size())
+            title_bar.hBoxLayout.insertWidget(insert_at, wordmark_label, 0, Qt.AlignLeft | Qt.AlignVCenter)
+            insert_at += 1
 
         search_btn = TransparentToolButton(title_bar)
         search_btn.setIcon(FIF.SEARCH)

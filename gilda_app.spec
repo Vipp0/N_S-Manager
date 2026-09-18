@@ -11,6 +11,7 @@ a = Analysis(
     datas=[
         ("gilda_app/resources/flags", "gilda_app/resources/flags"),
         ("gilda_app/resources/app_icon.png", "gilda_app/resources"),
+        ("gilda_app/resources/wordmark.png", "gilda_app/resources"),
     ],
     hiddenimports=[],
     hookspath=[],

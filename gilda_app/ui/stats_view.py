@@ -75,6 +75,7 @@ class StatsPage(QScrollArea):
         self._nation_categories: list[str] = []
         self._nation_members: dict[str, list[Member]] = {}
         self._nation_hovered_index: int | None = None
+        self._nation_view = None
         # Il tooltip sulle barre compare dopo un piccolo ritardo invece che all'istante,
         # così non lampeggia mentre si muove il mouse sul grafico.
         self._nation_tooltip_timer = QTimer(self)
@@ -265,6 +266,7 @@ class StatsPage(QScrollArea):
         view.setMouseTracking(True)
         view.setContextMenuPolicy(Qt.CustomContextMenu)
         view.customContextMenuRequested.connect(lambda pos, v=view: self._on_nation_context_menu(v, pos))
+        self._nation_view = view
         layout.addWidget(view)
         return card
 
@@ -272,10 +274,7 @@ class StatsPage(QScrollArea):
         self._nation_hovered_index = index if status else None
         if not status or index < 0 or index >= len(self._nation_categories):
             # Solo fermare l'eventuale ritardo in corso: NON nascondere il tooltip
-            # già visibile. Mostrandolo sotto il cursore, QtCharts emette un hovered
-            # (False) spurio (crede che il mouse abbia lasciato la barra) subito dopo
-            # la comparsa; nasconderlo qui lo faceva sparire pur col mouse fermo. Ci
-            # pensa Qt a nasconderlo appena il mouse si muove davvero.
+            # già visibile (ci pensa Qt tramite la geometria passata a showText).
             self._nation_tooltip_timer.stop()
             return
         # Riavvia il ritardo ad ogni cambio barra: il tooltip appare solo se il mouse
@@ -286,11 +285,18 @@ class StatsPage(QScrollArea):
         index = self._nation_hovered_index
         if index is None or index < 0 or index >= len(self._nation_categories):
             return
+        view = self._nation_view
+        if view is None:
+            return
         name = self._nation_categories[index]
         family_names = sorted(m.family_name for m in self._nation_members.get(name, []))
-        # Leggero offset dal cursore così il tooltip non copre esattamente il punto
-        # del mouse (riduce l'hovered spurio e non nasconde la barra sotto).
-        QToolTip.showText(QCursor.pos() + QPoint(14, 16), "\n".join(family_names) or name)
+        text = "\n".join(family_names) or name
+        # Firma completa di showText: passando il widget, un rect e una durata lunga,
+        # Qt tiene il tooltip visibile finché il cursore resta dentro il rect (l'intera
+        # area del grafico) e lo nasconde da solo quando esce. Senza rect il tooltip
+        # spariva subito, perché mostrandolo sotto il cursore QtCharts genera un
+        # hovered(False) spurio e Qt lo chiudeva.
+        QToolTip.showText(QCursor.pos() + QPoint(14, 16), text, view, view.rect(), 60000)
 
     def _on_nation_context_menu(self, view: QChartView, pos) -> None:
         index = self._nation_hovered_index
