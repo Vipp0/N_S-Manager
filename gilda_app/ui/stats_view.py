@@ -1,17 +1,23 @@
 from PySide6.QtCharts import QAbstractBarSeries, QBarCategoryAxis, QBarSeries, QBarSet, QChart, QChartView, QLineSeries, QValueAxis
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QPainter
-from PySide6.QtWidgets import QGridLayout, QLabel, QScrollArea, QVBoxLayout, QWidget
-from qfluentwidgets import CardWidget, StrongBodyLabel, SubtitleLabel
+from PySide6.QtGui import QCursor, QGuiApplication, QPainter
+from PySide6.QtWidgets import QGridLayout, QLabel, QScrollArea, QToolTip, QVBoxLayout, QWidget
+from qfluentwidgets import Action, CardWidget, FluentIcon as FIF, RoundMenu, StrongBodyLabel, SubtitleLabel
 
 from gilda_app.db import stats
+from gilda_app.db.database import get_members
 from gilda_app.i18n import tr
-from gilda_app.models.member import STATUS_ATTIVO, STATUS_BANNATO, STATUS_EX_MEMBRO
+from gilda_app.models.member import STATUS_ATTIVO, STATUS_BANNATO, STATUS_EX_MEMBRO, Member
 from gilda_app.utils.flags import display_nation
 
 # Numero minimo di membri con data di ingresso nota prima di mostrare la hall of fame,
 # per non classificare come "più anziani" un gruppo di persone importate lo stesso giorno.
 MIN_DATED_MEMBERS_FOR_HALL_OF_FAME = 3
+
+# Tutte le nazioni insieme sarebbero troppe (una gilda tipica ne tocca 30-40, quasi
+# tutte con 1-2 persone): mostriamo solo le più numerose, ma il mouseover/tasto destro
+# su ogni barra dà comunque accesso a chi c'è in un gruppo, anche fuori dalla top N.
+NATION_CHART_TOP_N = 15
 
 
 def _stat_card(title: str, value: str) -> CardWidget:
@@ -58,10 +64,17 @@ def _integer_value_axis(min_value: int, max_value: int) -> QValueAxis:
 class StatsPage(QScrollArea):
     """Dashboard statistiche sull'elenco membri."""
 
-    def __init__(self, get_conn, parent=None):
+    def __init__(self, get_conn, on_open_nation_filter=None, parent=None):
         super().__init__(parent)
         self.get_conn = get_conn
+        self.on_open_nation_filter = on_open_nation_filter
         self.setWidgetResizable(True)
+
+        # Stato del grafico nazioni per mouseover/tasto destro: ricostruito ad ogni
+        # refresh() insieme al grafico stesso.
+        self._nation_categories: list[str] = []
+        self._nation_members: dict[str, list[Member]] = {}
+        self._nation_hovered_index: int | None = None
 
         self.content = QWidget()
         self.setWidget(self.content)
@@ -197,21 +210,27 @@ class StatsPage(QScrollArea):
         card = CardWidget()
         layout = QVBoxLayout(card)
         layout.addWidget(StrongBodyLabel(tr("stats.nation_chart"), card))
+        layout.addWidget(QLabel(tr("stats.nation_chart_hint"), card))
 
-        # Il conteggio grezzo è per stringa esatta salvata nel DB: varianti/alias della
-        # stessa nazione (es. "Uk" e "United Kingdom") altrimenti apparirebbero come
-        # barre separate. Le riaggreghiamo per nome risolto prima di prendere il top 10.
-        aggregated: dict[str, int] = {}
-        for row in stats.nation_distribution(conn, STATUS_ATTIVO):
-            name = display_nation(row["nation"])
-            aggregated[name] = aggregated.get(name, 0) + row["cnt"]
-        top_nations = sorted(aggregated.items(), key=lambda item: item[1], reverse=True)[:10]
+        # Raggruppa per nome nazione risolto (non la stringa grezza nel DB: varianti/
+        # alias come "Uk" e "United Kingdom" altrimenti apparirebbero come barre
+        # separate), tenendo anche i membri di ciascun gruppo per mouseover/tasto
+        # destro sulla barra.
+        members_by_nation: dict[str, list[Member]] = {}
+        for member in get_members(conn, STATUS_ATTIVO):
+            for raw_nation in member.nations:
+                name = display_nation(raw_nation)
+                members_by_nation.setdefault(name, []).append(member)
+        top_nations = sorted(members_by_nation.items(), key=lambda item: len(item[1]), reverse=True)[:NATION_CHART_TOP_N]
+
+        self._nation_categories = [name for name, _ in top_nations]
+        self._nation_members = dict(top_nations)
+        self._nation_hovered_index = None
 
         bar_set = QBarSet(tr("stats.current_members"))
-        categories = []
-        for name, cnt in top_nations:
-            bar_set.append(cnt)
-            categories.append(name)
+        for _, members in top_nations:
+            bar_set.append(len(members))
+        bar_set.hovered.connect(self._on_nation_bar_hovered)
 
         series = QBarSeries()
         series.append(bar_set)
@@ -225,11 +244,11 @@ class StatsPage(QScrollArea):
         chart.setBackgroundVisible(False)
 
         axis_x = QBarCategoryAxis()
-        axis_x.append(categories or ["-"])
+        axis_x.append(self._nation_categories or ["-"])
         chart.addAxis(axis_x, Qt.AlignBottom)
         series.attachAxis(axis_x)
 
-        counts = [cnt for _, cnt in top_nations] or [0]
+        counts = [len(members) for _, members in top_nations] or [0]
         axis_y = _integer_value_axis(0, max(counts))
         chart.addAxis(axis_y, Qt.AlignLeft)
         series.attachAxis(axis_y)
@@ -237,5 +256,44 @@ class StatsPage(QScrollArea):
         view = QChartView(chart)
         view.setRenderHint(QPainter.Antialiasing)
         view.setMinimumHeight(280)
+        view.setMouseTracking(True)
+        view.setContextMenuPolicy(Qt.CustomContextMenu)
+        view.customContextMenuRequested.connect(lambda pos, v=view: self._on_nation_context_menu(v, pos))
         layout.addWidget(view)
         return card
+
+    def _on_nation_bar_hovered(self, status: bool, index: int) -> None:
+        self._nation_hovered_index = index if status else None
+        if not status or index < 0 or index >= len(self._nation_categories):
+            QToolTip.hideText()
+            return
+        name = self._nation_categories[index]
+        family_names = sorted(m.family_name for m in self._nation_members.get(name, []))
+        QToolTip.showText(QCursor.pos(), "\n".join(family_names) or name)
+
+    def _on_nation_context_menu(self, view: QChartView, pos) -> None:
+        index = self._nation_hovered_index
+        if index is None or index >= len(self._nation_categories):
+            return
+        name = self._nation_categories[index]
+        members = self._nation_members.get(name, [])
+        if not members:
+            return
+
+        menu = RoundMenu(parent=view)
+        menu.addAction(
+            Action(FIF.COPY, tr("stats.nation_menu.copy"), triggered=lambda: self._copy_nation_members(members))
+        )
+        if self.on_open_nation_filter is not None:
+            menu.addAction(
+                Action(
+                    FIF.SEARCH,
+                    tr("stats.nation_menu.open", nation=name),
+                    triggered=lambda: self.on_open_nation_filter(name),
+                )
+            )
+        menu.exec(view.viewport().mapToGlobal(pos))
+
+    def _copy_nation_members(self, members: list[Member]) -> None:
+        family_names = sorted(m.family_name for m in members)
+        QGuiApplication.clipboard().setText("\n".join(family_names))

@@ -222,9 +222,15 @@ STRINGS: dict[str, dict[str, str]] = {
     "stats.recent_changes": {"it": "Movimenti ultimi 30 giorni", "en": "Movements in the last 30 days"},
     "stats.trend_chart": {"it": "Andamento membri attivi nel tempo", "en": "Active members trend over time"},
     "stats.nation_chart": {
-        "it": "Distribuzione per nazione (membri attuali, top 10)",
-        "en": "Distribution by nation (current members, top 10)",
+        "it": "Distribuzione per nazione (membri attuali, top 15)",
+        "en": "Distribution by nation (current members, top 15)",
     },
+    "stats.nation_chart_hint": {
+        "it": "Passa il mouse su una barra per vedere i nomi, tasto destro per altre opzioni.",
+        "en": "Hover a bar to see the names, right-click for more options.",
+    },
+    "stats.nation_menu.copy": {"it": "Copia elenco nomi", "en": "Copy list of names"},
+    "stats.nation_menu.open": {"it": "Apri in Membri attuali: {nation}", "en": "Open in Current members: {nation}"},
     "stats.top_rejoiners": {"it": "Membri con più rientri", "en": "Members with the most rejoins"},
     "stats.top_rejoiners_line": {"it": "{name} ({main}) — {count} rientri", "en": "{name} ({main}) — {count} rejoins"},
     "stats.ban_reasons": {"it": "Motivi di ban più comuni", "en": "Most common ban reasons"},

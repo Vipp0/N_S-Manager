@@ -69,7 +69,7 @@ class MainWindow(FluentWindow):
         self.notes_page.setObjectName("page_notes")
         self.addSubInterface(self.notes_page, FIF.QUICK_NOTE, tr("nav.notes"))
 
-        self.stats_page = StatsPage(lambda: self.conn, self)
+        self.stats_page = StatsPage(lambda: self.conn, self._open_nation_in_current, self)
         self.stats_page.setObjectName("page_stats")
         self.addSubInterface(self.stats_page, FIF.PIE_SINGLE, tr("nav.stats"))
 
@@ -152,6 +152,14 @@ class MainWindow(FluentWindow):
             duration=3500,
             parent=self,
         )
+
+    def _open_nation_in_current(self, nation_display_name: str) -> None:
+        """Da "Apri in Membri attuali" nel grafico nazioni: passa alla scheda Membri
+        attuali e filtra con la ricerca già esistente lì, invece di costruire una
+        vista/filtro dedicati per una cosa che la ricerca fa già."""
+        page = self.pages[STATUS_ATTIVO]
+        self.switchTo(page)
+        page.search_box.setText(nation_display_name)
 
     # -- CRUD ----------------------------------------------------------
     def _on_add(self, status: str) -> None:
