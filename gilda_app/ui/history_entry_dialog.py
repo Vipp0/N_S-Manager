@@ -1,8 +1,9 @@
 from PySide6.QtCore import QDate
 from PySide6.QtWidgets import QLabel
-from qfluentwidgets import CalendarPicker, MessageBoxBase, PlainTextEdit, SubtitleLabel
+from qfluentwidgets import MessageBoxBase, PlainTextEdit, SubtitleLabel
 
 from gilda_app.i18n import tr
+from gilda_app.ui.fast_calendar_picker import FastCalendarPicker
 from gilda_app.utils.history_format import format_history_line
 
 
@@ -18,7 +19,7 @@ class HistoryEntryDialog(MessageBoxBase):
         self.viewLayout.addWidget(QLabel(format_history_line(history_row), self))
 
         self.viewLayout.addWidget(QLabel(tr("label.date"), self))
-        self.date_picker = CalendarPicker(self)
+        self.date_picker = FastCalendarPicker(self)
         self.date_picker.setDate(QDate.fromString(history_row["changed_at"][:10], "yyyy-MM-dd"))
         self.viewLayout.addWidget(self.date_picker)
 

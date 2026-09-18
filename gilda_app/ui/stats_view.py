@@ -1,5 +1,5 @@
 from PySide6.QtCharts import QAbstractBarSeries, QBarCategoryAxis, QBarSeries, QBarSet, QChart, QChartView, QLineSeries, QValueAxis
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QCursor, QGuiApplication, QPainter
 from PySide6.QtWidgets import QGridLayout, QLabel, QScrollArea, QToolTip, QVBoxLayout, QWidget
 from qfluentwidgets import Action, CardWidget, FluentIcon as FIF, RoundMenu, StrongBodyLabel, SubtitleLabel
@@ -75,6 +75,12 @@ class StatsPage(QScrollArea):
         self._nation_categories: list[str] = []
         self._nation_members: dict[str, list[Member]] = {}
         self._nation_hovered_index: int | None = None
+        # Il tooltip sulle barre compare dopo un piccolo ritardo invece che all'istante,
+        # così non lampeggia mentre si muove il mouse sul grafico.
+        self._nation_tooltip_timer = QTimer(self)
+        self._nation_tooltip_timer.setSingleShot(True)
+        self._nation_tooltip_timer.setInterval(450)
+        self._nation_tooltip_timer.timeout.connect(self._show_nation_tooltip)
 
         self.content = QWidget()
         self.setWidget(self.content)
@@ -265,7 +271,16 @@ class StatsPage(QScrollArea):
     def _on_nation_bar_hovered(self, status: bool, index: int) -> None:
         self._nation_hovered_index = index if status else None
         if not status or index < 0 or index >= len(self._nation_categories):
+            self._nation_tooltip_timer.stop()
             QToolTip.hideText()
+            return
+        # Riavvia il ritardo ad ogni cambio barra: il tooltip appare solo se il mouse
+        # resta fermo su una barra, non mentre lo si trascina sul grafico.
+        self._nation_tooltip_timer.start()
+
+    def _show_nation_tooltip(self) -> None:
+        index = self._nation_hovered_index
+        if index is None or index < 0 or index >= len(self._nation_categories):
             return
         name = self._nation_categories[index]
         family_names = sorted(m.family_name for m in self._nation_members.get(name, []))

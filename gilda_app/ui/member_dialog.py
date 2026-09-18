@@ -8,11 +8,12 @@ from PySide6.QtWidgets import (
     QTableWidgetItem,
     QWidget,
 )
-from qfluentwidgets import CalendarPicker, CheckBox, EditableComboBox, LineEdit, MessageBoxBase, PlainTextEdit, StrongBodyLabel, SubtitleLabel
+from qfluentwidgets import CheckBox, EditableComboBox, LineEdit, MessageBoxBase, PlainTextEdit, StrongBodyLabel, SubtitleLabel
 
 from gilda_app.db.database import get_status_history, update_status_history_entry
 from gilda_app.i18n import tr
 from gilda_app.models.member import STATUS_EX_MEMBRO, Member
+from gilda_app.ui.fast_calendar_picker import FastCalendarPicker
 from gilda_app.ui.history_entry_dialog import HistoryEntryDialog
 from gilda_app.utils.countries import canonical_name, country_choices
 from gilda_app.utils.flags import display_nation
@@ -64,7 +65,7 @@ class MemberDialog(MessageBoxBase):
         self.nation2_edit = _make_nation_combo(self, tr("field.nation2.placeholder"))
 
         self.date_check = CheckBox(tr("field.date_check"), self)
-        self.date_picker = CalendarPicker(self)
+        self.date_picker = FastCalendarPicker(self)
         self.date_picker.setDate(QDate.currentDate())
         date_row = QWidget(self)
         date_layout = QHBoxLayout(date_row)
