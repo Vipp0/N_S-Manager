@@ -21,3 +21,4 @@ class Member:
     data_inserimento: str | None
     note: str | None
     nations: list[str] = field(default_factory=list)
+    still_on_discord: bool = False

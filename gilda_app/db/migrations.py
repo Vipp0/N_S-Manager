@@ -52,7 +52,18 @@ def _upgrade_2(conn: sqlite3.Connection) -> None:
     )
 
 
-MIGRATIONS = [_upgrade_1, _upgrade_2]
+def _upgrade_3(conn: sqlite3.Connection) -> None:
+    # Rilevante solo per gli ex membri: sono ancora presenti nel canale Discord della
+    # gilda pur non essendo più membri attivi. Colonna su members (non una tabella a
+    # parte) perché è un singolo valore per persona, non uno storico.
+    conn.executescript(
+        """
+        ALTER TABLE members ADD COLUMN still_on_discord INTEGER NOT NULL DEFAULT 0;
+        """
+    )
+
+
+MIGRATIONS = [_upgrade_1, _upgrade_2, _upgrade_3]
 
 
 def migrate(conn: sqlite3.Connection) -> None:

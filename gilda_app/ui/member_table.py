@@ -1,30 +1,36 @@
 from PySide6.QtCore import QEvent, QSize, Qt, Signal
-from PySide6.QtGui import QFont, QGuiApplication
+from PySide6.QtGui import QColor, QFont, QGuiApplication
 from PySide6.QtWidgets import QAbstractItemView, QHBoxLayout, QTableWidgetItem, QVBoxLayout, QWidget
 from qfluentwidgets import Action, FluentIcon as FIF
 from qfluentwidgets import PrimaryPushButton, RoundMenu, SearchLineEdit, StrongBodyLabel, TableWidget
 
 from gilda_app.i18n import tr
-from gilda_app.models.member import Member, status_label
+from gilda_app.models.member import Member, STATUS_EX_MEMBRO, status_label
 from gilda_app.utils.discord_format import discord_copy_text
 from gilda_app.utils.flags import MAX_FLAG_ICON_SIZE, combined_flag_icon, nations_text
 from gilda_app.utils.scrollbar import widen_scrollbar_on_hover
 
 NUMBER_COLUMN = 0
 NATION_COLUMN = 3
+STILL_ON_DISCORD_COLOR = QColor("#1a7f37")
 TABLE_FONT = QFont("Segoe UI", 14)
 HEADER_FONT = QFont("Segoe UI", 14, QFont.DemiBold)
 
 
-def _columns() -> list[str]:
-    return [
+def _columns(status: str) -> list[str]:
+    cols = [
         tr("column.number"),
         tr("column.family_name"),
         tr("column.main_name"),
         tr("column.nation"),
         tr("column.discord_name"),
-        tr("column.note"),
     ]
+    # Ha senso solo per gli ex membri: se sono ancora presenti nel canale Discord della
+    # gilda pur avendola lasciata in gioco. Non mostrata nelle altre due liste.
+    if status == STATUS_EX_MEMBRO:
+        cols.append(tr("column.still_on_discord"))
+    cols.append(tr("column.note"))
+    return cols
 
 
 class MemberListPage(QWidget):
@@ -39,7 +45,8 @@ class MemberListPage(QWidget):
         super().__init__(parent)
         self.status = status
         self._members: list[Member] = []
-        self._columns = _columns()
+        self._columns = _columns(status)
+        self._still_on_discord_col = self._columns.index(tr("column.still_on_discord")) if status == STATUS_EX_MEMBRO else None
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(24, 20, 24, 20)
@@ -99,8 +106,10 @@ class MemberListPage(QWidget):
                 member.main_name,
                 nations_text(member.nations),
                 member.discord_name,
-                member.note or "",
             ]
+            if self._still_on_discord_col is not None:
+                values.append("")
+            values.append(member.note or "")
             for col, value in enumerate(values):
                 item = QTableWidgetItem(value)
                 item.setData(Qt.UserRole, member.id)
@@ -109,6 +118,15 @@ class MemberListPage(QWidget):
             icon = combined_flag_icon(member.nations)
             if icon is not None:
                 self.table.item(row, NATION_COLUMN).setIcon(icon)
+
+            if self._still_on_discord_col is not None and member.still_on_discord:
+                check_item = self.table.item(row, self._still_on_discord_col)
+                check_item.setText("✓")
+                check_item.setTextAlignment(Qt.AlignCenter)
+                check_item.setForeground(STILL_ON_DISCORD_COLOR)
+                bold_font = QFont(check_item.font())
+                bold_font.setBold(True)
+                check_item.setFont(bold_font)
 
         self.table.setSortingEnabled(True)
         self.table.resizeColumnsToContents()

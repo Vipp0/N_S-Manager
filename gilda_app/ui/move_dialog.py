@@ -1,5 +1,5 @@
 from PySide6.QtWidgets import QLabel
-from qfluentwidgets import ComboBox, MessageBoxBase, PlainTextEdit, SubtitleLabel
+from qfluentwidgets import CheckBox, ComboBox, MessageBoxBase, PlainTextEdit, SubtitleLabel
 
 from gilda_app.i18n import tr
 from gilda_app.models.member import STATUS_ATTIVO, STATUS_BANNATO, STATUS_EX_MEMBRO, Member, status_label
@@ -27,6 +27,14 @@ class MoveDialog(MessageBoxBase):
                 self.target_combo.addItem(status_label(status), userData=status)
         self.viewLayout.addWidget(self.target_combo)
 
+        # Ha senso solo spostando verso ex membro: chi lascia la gilda in gioco a volte
+        # resta comunque nel canale Discord. Visibile solo quando è quella la scelta nel
+        # combo, non per gli altri spostamenti dove la domanda non ha senso.
+        self.discord_check = CheckBox(tr("dialog.move.still_on_discord"), self)
+        self.viewLayout.addWidget(self.discord_check)
+        self.target_combo.currentIndexChanged.connect(self._update_discord_check_visibility)
+        self._update_discord_check_visibility()
+
         self.viewLayout.addWidget(QLabel(tr("dialog.move.note_label"), self))
         self.note_edit = PlainTextEdit(self)
         self.note_edit.setFixedHeight(70)
@@ -41,3 +49,11 @@ class MoveDialog(MessageBoxBase):
 
     def note(self) -> str | None:
         return self.note_edit.toPlainText().strip() or None
+
+    def still_on_discord(self) -> bool | None:
+        if self.target_status() != STATUS_EX_MEMBRO:
+            return None
+        return self.discord_check.isChecked()
+
+    def _update_discord_check_visibility(self) -> None:
+        self.discord_check.setVisible(self.target_status() == STATUS_EX_MEMBRO)

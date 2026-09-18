@@ -155,9 +155,10 @@ class MainWindow(FluentWindow):
 
     # -- CRUD ----------------------------------------------------------
     def _on_add(self, status: str) -> None:
-        dialog = MemberDialog(self, member=None)
+        dialog = MemberDialog(self, member=None, status=status)
         if dialog.exec():
             values = dialog.values()
+            still_on_discord = bool(values["still_on_discord"])
             member_id = add_member(
                 self.conn,
                 family_name=values["family_name"],
@@ -167,6 +168,7 @@ class MainWindow(FluentWindow):
                 status=status,
                 note=values["note"],
                 data_inserimento=values["data_inserimento"],
+                still_on_discord=still_on_discord,
             )
             self.refresh_all()
 
@@ -179,6 +181,7 @@ class MainWindow(FluentWindow):
                 data_inserimento=values["data_inserimento"],
                 note=values["note"],
                 nations=values["nations"],
+                still_on_discord=still_on_discord,
             )
             QGuiApplication.clipboard().setText(discord_copy_text(new_member))
             self._notify(
@@ -200,6 +203,7 @@ class MainWindow(FluentWindow):
                 note=values["note"],
                 data_inserimento=values["data_inserimento"],
                 update_date=True,
+                still_on_discord=values["still_on_discord"],
             )
             self.refresh_all()
             self._notify(
@@ -224,7 +228,7 @@ class MainWindow(FluentWindow):
             target = dialog.target_status()
             note = dialog.note()
             backup_database(self.db_path, "move")
-            move_member_status(self.conn, member.id, target, note=note)
+            move_member_status(self.conn, member.id, target, note=note, still_on_discord=dialog.still_on_discord())
             self.refresh_all()
             self._notify(
                 tr("notify.member_moved.title"),

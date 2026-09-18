@@ -12,7 +12,7 @@ from qfluentwidgets import CalendarPicker, CheckBox, EditableComboBox, LineEdit,
 
 from gilda_app.db.database import get_status_history, update_status_history_entry
 from gilda_app.i18n import tr
-from gilda_app.models.member import Member
+from gilda_app.models.member import STATUS_EX_MEMBRO, Member
 from gilda_app.ui.history_entry_dialog import HistoryEntryDialog
 from gilda_app.utils.countries import canonical_name, country_choices
 from gilda_app.utils.flags import display_nation
@@ -43,12 +43,13 @@ class MemberDialog(MessageBoxBase):
     passare da values(), perché deve riflettersi subito mentre il dialog resta aperto.
     """
 
-    def __init__(self, parent=None, member: Member | None = None, conn=None):
+    def __init__(self, parent=None, member: Member | None = None, conn=None, status: str | None = None):
         super().__init__(parent)
         self.member = member
         self.conn = conn
         self._history_rows: list = []
         is_edit = member is not None
+        target_status = member.status if is_edit else status
 
         self.titleLabel = SubtitleLabel(tr("dialog.edit_member.title") if is_edit else tr("dialog.new_member.title"), self)
         self.viewLayout.addWidget(self.titleLabel)
@@ -80,6 +81,11 @@ class MemberDialog(MessageBoxBase):
         self.error_label.setStyleSheet("color: #c42b1c;")
         self.error_label.hide()
 
+        # Ha senso solo per un ex membro: è ancora presente nel canale Discord della
+        # gilda pur non essendo più tra i membri attivi in gioco. Per gli altri stati
+        # non si mostra proprio, invece di lasciarla sempre visibile ma inutile.
+        self.discord_check = CheckBox(tr("field.still_on_discord"), self) if target_status == STATUS_EX_MEMBRO else None
+
         for label_key, widget in [
             ("label.family_name", self.family_edit),
             ("label.main_name", self.main_edit),
@@ -89,6 +95,8 @@ class MemberDialog(MessageBoxBase):
         ]:
             self.viewLayout.addWidget(QLabel(tr(label_key), self))
             self.viewLayout.addWidget(widget)
+            if widget is self.discord_edit and self.discord_check is not None:
+                self.viewLayout.addWidget(self.discord_check)
 
         self.viewLayout.addWidget(date_row)
         self.viewLayout.addWidget(QLabel(tr("label.note"), self))
@@ -123,6 +131,8 @@ class MemberDialog(MessageBoxBase):
                 self.nation2_edit.setText(display_nation(member.nations[1]))
             if member.note:
                 self.note_edit.setPlainText(member.note)
+            if self.discord_check is not None:
+                self.discord_check.setChecked(member.still_on_discord)
 
             if member.data_inserimento:
                 self.date_check.setChecked(True)
@@ -186,4 +196,5 @@ class MemberDialog(MessageBoxBase):
             "nations": nations,
             "note": self.note_edit.toPlainText().strip() or None,
             "data_inserimento": data_inserimento,
+            "still_on_discord": self.discord_check.isChecked() if self.discord_check is not None else None,
         }

@@ -33,6 +33,7 @@ STRINGS: dict[str, dict[str, str]] = {
     "column.main_name": {"it": "Main Name", "en": "Main Name"},
     "column.nation": {"it": "Nazione", "en": "Nation"},
     "column.discord_name": {"it": "Discord Name", "en": "Discord Name"},
+    "column.still_on_discord": {"it": "Still on Discord", "en": "Still on Discord"},
     "column.note": {"it": "Note", "en": "Notes"},
     "nation.unknown": {"it": "Sconosciuta", "en": "Unknown"},
     "search.placeholder": {"it": "Cerca per nome, nazione, discord...", "en": "Search by name, nation, discord..."},
@@ -63,6 +64,10 @@ STRINGS: dict[str, dict[str, str]] = {
     "field.nation1.placeholder": {"it": "Nazione", "en": "Nation"},
     "field.nation2.placeholder": {"it": "Seconda nazione (opzionale)", "en": "Second nation (optional)"},
     "field.date_check": {"it": "Registra la data di ingresso in gilda", "en": "Record the guild join date"},
+    "field.still_on_discord": {
+        "it": "È ancora presente nel canale Discord della gilda",
+        "en": "Still present in the guild's Discord channel",
+    },
     "field.note.placeholder": {"it": "Note", "en": "Notes"},
     "label.family_name": {"it": "Family Name", "en": "Family Name"},
     "label.main_name": {"it": "Main Name", "en": "Main Name"},
@@ -89,6 +94,10 @@ STRINGS: dict[str, dict[str, str]] = {
     "dialog.move.current_list": {"it": "Lista attuale: {status}", "en": "Current list: {status}"},
     "dialog.move.target_label": {"it": "Sposta in:", "en": "Move to:"},
     "dialog.move.note_label": {"it": "Nota (opzionale, es. motivo del ban):", "en": "Note (optional, e.g. ban reason):"},
+    "dialog.move.still_on_discord": {
+        "it": "L'utente rimarrà nel canale Discord della gilda?",
+        "en": "Will the member stay in the guild's Discord channel?",
+    },
     "button.confirm_move": {"it": "Conferma spostamento", "en": "Confirm move"},
 
     # -- Elimina membro -----------------------------------------------------
