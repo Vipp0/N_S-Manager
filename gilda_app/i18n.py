@@ -121,6 +121,7 @@ STRINGS: dict[str, dict[str, str]] = {
     "settings.import": {"it": "Importa da Excel...", "en": "Import from Excel..."},
     "settings.export": {"it": "Esporta in Excel...", "en": "Export to Excel..."},
     "settings.reset": {"it": "Azzera database", "en": "Reset database"},
+    "settings.version": {"it": "Night_Shade Manager — versione {version}", "en": "Night_Shade Manager — version {version}"},
 
     # -- Import ------------------------------------------------------------
     "dialog.import_preview.title": {"it": "Anteprima import", "en": "Import preview"},

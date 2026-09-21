@@ -34,6 +34,7 @@ from gilda_app.ui.reset_dialog import ResetConfirmDialog
 from gilda_app.ui.settings_page import SettingsPage
 from gilda_app.ui.stats_view import StatsPage
 from gilda_app.utils.discord_format import discord_copy_text
+from gilda_app.version import __version__
 from gilda_app.utils.icons import ban_icon
 from gilda_app.utils.restart import restart_app
 
@@ -47,7 +48,7 @@ class MainWindow(FluentWindow):
         self.conn = conn
         self.db_path = db_path
 
-        self.setWindowTitle(tr("window.title"))
+        self.setWindowTitle(f"{tr('window.title')} v{__version__}")
         self.resize(1100, 720)
         self._setup_title_bar()
         QShortcut(QKeySequence.Find, self, activated=self._on_global_search)

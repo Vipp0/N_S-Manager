@@ -1,8 +1,18 @@
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QVBoxLayout, QWidget
-from qfluentwidgets import CardWidget, ComboBox, FluentIcon as FIF, PrimaryPushButton, PushButton, StrongBodyLabel, SubtitleLabel
+from qfluentwidgets import (
+    CaptionLabel,
+    CardWidget,
+    ComboBox,
+    FluentIcon as FIF,
+    PrimaryPushButton,
+    PushButton,
+    StrongBodyLabel,
+    SubtitleLabel,
+)
 
 from gilda_app.i18n import LANGUAGES, get_language, tr
+from gilda_app.version import __version__
 
 
 class SettingsPage(QWidget):
@@ -56,6 +66,7 @@ class SettingsPage(QWidget):
         layout.addWidget(reset_card)
 
         layout.addStretch(1)
+        layout.addWidget(CaptionLabel(tr("settings.version", version=__version__), self))
 
     def _on_language_changed(self, index: int) -> None:
         code = self._lang_codes[index]
