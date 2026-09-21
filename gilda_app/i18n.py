@@ -70,6 +70,7 @@ STRINGS: dict[str, dict[str, str]] = {
         "en": "Still present in the guild's Discord channel",
     },
     "field.note.placeholder": {"it": "Note", "en": "Notes"},
+    "label.list": {"it": "Lista", "en": "List"},
     "label.family_name": {"it": "Family Name", "en": "Family Name"},
     "label.main_name": {"it": "Main Name", "en": "Main Name"},
     "label.discord_name": {"it": "Discord Name", "en": "Discord Name"},

@@ -170,6 +170,9 @@ class MainWindow(FluentWindow):
         dialog = MemberDialog(self, member=None, status=status)
         if dialog.exec():
             values = dialog.values()
+            # La lista si può cambiare nel form: quella scelta là vince su quella della
+            # scheda da cui si è premuto "Aggiungi", che ne è solo la preselezione.
+            status = values["status"] or status
             still_on_discord = bool(values["still_on_discord"])
             member_id = add_member(
                 self.conn,

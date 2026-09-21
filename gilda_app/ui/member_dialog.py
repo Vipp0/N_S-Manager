@@ -1,6 +1,7 @@
 from PySide6.QtCore import QDate, Qt
 from PySide6.QtWidgets import (
     QAbstractItemView,
+    QButtonGroup,
     QCompleter,
     QHBoxLayout,
     QLabel,
@@ -8,16 +9,27 @@ from PySide6.QtWidgets import (
     QTableWidgetItem,
     QWidget,
 )
-from qfluentwidgets import CheckBox, EditableComboBox, LineEdit, MessageBoxBase, PlainTextEdit, StrongBodyLabel, SubtitleLabel
+from qfluentwidgets import (
+    CheckBox,
+    EditableComboBox,
+    LineEdit,
+    MessageBoxBase,
+    PlainTextEdit,
+    RadioButton,
+    StrongBodyLabel,
+    SubtitleLabel,
+)
 
 from gilda_app.db.database import get_status_history, update_status_history_entry
 from gilda_app.i18n import tr
-from gilda_app.models.member import STATUS_EX_MEMBRO, Member
+from gilda_app.models.member import STATUS_ATTIVO, STATUS_BANNATO, STATUS_EX_MEMBRO, Member, status_label
 from gilda_app.ui.fast_calendar_picker import FastCalendarPicker
 from gilda_app.ui.history_entry_dialog import HistoryEntryDialog
 from gilda_app.utils.countries import canonical_name, country_choices
 from gilda_app.utils.flags import display_nation
 from gilda_app.utils.history_format import format_history_line
+
+NEW_MEMBER_STATUSES = [STATUS_ATTIVO, STATUS_EX_MEMBRO, STATUS_BANNATO]
 
 # Tetto all'altezza di una riga di storico con nota lunga: circa 3 righe di testo.
 MAX_HISTORY_ROW_HEIGHT = 78
@@ -58,6 +70,25 @@ class MemberDialog(MessageBoxBase):
         self.titleLabel = SubtitleLabel(tr("dialog.edit_member.title") if is_edit else tr("dialog.new_member.title"), self)
         self.viewLayout.addWidget(self.titleLabel)
 
+        # Solo per un nuovo membro: scelta della lista in cui inserirlo, con preselezionata
+        # quella della scheda da cui si è premuto "Aggiungi". In modifica non c'è: per
+        # cambiare lista si usa lo spostamento, che registra storico e backup.
+        self._status_buttons: dict[str, RadioButton] = {}
+        if not is_edit:
+            self.viewLayout.addWidget(QLabel(tr("label.list"), self))
+            status_row = QWidget(self)
+            status_layout = QHBoxLayout(status_row)
+            status_layout.setContentsMargins(0, 0, 0, 0)
+            status_group = QButtonGroup(self)
+            for st in NEW_MEMBER_STATUSES:
+                button = RadioButton(status_label(st), status_row)
+                status_group.addButton(button)
+                status_layout.addWidget(button)
+                self._status_buttons[st] = button
+            status_layout.addStretch(1)
+            self._status_buttons[status if status in self._status_buttons else STATUS_ATTIVO].setChecked(True)
+            self.viewLayout.addWidget(status_row)
+
         self.family_edit = LineEdit(self)
         self.family_edit.setPlaceholderText(tr("field.family_name.placeholder"))
         self.main_edit = LineEdit(self)
@@ -88,7 +119,10 @@ class MemberDialog(MessageBoxBase):
         # Ha senso solo per un ex membro: è ancora presente nel canale Discord della
         # gilda pur non essendo più tra i membri attivi in gioco. Per gli altri stati
         # non si mostra proprio, invece di lasciarla sempre visibile ma inutile.
-        self.discord_check = CheckBox(tr("field.still_on_discord"), self) if target_status == STATUS_EX_MEMBRO else None
+        # Per un nuovo membro la lista si sceglie nel form, quindi la spunta esiste sempre
+        # e si mostra solo quando la lista scelta è Ex membri.
+        needs_discord_check = target_status == STATUS_EX_MEMBRO or not is_edit
+        self.discord_check = CheckBox(tr("field.still_on_discord"), self) if needs_discord_check else None
 
         for label_key, widget in [
             ("label.family_name", self.family_edit),
@@ -152,8 +186,25 @@ class MemberDialog(MessageBoxBase):
         else:
             self.date_check.setChecked(True)
 
+        for button in self._status_buttons.values():
+            button.toggled.connect(self._update_discord_check_visibility)
+        self._update_discord_check_visibility()
+
         self.yesButton.setText(tr("button.save"))
         self.cancelButton.setText(tr("button.cancel"))
+
+    def selected_status(self) -> str | None:
+        """Lista scelta per un nuovo membro; per un membro esistente la sua lista attuale."""
+        if self.member is not None:
+            return self.member.status
+        for st, button in self._status_buttons.items():
+            if button.isChecked():
+                return st
+        return None
+
+    def _update_discord_check_visibility(self, *_args) -> None:
+        if self.discord_check is not None and not self.member:
+            self.discord_check.setVisible(self.selected_status() == STATUS_EX_MEMBRO)
 
     def _refresh_history(self) -> None:
         self._history_rows = get_status_history(self.conn, self.member.id)
@@ -214,5 +265,10 @@ class MemberDialog(MessageBoxBase):
             "nations": nations,
             "note": self.note_edit.toPlainText().strip() or None,
             "data_inserimento": data_inserimento,
-            "still_on_discord": self.discord_check.isChecked() if self.discord_check is not None else None,
+            "status": self.selected_status(),
+            "still_on_discord": (
+                self.discord_check.isChecked()
+                if self.discord_check is not None and self.selected_status() == STATUS_EX_MEMBRO
+                else None
+            ),
         }
