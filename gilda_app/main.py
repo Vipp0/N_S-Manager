@@ -53,12 +53,15 @@ def main() -> None:
     set_language(get_setting(conn, "language", DEFAULT_LANGUAGE))
 
     window = MainWindow(conn, db_file)
-    # Prima del prompt di import iniziale: quel dialogo è modale e la schermata di
-    # avvio resterebbe altrimenti sopra o dietro di esso.
+    window.refresh_all()
+    # Finestra mostrata prima di chiudere lo splash: altrimenti Windows non ha una
+    # finestra in primo piano da cui passare il focus e l'app parte in background.
+    window.show()
     _close_splash()
+    window.raise_()
+    window.activateWindow()
     _maybe_run_initial_import(conn, db_file, window)
     window.refresh_all()
-    window.show()
 
     sys.exit(app.exec())
 
