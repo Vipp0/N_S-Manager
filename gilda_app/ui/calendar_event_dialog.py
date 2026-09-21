@@ -1,9 +1,7 @@
 from PySide6.QtCore import QDate
-from PySide6.QtGui import QColor
 from PySide6.QtWidgets import QHBoxLayout, QLabel, QWidget
 from qfluentwidgets import (
     CheckBox,
-    ColorPickerButton,
     ComboBox,
     LineEdit,
     MessageBoxBase,
@@ -19,9 +17,8 @@ from gilda_app.db.calendar_events import (
     RECURRENCE_WEEKLY,
 )
 from gilda_app.i18n import tr
+from gilda_app.ui.color_swatch_picker import ColorSwatchPicker
 from gilda_app.ui.fast_calendar_picker import FastCalendarPicker
-
-DEFAULT_EVENT_COLOR = "#0078d4"
 # Etichetta dell'unità nel campo "ogni N ...", per ciascuna ricorrenza.
 _UNIT_LABEL_KEYS = {
     RECURRENCE_DAILY: "calendar.unit.days",
@@ -50,14 +47,9 @@ class CalendarEventDialog(MessageBoxBase):
         self.viewLayout.addWidget(QLabel(tr("calendar.field.date"), self))
         self.viewLayout.addWidget(self.date_picker)
 
-        self.color_button = ColorPickerButton(QColor(DEFAULT_EVENT_COLOR), tr("calendar.field.color"), self)
-        color_row = QWidget(self)
-        color_layout = QHBoxLayout(color_row)
-        color_layout.setContentsMargins(0, 0, 0, 0)
-        color_layout.addWidget(QLabel(tr("calendar.field.color"), color_row))
-        color_layout.addWidget(self.color_button)
-        color_layout.addStretch(1)
-        self.viewLayout.addWidget(color_row)
+        self.color_picker = ColorSwatchPicker(self)
+        self.viewLayout.addWidget(QLabel(tr("calendar.field.color"), self))
+        self.viewLayout.addWidget(self.color_picker)
 
         self.note_edit = PlainTextEdit(self)
         self.note_edit.setPlaceholderText(tr("calendar.field.note"))
@@ -109,7 +101,7 @@ class CalendarEventDialog(MessageBoxBase):
         if is_edit:
             self.title_edit.setText(event["title"])
             self.date_picker.setDate(QDate.fromString(event["start_date"], "yyyy-MM-dd"))
-            self.color_button.setColor(QColor(event["color"]))
+            self.color_picker.setColor(event["color"])
             if event["note"]:
                 self.note_edit.setPlainText(event["note"])
             self.recurrence_combo.setCurrentIndex(self.recurrence_combo.findData(event["recurrence_unit"]))
@@ -119,7 +111,7 @@ class CalendarEventDialog(MessageBoxBase):
                 self.end_picker.setDate(QDate.fromString(event["recurrence_end_date"], "yyyy-MM-dd"))
         self._update_recurrence_widgets()
 
-        self.widget.setMinimumWidth(480)
+        self.widget.setMinimumWidth(500)
         self.yesButton.setText(tr("button.save"))
         self.cancelButton.setText(tr("button.cancel"))
 
@@ -156,7 +148,7 @@ class CalendarEventDialog(MessageBoxBase):
             "start_date": self.date_picker.getDate().toString("yyyy-MM-dd"),
             "title": self.title_edit.text().strip(),
             "note": self.note_edit.toPlainText().strip() or None,
-            "color": self.color_button.color.name(),
+            "color": self.color_picker.color(),
             "recurrence_unit": unit,
             "recurrence_interval": self.interval_spin.value() if repeats else 1,
             "recurrence_end_date": end_date,

@@ -241,6 +241,17 @@ STRINGS: dict[str, dict[str, str]] = {
     "stats.no_data": {"it": "Nessun dato disponibile.", "en": "No data available."},
 
     # -- Calendario -----------------------------------------------------------
+    "color.red": {"it": "Rosso", "en": "Red"},
+    "color.orange": {"it": "Arancione", "en": "Orange"},
+    "color.yellow": {"it": "Giallo", "en": "Yellow"},
+    "color.green": {"it": "Verde", "en": "Green"},
+    "color.cyan": {"it": "Azzurro", "en": "Light blue"},
+    "color.blue": {"it": "Blu", "en": "Blue"},
+    "color.purple": {"it": "Viola", "en": "Purple"},
+    "color.pink": {"it": "Rosa", "en": "Pink"},
+    "color.brown": {"it": "Marrone", "en": "Brown"},
+    "color.gray": {"it": "Grigio", "en": "Gray"},
+    "color.black": {"it": "Nero", "en": "Black"},
     "calendar.add": {"it": "Aggiungi evento", "en": "Add event"},
     "calendar.no_events": {"it": "Nessun evento in questo giorno.", "en": "No events on this day."},
     "calendar.dialog.new": {"it": "Nuovo evento", "en": "New event"},

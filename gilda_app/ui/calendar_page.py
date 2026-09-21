@@ -1,7 +1,6 @@
 from datetime import date, timedelta
 
-from PySide6.QtCore import QDate, QLocale, Qt
-from PySide6.QtGui import QColor, QTextCharFormat
+from PySide6.QtCore import QLocale, Qt
 from PySide6.QtWidgets import QCalendarWidget, QFrame, QHBoxLayout, QLabel, QScrollArea, QVBoxLayout, QWidget
 from qfluentwidgets import FluentIcon as FIF
 from qfluentwidgets import MessageBox, PrimaryPushButton, StrongBodyLabel, SubtitleLabel, TransparentToolButton
@@ -18,6 +17,7 @@ from gilda_app.db.calendar_events import (
 )
 from gilda_app.i18n import get_language, tr
 from gilda_app.ui.calendar_event_dialog import CalendarEventDialog
+from gilda_app.ui.event_calendar_widget import EventCalendarWidget
 from gilda_app.utils.date_format import DISPLAY_DATE_QT_FORMAT
 
 _UNIT_LABEL_KEYS = {
@@ -27,15 +27,9 @@ _UNIT_LABEL_KEYS = {
 }
 
 
-def _text_color_for(background: QColor) -> QColor:
-    """Testo nero o bianco a seconda della luminosità dello sfondo, per restare leggibile."""
-    luminance = 0.299 * background.red() + 0.587 * background.green() + 0.114 * background.blue()
-    return QColor("#000000") if luminance > 150 else QColor("#ffffff")
-
-
 class CalendarPage(QWidget):
     """Calendario mensile degli eventi della gilda. A sinistra il mese (i giorni con
-    eventi sono colorati col colore del primo evento del giorno), a destra l'elenco
+    eventi sono colorati a fasce, una per evento), a destra l'elenco
     degli eventi del giorno selezionato con aggiunta/modifica/eliminazione."""
 
     def __init__(self, get_conn, parent=None):
@@ -49,13 +43,16 @@ class CalendarPage(QWidget):
 
         left = QVBoxLayout()
         left.addWidget(SubtitleLabel(tr("nav.calendar"), self))
-        self.calendar = QCalendarWidget(self)
+        self.calendar = EventCalendarWidget(self)
         self.calendar.setLocale(QLocale(QLocale.Italian if get_language() == "it" else QLocale.English))
         self.calendar.setFirstDayOfWeek(Qt.Monday)
         self.calendar.setGridVisible(True)
         self.calendar.setVerticalHeaderFormat(QCalendarWidget.NoVerticalHeader)
         self.calendar.setMinimumSize(560, 420)
         self.calendar.selectionChanged.connect(self._refresh_day_panel)
+        # activated = doppio click (o Invio) su un giorno: apre subito il form di
+        # aggiunta evento su quella data.
+        self.calendar.activated.connect(lambda _date: self._on_add())
         self.calendar.currentPageChanged.connect(lambda *_: self._refresh_month_formats())
         left.addWidget(self.calendar, 1)
         layout.addLayout(left, 3)
@@ -100,14 +97,9 @@ class CalendarPage(QWidget):
             for occurrence in occurrences_in_range(row, range_start, range_end):
                 self._day_events.setdefault(occurrence, []).append(row)
 
-        self.calendar.setDateTextFormat(QDate(), QTextCharFormat())  # azzera i formati
-        for day, rows in self._day_events.items():
-            background = QColor(rows[0]["color"])
-            fmt = QTextCharFormat()
-            fmt.setBackground(background)
-            fmt.setForeground(_text_color_for(background))
-            fmt.setFontWeight(700)
-            self.calendar.setDateTextFormat(QDate(day.year, day.month, day.day), fmt)
+        self.calendar.set_day_colors(
+            {day: [row["color"] for row in rows] for day, rows in self._day_events.items()}
+        )
 
     def _selected_date(self) -> date:
         qd = self.calendar.selectedDate()
