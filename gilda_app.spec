@@ -1,6 +1,6 @@
 # -*- mode: python ; coding: utf-8 -*-
 # Build a onedir (cartella) distribution, non onefile: avvio più veloce e la
-# cartella dist/GestionaleGilda/ può ospitare gilda.db e backups/ accanto all'exe.
+# cartella dist/Night_Shade Manager/ può ospitare gilda.db e backups/ accanto all'exe.
 
 a = Analysis(
     ["gilda_app/main.py"],
@@ -27,7 +27,7 @@ exe = EXE(
     a.scripts,
     [],
     exclude_binaries=True,
-    name="GestionaleGilda",
+    name="Night_Shade Manager",
     debug=False,
     strip=False,
     upx=False,
@@ -41,5 +41,5 @@ coll = COLLECT(
     a.datas,
     strip=False,
     upx=False,
-    name="GestionaleGilda",
+    name="Night_Shade Manager",
 )

@@ -2,10 +2,11 @@
 membro e il dialog di correzione di una singola voce di storico."""
 from gilda_app.i18n import tr
 from gilda_app.models.member import STATUS_ATTIVO, STATUS_EX_MEMBRO, status_label
+from gilda_app.utils.date_format import iso_to_display
 
 
 def format_history_line(row) -> str:
-    date = row["changed_at"][:10]
+    date = iso_to_display(row["changed_at"])
     if row["previous_status"] is None:
         line = tr("history.joined", date=date, status=status_label(row["new_status"]))
     elif row["previous_status"] == STATUS_EX_MEMBRO and row["new_status"] == STATUS_ATTIVO:

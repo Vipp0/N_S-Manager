@@ -63,7 +63,29 @@ def _upgrade_3(conn: sqlite3.Connection) -> None:
     )
 
 
-MIGRATIONS = [_upgrade_1, _upgrade_2, _upgrade_3]
+def _upgrade_4(conn: sqlite3.Connection) -> None:
+    # Un evento ricorrente è una riga sola (una "serie"): le occorrenze si calcolano al
+    # volo per il mese mostrato (vedi db/calendar_events.py), non si salvano una per una.
+    conn.executescript(
+        """
+        CREATE TABLE calendar_events (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            start_date TEXT NOT NULL,
+            title TEXT NOT NULL,
+            note TEXT,
+            color TEXT NOT NULL DEFAULT '#0078d4',
+            recurrence_unit TEXT NOT NULL DEFAULT 'none'
+                CHECK (recurrence_unit IN ('none', 'daily', 'weekly', 'monthly')),
+            recurrence_interval INTEGER NOT NULL DEFAULT 1,
+            recurrence_end_date TEXT,
+            created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE INDEX idx_calendar_events_start_date ON calendar_events(start_date);
+        """
+    )
+
+
+MIGRATIONS = [_upgrade_1, _upgrade_2, _upgrade_3, _upgrade_4]
 
 
 def migrate(conn: sqlite3.Connection) -> None:

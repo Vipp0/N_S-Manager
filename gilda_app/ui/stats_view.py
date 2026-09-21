@@ -8,6 +8,7 @@ from gilda_app.db import stats
 from gilda_app.db.database import get_members
 from gilda_app.i18n import tr
 from gilda_app.models.member import STATUS_ATTIVO, STATUS_BANNATO, STATUS_EX_MEMBRO, Member
+from gilda_app.utils.date_format import iso_month_to_display, iso_to_display
 from gilda_app.utils.flags import display_nation
 
 # Numero minimo di membri con data di ingresso nota prima di mostrare la hall of fame,
@@ -180,7 +181,7 @@ class StatsPage(QScrollArea):
                 _list_card(
                     tr("stats.hall_of_fame"),
                     [
-                        tr("stats.hall_of_fame_line", name=r["family_name"], main=r["main_name"], since=r["since"][:10])
+                        tr("stats.hall_of_fame_line", name=r["family_name"], main=r["main_name"], since=iso_to_display(r["since"]))
                         for r in hall_of_fame
                     ],
                 )
@@ -215,7 +216,9 @@ class StatsPage(QScrollArea):
         chart.setBackgroundVisible(False)
 
         axis_x = QBarCategoryAxis()
-        axis_x.append([m for m, _ in trend] or ["-"])
+        # L'ordine (cronologico) è già stato calcolato sulle chiavi ISO yyyy-mm in
+        # stats.active_members_trend: qui si cambia solo l'etichetta mostrata.
+        axis_x.append([iso_month_to_display(m) for m, _ in trend] or ["-"])
         chart.addAxis(axis_x, Qt.AlignBottom)
         series.attachAxis(axis_x)
 

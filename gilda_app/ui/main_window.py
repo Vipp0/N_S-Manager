@@ -22,6 +22,7 @@ from gilda_app.i18n import tr
 from gilda_app.importer.excel_export import export_workbook
 from gilda_app.importer.excel_import import find_intra_file_duplicates, import_row, parse_workbook
 from gilda_app.models.member import STATUS_ATTIVO, STATUS_BANNATO, STATUS_EX_MEMBRO, Member, status_label
+from gilda_app.ui.calendar_page import CalendarPage
 from gilda_app.ui.global_search import GlobalSearchDialog
 from gilda_app.ui.import_dialog import ImportPreviewDialog
 from gilda_app.ui.member_dialog import MemberDialog
@@ -68,6 +69,10 @@ class MainWindow(FluentWindow):
         self.notes_page = NotesPage(lambda: self.conn, self)
         self.notes_page.setObjectName("page_notes")
         self.addSubInterface(self.notes_page, FIF.QUICK_NOTE, tr("nav.notes"))
+
+        self.calendar_page = CalendarPage(lambda: self.conn, self)
+        self.calendar_page.setObjectName("page_calendar")
+        self.addSubInterface(self.calendar_page, FIF.CALENDAR, tr("nav.calendar"))
 
         self.stats_page = StatsPage(lambda: self.conn, self._open_nation_in_current, self)
         self.stats_page.setObjectName("page_stats")

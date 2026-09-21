@@ -2,6 +2,8 @@ from PySide6.QtCore import QPoint, Qt, QTimer
 from qfluentwidgets import CalendarPicker
 from qfluentwidgets.components.date_time.calendar_view import CalendarView
 
+from gilda_app.utils.date_format import DISPLAY_DATE_QT_FORMAT
+
 
 class FastCalendarPicker(CalendarPicker):
     """CalendarPicker che apre il calendario istantaneamente al click.
@@ -17,6 +19,9 @@ class FastCalendarPicker(CalendarPicker):
 
     def __init__(self, parent=None):
         super().__init__(parent)
+        # Il testo del pulsante mostra la data come dd-mm-yyyy (il valore restituito da
+        # getDate() è comunque un QDate: il formato di salvataggio lo decide chi lo legge).
+        self.setDateFormat(DISPLAY_DATE_QT_FORMAT)
         self._view: CalendarView | None = None
         self._prewarm_scheduled = False
 

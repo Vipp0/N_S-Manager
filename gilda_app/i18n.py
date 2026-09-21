@@ -18,6 +18,7 @@ STRINGS: dict[str, dict[str, str]] = {
     "window.title": {"it": "Night_Shade Manager", "en": "Night_Shade Manager"},
     "nav.stats": {"it": "Statistiche", "en": "Statistics"},
     "nav.notes": {"it": "Note", "en": "Notes"},
+    "nav.calendar": {"it": "Calendario", "en": "Calendar"},
     "nav.settings": {"it": "Impostazioni", "en": "Settings"},
 
     # -- Import iniziale (primo avvio) ------------------------------------
@@ -238,6 +239,38 @@ STRINGS: dict[str, dict[str, str]] = {
     "stats.hall_of_fame": {"it": "Hall of fame (membri attuali più anziani)", "en": "Hall of fame (longest-standing current members)"},
     "stats.hall_of_fame_line": {"it": "{name} ({main}) — dal {since}", "en": "{name} ({main}) — since {since}"},
     "stats.no_data": {"it": "Nessun dato disponibile.", "en": "No data available."},
+
+    # -- Calendario -----------------------------------------------------------
+    "calendar.add": {"it": "Aggiungi evento", "en": "Add event"},
+    "calendar.no_events": {"it": "Nessun evento in questo giorno.", "en": "No events on this day."},
+    "calendar.dialog.new": {"it": "Nuovo evento", "en": "New event"},
+    "calendar.dialog.edit": {"it": "Modifica evento", "en": "Edit event"},
+    "calendar.field.title": {"it": "Titolo", "en": "Title"},
+    "calendar.field.date": {"it": "Data", "en": "Date"},
+    "calendar.field.color": {"it": "Colore", "en": "Color"},
+    "calendar.field.note": {"it": "Nota (opzionale)", "en": "Note (optional)"},
+    "calendar.field.repeat": {"it": "Ripetizione", "en": "Repeat"},
+    "calendar.field.every": {"it": "Ogni", "en": "Every"},
+    "calendar.field.end_check": {"it": "Ripeti fino al", "en": "Repeat until"},
+    "calendar.repeat.none": {"it": "Non si ripete", "en": "Does not repeat"},
+    "calendar.repeat.daily": {"it": "Ogni giorno", "en": "Daily"},
+    "calendar.repeat.weekly": {"it": "Ogni settimana", "en": "Weekly"},
+    "calendar.repeat.monthly": {"it": "Ogni mese", "en": "Monthly"},
+    "calendar.unit.days": {"it": "giorni", "en": "days"},
+    "calendar.unit.weeks": {"it": "settimane", "en": "weeks"},
+    "calendar.unit.months": {"it": "mesi", "en": "months"},
+    "calendar.recurring_hint": {"it": "Si ripete ogni {n} {unit}", "en": "Repeats every {n} {unit}"},
+    "calendar.error.title_required": {"it": "Il titolo è obbligatorio.", "en": "The title is required."},
+    "calendar.error.end_before_start": {
+        "it": "La data di fine ripetizione non può precedere quella dell'evento.",
+        "en": "The repeat end date can't be before the event date.",
+    },
+    "calendar.delete.title": {"it": "Elimina evento", "en": "Delete event"},
+    "calendar.delete.body": {"it": "Eliminare l'evento \"{title}\"?", "en": "Delete the event \"{title}\"?"},
+    "calendar.delete.body_series": {
+        "it": "Eliminare l'evento \"{title}\"? È ricorrente: verranno eliminate tutte le sue ripetizioni.",
+        "en": "Delete the event \"{title}\"? It's recurring: all its repetitions will be deleted.",
+    },
 
     # -- Note --------------------------------------------------------------
     "notes.placeholder": {
