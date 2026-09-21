@@ -1,18 +1,26 @@
 import sqlite3
 from pathlib import Path
 
-from PySide6.QtCore import Qt
-from PySide6.QtGui import QGuiApplication, QIcon, QKeySequence, QShortcut
+from PySide6.QtCore import Qt, QUrl
+from PySide6.QtGui import QDesktopServices, QGuiApplication, QIcon, QKeySequence, QShortcut
 from PySide6.QtWidgets import QApplication, QFileDialog
 from qfluentwidgets import FluentIcon as FIF
 from qfluentwidgets import FluentWindow, InfoBar, InfoBarPosition, MessageBox, NavigationItemPosition, TransparentToolButton
 
-from gilda_app.db.backup import backup_database
+from gilda_app.db.backup import (
+    EXTRA_DIR_SETTING,
+    backup_database,
+    is_valid_backup,
+    list_backups,
+    restore_backup,
+)
 from gilda_app.db.database import (
     add_member,
+    connect,
     delete_member,
     find_duplicate,
     get_members,
+    get_setting,
     move_member_status,
     reset_database,
     set_setting,
@@ -31,11 +39,13 @@ from gilda_app.ui.move_dialog import MoveDialog
 from gilda_app.ui.notes_page import NotesPage
 from gilda_app.ui.progress_dialog import ImportProgressDialog
 from gilda_app.ui.reset_dialog import ResetConfirmDialog
+from gilda_app.ui.restore_dialog import RestoreBackupDialog, format_backup_when
 from gilda_app.ui.settings_page import SettingsPage
 from gilda_app.ui.stats_view import StatsPage
 from gilda_app.utils.discord_format import discord_copy_text
 from gilda_app.version import __version__
 from gilda_app.utils.icons import ban_icon
+from gilda_app.utils.paths import backups_dir
 from gilda_app.utils.restart import restart_app
 
 STATUS_ORDER = [STATUS_ATTIVO, STATUS_EX_MEMBRO, STATUS_BANNATO]
@@ -85,6 +95,12 @@ class MainWindow(FluentWindow):
         self.settings_page.export_requested.connect(self._on_export)
         self.settings_page.reset_requested.connect(self._on_reset)
         self.settings_page.language_changed.connect(self._on_language_changed)
+        self.settings_page.backup_now_requested.connect(self._on_backup_now)
+        self.settings_page.open_backups_requested.connect(self._on_open_backups)
+        self.settings_page.restore_requested.connect(self._on_restore)
+        self.settings_page.extra_dir_pick_requested.connect(self._on_pick_extra_dir)
+        self.settings_page.extra_dir_clear_requested.connect(self._on_clear_extra_dir)
+        self.settings_page.set_extra_backup_dir(get_setting(self.conn, EXTRA_DIR_SETTING))
         self.addSubInterface(self.settings_page, FIF.SETTING, tr("nav.settings"), NavigationItemPosition.BOTTOM)
 
         self.navigationInterface.setCurrentItem(self.pages[STATUS_ATTIVO].objectName())
@@ -242,13 +258,91 @@ class MainWindow(FluentWindow):
         if dialog.exec():
             target = dialog.target_status()
             note = dialog.note()
-            backup_database(self.db_path, "move")
+            self._backup("move")
             move_member_status(self.conn, member.id, target, note=note, still_on_discord=dialog.still_on_discord())
             self.refresh_all()
             self._notify(
                 tr("notify.member_moved.title"),
                 tr("notify.member_moved.body", name=member.family_name, status=status_label(target)),
             )
+
+    # -- Backup ----------------------------------------------------------
+    def _extra_backup_dir(self) -> Path | None:
+        value = get_setting(self.conn, EXTRA_DIR_SETTING)
+        return Path(value) if value else None
+
+    def _backup(self, reason: str):
+        return backup_database(self.db_path, reason, self._extra_backup_dir())
+
+    def _on_backup_now(self) -> None:
+        result = self._backup("manual")
+        if result.path is None:
+            return
+        self._notify(tr("backup.notify.created.title"), tr("backup.notify.created.body", name=result.path.name))
+        if result.extra_error:
+            self._notify(
+                tr("backup.notify.extra_failed.title"),
+                tr("backup.notify.extra_failed.body", error=result.extra_error),
+                error=True,
+            )
+
+    def _on_open_backups(self) -> None:
+        QDesktopServices.openUrl(QUrl.fromLocalFile(str(backups_dir())))
+
+    def _on_pick_extra_dir(self) -> None:
+        path_str = QFileDialog.getExistingDirectory(self, tr("backup.pick_extra_dir"))
+        if not path_str:
+            return
+        folder = Path(path_str)
+        try:
+            probe = folder / ".nightshade_write_test"
+            probe.write_text("ok")
+            probe.unlink()
+        except OSError as exc:
+            self._notify(tr("backup.notify.extra_bad.title"), tr("backup.notify.extra_bad.body", error=exc), error=True)
+            return
+        set_setting(self.conn, EXTRA_DIR_SETTING, str(folder))
+        self.settings_page.set_extra_backup_dir(str(folder))
+        self._notify(tr("backup.notify.extra_set.title"), tr("backup.notify.extra_set.body", path=str(folder)))
+
+    def _on_clear_extra_dir(self) -> None:
+        set_setting(self.conn, EXTRA_DIR_SETTING, "")
+        self.settings_page.set_extra_backup_dir(None)
+        self._notify(tr("backup.notify.extra_removed.title"), tr("backup.notify.extra_removed.body"))
+
+    def _on_restore(self) -> None:
+        extra = self._extra_backup_dir()
+        dialog = RestoreBackupDialog(self, list_backups(backups_dir(), *([extra] if extra else [])))
+        if not dialog.exec():
+            return
+        chosen = dialog.selected_backup()
+        if chosen is None:
+            return
+        if not is_valid_backup(chosen.path):
+            self._notify(tr("backup.notify.restore_failed.title"), tr("backup.restore.invalid"), error=True)
+            return
+        confirm = MessageBox(
+            tr("backup.restore.confirm.title"),
+            tr("backup.restore.confirm.body", when=format_backup_when(chosen)),
+            self,
+        )
+        if not confirm.exec():
+            return
+
+        self.notes_page.save()
+        self._backup("pre-restore")
+        self.conn.close()
+        try:
+            restore_backup(chosen.path, self.db_path)
+        except OSError as exc:
+            self.conn = connect(self.db_path)
+            self._notify(
+                tr("backup.notify.restore_failed.title"),
+                tr("backup.notify.restore_failed.body", error=exc),
+                error=True,
+            )
+            return
+        restart_app()
 
     # -- Import / Export / Reset ---------------------------------------
     def _on_import(self) -> None:
@@ -277,7 +371,7 @@ class MainWindow(FluentWindow):
         if not dialog.exec():
             return
 
-        backup_database(self.db_path, "import")
+        self._backup("import")
         policy = dialog.duplicate_policy()
         outcome = {"inserted": 0, "updated": 0, "skipped": 0}
         total = len(preview.rows)
@@ -327,7 +421,7 @@ class MainWindow(FluentWindow):
         if not confirm.exec():
             return
 
-        backup_database(self.db_path, "reset")
+        self._backup("reset")
         reset_database(self.conn)
         self.refresh_all()
         self._notify(tr("notify.reset_done.title"), tr("notify.reset_done.body"))

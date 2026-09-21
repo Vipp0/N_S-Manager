@@ -5,6 +5,7 @@ from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QApplication
 from qfluentwidgets import MessageBox
 
+from gilda_app.db.backup import daily_backup_if_needed
 from gilda_app.db.database import connect, get_setting
 from gilda_app.i18n import DEFAULT_LANGUAGE, set_language, tr
 from gilda_app.ui.main_window import MainWindow
@@ -49,6 +50,12 @@ def main() -> None:
     app.setFont(QFont(APP_FONT_FAMILY, APP_FONT_POINT_SIZE))
 
     db_file = db_path()
+    # Prima di connect(): così la copia del giorno precede anche un'eventuale migrazione
+    # dello schema fatta da una versione nuova del programma.
+    try:
+        daily_backup_if_needed(db_file)
+    except OSError:
+        pass
     conn = connect(db_file)
     set_language(get_setting(conn, "language", DEFAULT_LANGUAGE))
 

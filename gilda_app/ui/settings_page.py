@@ -1,5 +1,5 @@
-from PySide6.QtCore import Signal
-from PySide6.QtWidgets import QVBoxLayout, QWidget
+from PySide6.QtCore import Qt, Signal
+from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QVBoxLayout, QWidget
 from qfluentwidgets import (
     CaptionLabel,
     CardWidget,
@@ -7,6 +7,7 @@ from qfluentwidgets import (
     FluentIcon as FIF,
     PrimaryPushButton,
     PushButton,
+    ScrollArea,
     StrongBodyLabel,
     SubtitleLabel,
 )
@@ -20,10 +21,30 @@ class SettingsPage(QWidget):
     export_requested = Signal()
     reset_requested = Signal()
     language_changed = Signal(str)
+    backup_now_requested = Signal()
+    open_backups_requested = Signal()
+    restore_requested = Signal()
+    extra_dir_pick_requested = Signal()
+    extra_dir_clear_requested = Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        layout = QVBoxLayout(self)
+        # Contenuto scorrevole: con la sezione Backup la pagina supera l'altezza di una
+        # finestra piccola.
+        content = QWidget()
+        content.setObjectName("settingsContent")
+        content.setStyleSheet("#settingsContent { background: transparent; }")
+        scroll = ScrollArea(self)
+        scroll.setWidget(content)
+        scroll.setWidgetResizable(True)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        scroll.enableTransparentBackground()
+        scroll.setFrameShape(QFrame.NoFrame)
+        outer = QVBoxLayout(self)
+        outer.setContentsMargins(0, 0, 0, 0)
+        outer.addWidget(scroll)
+
+        layout = QVBoxLayout(content)
         layout.setContentsMargins(24, 20, 24, 20)
         layout.setSpacing(16)
         layout.addWidget(SubtitleLabel(tr("settings.title"), self))
@@ -54,6 +75,40 @@ class SettingsPage(QWidget):
         export_layout.addWidget(export_btn)
         layout.addWidget(export_card)
 
+        backup_card = CardWidget(self)
+        backup_layout = QVBoxLayout(backup_card)
+        backup_layout.addWidget(StrongBodyLabel(tr("backup.title"), backup_card))
+        backup_hint = QLabel(tr("backup.hint"), backup_card)
+        backup_hint.setWordWrap(True)
+        backup_layout.addWidget(backup_hint)
+        backup_buttons = QHBoxLayout()
+        create_btn = PrimaryPushButton(FIF.SAVE, tr("backup.create_now"), backup_card)
+        create_btn.clicked.connect(self.backup_now_requested)
+        open_btn = PushButton(FIF.FOLDER, tr("backup.open_folder"), backup_card)
+        open_btn.clicked.connect(self.open_backups_requested)
+        restore_btn = PushButton(FIF.HISTORY, tr("backup.restore"), backup_card)
+        restore_btn.clicked.connect(self.restore_requested)
+        for button in (create_btn, open_btn, restore_btn):
+            backup_buttons.addWidget(button)
+        backup_buttons.addStretch(1)
+        backup_layout.addLayout(backup_buttons)
+
+        backup_layout.addWidget(StrongBodyLabel(tr("backup.extra_label"), backup_card))
+        self.extra_dir_label = QLabel(backup_card)
+        self.extra_dir_label.setWordWrap(True)
+        backup_layout.addWidget(self.extra_dir_label)
+        extra_buttons = QHBoxLayout()
+        extra_choose_btn = PushButton(FIF.FOLDER, tr("backup.extra_choose"), backup_card)
+        extra_choose_btn.clicked.connect(self.extra_dir_pick_requested)
+        self.extra_remove_btn = PushButton(tr("backup.extra_remove"), backup_card)
+        self.extra_remove_btn.clicked.connect(self.extra_dir_clear_requested)
+        extra_buttons.addWidget(extra_choose_btn)
+        extra_buttons.addWidget(self.extra_remove_btn)
+        extra_buttons.addStretch(1)
+        backup_layout.addLayout(extra_buttons)
+        layout.addWidget(backup_card)
+        self.set_extra_backup_dir(None)
+
         reset_card = CardWidget(self)
         reset_layout = QVBoxLayout(reset_card)
         reset_btn = PushButton(FIF.DELETE, tr("settings.reset"), reset_card)
@@ -66,7 +121,11 @@ class SettingsPage(QWidget):
         layout.addWidget(reset_card)
 
         layout.addStretch(1)
-        layout.addWidget(CaptionLabel(tr("settings.version", version=__version__), self))
+        layout.addWidget(CaptionLabel(tr("settings.version", version=__version__), content))
+
+    def set_extra_backup_dir(self, path: str | None) -> None:
+        self.extra_dir_label.setText(path or tr("backup.extra_none"))
+        self.extra_remove_btn.setEnabled(bool(path))
 
     def _on_language_changed(self, index: int) -> None:
         code = self._lang_codes[index]

@@ -124,6 +124,59 @@ STRINGS: dict[str, dict[str, str]] = {
     "settings.reset": {"it": "Azzera database", "en": "Reset database"},
     "settings.version": {"it": "Night_Shade Manager — versione {version}", "en": "Night_Shade Manager — version {version}"},
 
+    # -- Backup --------------------------------------------------------------
+    "backup.title": {"it": "Backup", "en": "Backup"},
+    "backup.hint": {
+        "it": "Ogni giorno, all'apertura del programma, viene salvata una copia automatica (ne restano le ultime 30). "
+        "Altre copie si creano prima di spostamenti, import e azzeramenti.",
+        "en": "Once a day, when the program starts, an automatic copy is saved (the latest 30 are kept). "
+        "More copies are made before moves, imports and resets.",
+    },
+    "backup.create_now": {"it": "Crea backup ora", "en": "Back up now"},
+    "backup.open_folder": {"it": "Apri cartella backup", "en": "Open backup folder"},
+    "backup.restore": {"it": "Ripristina da backup...", "en": "Restore from backup..."},
+    "backup.extra_label": {"it": "Seconda copia in un'altra posizione (es. un altro disco)", "en": "Second copy in another location (e.g. another disk)"},
+    "backup.extra_none": {"it": "Nessuna: i backup restano solo nella cartella del programma", "en": "None: backups stay only in the program folder"},
+    "backup.extra_choose": {"it": "Scegli cartella...", "en": "Choose folder..."},
+    "backup.extra_remove": {"it": "Rimuovi", "en": "Remove"},
+    "backup.pick_extra_dir": {"it": "Scegli la cartella per la seconda copia dei backup", "en": "Choose the folder for the second copy of backups"},
+    "backup.reason.auto": {"it": "automatico", "en": "automatic"},
+    "backup.reason.manual": {"it": "manuale", "en": "manual"},
+    "backup.reason.move": {"it": "prima di uno spostamento", "en": "before a move"},
+    "backup.reason.import": {"it": "prima di un import", "en": "before an import"},
+    "backup.reason.reset": {"it": "prima di un azzeramento", "en": "before a reset"},
+    "backup.reason.pre-restore": {"it": "prima di un ripristino", "en": "before a restore"},
+    "backup.notify.created.title": {"it": "Backup creato", "en": "Backup created"},
+    "backup.notify.created.body": {"it": "Salvato come {name}", "en": "Saved as {name}"},
+    "backup.notify.extra_failed.title": {"it": "Seconda copia non riuscita", "en": "Second copy failed"},
+    "backup.notify.extra_failed.body": {
+        "it": "Il backup principale è stato salvato, ma non la copia nell'altra posizione: {error}",
+        "en": "The main backup was saved, but not the copy in the other location: {error}",
+    },
+    "backup.notify.extra_set.title": {"it": "Seconda copia attiva", "en": "Second copy enabled"},
+    "backup.notify.extra_set.body": {"it": "I prossimi backup saranno copiati anche in {path}", "en": "Next backups will also be copied to {path}"},
+    "backup.notify.extra_bad.title": {"it": "Cartella non utilizzabile", "en": "Folder not usable"},
+    "backup.notify.extra_bad.body": {"it": "Non riesco a scrivere in quella cartella: {error}", "en": "Cannot write to that folder: {error}"},
+    "backup.notify.extra_removed.title": {"it": "Seconda copia disattivata", "en": "Second copy disabled"},
+    "backup.notify.extra_removed.body": {"it": "I backup restano solo nella cartella del programma.", "en": "Backups now stay only in the program folder."},
+    "backup.notify.restore_failed.title": {"it": "Ripristino non riuscito", "en": "Restore failed"},
+    "backup.notify.restore_failed.body": {"it": "Il database attuale non è stato modificato: {error}", "en": "The current database was not changed: {error}"},
+    "backup.restore.title": {"it": "Ripristina da backup", "en": "Restore from backup"},
+    "backup.restore.hint": {
+        "it": "Scegli il backup da ripristinare. Prima del ripristino viene salvata una copia dello stato attuale, poi il programma si riavvia.",
+        "en": "Choose the backup to restore. A copy of the current state is saved first, then the program restarts.",
+    },
+    "backup.restore.empty": {"it": "Non ci sono ancora backup.", "en": "There are no backups yet."},
+    "backup.restore.button": {"it": "Ripristina", "en": "Restore"},
+    "backup.restore.confirm.title": {"it": "Confermi il ripristino?", "en": "Confirm restore?"},
+    "backup.restore.confirm.body": {
+        "it": "I dati attuali verranno sostituiti con quelli del backup del {when}. "
+        "Una copia dello stato attuale viene salvata prima, poi il programma si riavvia.",
+        "en": "Current data will be replaced with the backup from {when}. "
+        "A copy of the current state is saved first, then the program restarts.",
+    },
+    "backup.restore.invalid": {"it": "Questo file non è un backup valido.", "en": "This file is not a valid backup."},
+
     # -- Import ------------------------------------------------------------
     "dialog.import_preview.title": {"it": "Anteprima import", "en": "Import preview"},
     "import.sheet_summary": {
