@@ -22,9 +22,22 @@ a = Analysis(
 )
 pyz = PYZ(a.pure)
 
+# Schermata di avvio mostrata dal bootloader, PRIMA che parta Python: nella fase in cui
+# Windows carica le ~1000 librerie dell'app (circa 1 secondo, di più su PC lenti) l'utente
+# altrimenti non vede nulla e può credere di non aver cliccato. Viene chiusa dall'app
+# appena la finestra è pronta (vedi main.py). Richiede tkinter.
+splash = Splash(
+    "gilda_app/resources/splash.png",
+    binaries=a.binaries,
+    datas=a.datas,
+    text_pos=None,
+    always_on_top=False,
+)
+
 exe = EXE(
     pyz,
     a.scripts,
+    splash,
     [],
     exclude_binaries=True,
     name="Night_Shade Manager",
@@ -39,6 +52,7 @@ coll = COLLECT(
     exe,
     a.binaries,
     a.datas,
+    splash.binaries,
     strip=False,
     upx=False,
     name="Night_Shade Manager",

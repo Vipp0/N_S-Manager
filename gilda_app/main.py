@@ -33,6 +33,17 @@ def _maybe_run_initial_import(conn, db_file: Path, parent: MainWindow) -> None:
             parent.run_import(default_xlsx)
 
 
+def _close_splash() -> None:
+    """Chiude la schermata di avvio del bootloader (vedi gilda_app.spec). Il modulo
+    pyi_splash esiste solo nell'eseguibile costruito: in sviluppo l'import fallisce e
+    non c'è nulla da chiudere."""
+    try:
+        import pyi_splash
+    except ImportError:
+        return
+    pyi_splash.close()
+
+
 def main() -> None:
     app = QApplication(sys.argv)
     app.setFont(QFont(APP_FONT_FAMILY, APP_FONT_POINT_SIZE))
@@ -42,6 +53,9 @@ def main() -> None:
     set_language(get_setting(conn, "language", DEFAULT_LANGUAGE))
 
     window = MainWindow(conn, db_file)
+    # Prima del prompt di import iniziale: quel dialogo è modale e la schermata di
+    # avvio resterebbe altrimenti sopra o dietro di esso.
+    _close_splash()
     _maybe_run_initial_import(conn, db_file, window)
     window.refresh_all()
     window.show()
