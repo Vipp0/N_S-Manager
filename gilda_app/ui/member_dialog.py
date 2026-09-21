@@ -3,10 +3,12 @@ from PySide6.QtWidgets import (
     QAbstractItemView,
     QButtonGroup,
     QCompleter,
+    QFrame,
     QHBoxLayout,
     QLabel,
     QTableWidget,
     QTableWidgetItem,
+    QVBoxLayout,
     QWidget,
 )
 from qfluentwidgets import (
@@ -16,6 +18,7 @@ from qfluentwidgets import (
     MessageBoxBase,
     PlainTextEdit,
     RadioButton,
+    ScrollArea,
     StrongBodyLabel,
     SubtitleLabel,
 )
@@ -70,12 +73,29 @@ class MemberDialog(MessageBoxBase):
         self.titleLabel = SubtitleLabel(tr("dialog.edit_member.title") if is_edit else tr("dialog.new_member.title"), self)
         self.viewLayout.addWidget(self.titleLabel)
 
+        # Tutti i campi stanno in un'area scorrevole: in una finestra piccola il form
+        # (soprattutto in modifica, con lo storico) è più alto della finestra e le parti
+        # in alto e in basso si sovrapponevano ai bottoni.
+        self._form_widget = QWidget(self)
+        self._form_widget.setObjectName("memberFormContent")
+        self._form_widget.setStyleSheet("#memberFormContent { background: transparent; }")
+        form = QVBoxLayout(self._form_widget)
+        form.setContentsMargins(0, 0, 12, 0)
+        form.setSpacing(self.viewLayout.spacing())
+        self._scroll = ScrollArea(self)
+        self._scroll.setWidget(self._form_widget)
+        self._scroll.setWidgetResizable(True)
+        self._scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self._scroll.enableTransparentBackground()
+        self._scroll.setFrameShape(QFrame.NoFrame)
+        self.viewLayout.addWidget(self._scroll)
+
         # Solo per un nuovo membro: scelta della lista in cui inserirlo, con preselezionata
         # quella della scheda da cui si è premuto "Aggiungi". In modifica non c'è: per
         # cambiare lista si usa lo spostamento, che registra storico e backup.
         self._status_buttons: dict[str, RadioButton] = {}
         if not is_edit:
-            self.viewLayout.addWidget(QLabel(tr("label.list"), self))
+            form.addWidget(QLabel(tr("label.list"), self))
             status_row = QWidget(self)
             status_layout = QHBoxLayout(status_row)
             status_layout.setContentsMargins(0, 0, 0, 0)
@@ -87,7 +107,7 @@ class MemberDialog(MessageBoxBase):
                 self._status_buttons[st] = button
             status_layout.addStretch(1)
             self._status_buttons[status if status in self._status_buttons else STATUS_ATTIVO].setChecked(True)
-            self.viewLayout.addWidget(status_row)
+            form.addWidget(status_row)
 
         self.family_edit = LineEdit(self)
         self.family_edit.setPlaceholderText(tr("field.family_name.placeholder"))
@@ -131,17 +151,17 @@ class MemberDialog(MessageBoxBase):
             ("label.nation1", self.nation1_edit),
             ("label.nation2", self.nation2_edit),
         ]:
-            self.viewLayout.addWidget(QLabel(tr(label_key), self))
-            self.viewLayout.addWidget(widget)
+            form.addWidget(QLabel(tr(label_key), self))
+            form.addWidget(widget)
             if widget is self.discord_edit and self.discord_check is not None:
-                self.viewLayout.addWidget(self.discord_check)
+                form.addWidget(self.discord_check)
 
-        self.viewLayout.addWidget(date_row)
-        self.viewLayout.addWidget(QLabel(tr("label.note"), self))
-        self.viewLayout.addWidget(self.note_edit)
+        form.addWidget(date_row)
+        form.addWidget(QLabel(tr("label.note"), self))
+        form.addWidget(self.note_edit)
 
         if is_edit and conn is not None:
-            self.viewLayout.addWidget(StrongBodyLabel(tr("label.history"), self))
+            form.addWidget(StrongBodyLabel(tr("label.history"), self))
             self.history_table = QTableWidget(self)
             self.history_table.setColumnCount(1)
             self.history_table.horizontalHeader().hide()
@@ -156,11 +176,11 @@ class MemberDialog(MessageBoxBase):
             self.history_table.setTextElideMode(Qt.ElideNone)
             self.history_table.setFixedHeight(160)
             self.history_table.doubleClicked.connect(self._on_history_double_click)
-            self.viewLayout.addWidget(self.history_table)
-            self.viewLayout.addWidget(QLabel(tr("history.hint"), self))
+            form.addWidget(self.history_table)
+            form.addWidget(QLabel(tr("history.hint"), self))
             self._refresh_history()
 
-        self.viewLayout.addWidget(self.error_label)
+        form.addWidget(self.error_label)
         # Form più largo: 380px era stretto e tagliava le voci di storico più lunghe.
         self.widget.setMinimumWidth(520)
 
@@ -193,6 +213,22 @@ class MemberDialog(MessageBoxBase):
         self.yesButton.setText(tr("button.save"))
         self.cancelButton.setText(tr("button.cancel"))
 
+    # Spazio della finestra non occupato dal form: titolo, bottoni, margini del riquadro.
+    _NON_SCROLL_RESERVE = 250
+
+    def _fit_scroll_height(self) -> None:
+        needed = self._form_widget.sizeHint().height() + 2
+        available = max(160, self.height() - self._NON_SCROLL_RESERVE)
+        self._scroll.setFixedHeight(min(needed, available))
+
+    def showEvent(self, event) -> None:
+        super().showEvent(event)
+        self._fit_scroll_height()
+
+    def resizeEvent(self, event) -> None:
+        super().resizeEvent(event)
+        self._fit_scroll_height()
+
     def selected_status(self) -> str | None:
         """Lista scelta per un nuovo membro; per un membro esistente la sua lista attuale."""
         if self.member is not None:
@@ -205,6 +241,7 @@ class MemberDialog(MessageBoxBase):
     def _update_discord_check_visibility(self, *_args) -> None:
         if self.discord_check is not None and not self.member:
             self.discord_check.setVisible(self.selected_status() == STATUS_EX_MEMBRO)
+            self._fit_scroll_height()
 
     def _refresh_history(self) -> None:
         self._history_rows = get_status_history(self.conn, self.member.id)
@@ -248,6 +285,8 @@ class MemberDialog(MessageBoxBase):
         if not self.family_edit.text().strip():
             self.error_label.setText(tr("error.family_name_required"))
             self.error_label.show()
+            self._fit_scroll_height()
+            self._scroll.ensureWidgetVisible(self.error_label)
             return False
         return True
 
