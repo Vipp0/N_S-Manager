@@ -2,10 +2,11 @@ import sqlite3
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QAbstractItemView, QHeaderView, QTableWidget, QTableWidgetItem
-from qfluentwidgets import MessageBoxBase, SearchLineEdit, SubtitleLabel
+from qfluentwidgets import MessageBoxBase, SubtitleLabel
 
 from gilda_app.db.database import get_members
 from gilda_app.i18n import tr
+from gilda_app.ui.persistent_clear_search import PersistentClearSearchLineEdit
 from gilda_app.models.member import STATUS_ATTIVO, STATUS_BANNATO, STATUS_EX_MEMBRO, status_label
 from gilda_app.utils.flags import nations_text
 
@@ -25,7 +26,7 @@ class GlobalSearchDialog(MessageBoxBase):
         self.titleLabel = SubtitleLabel(tr("search.global.title"), self)
         self.viewLayout.addWidget(self.titleLabel)
 
-        self.search_box = SearchLineEdit(self)
+        self.search_box = PersistentClearSearchLineEdit(self)
         self.search_box.setPlaceholderText(tr("search.global.placeholder"))
         self.search_box.textChanged.connect(self._run_search)
         self.viewLayout.addWidget(self.search_box)

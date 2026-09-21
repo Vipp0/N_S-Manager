@@ -4,10 +4,11 @@ from PySide6.QtCore import QEvent, QSize, Qt, Signal
 from PySide6.QtGui import QColor, QFont, QGuiApplication, QPixmap
 from PySide6.QtWidgets import QAbstractItemView, QHBoxLayout, QLabel, QTableWidgetItem, QVBoxLayout, QWidget
 from qfluentwidgets import Action, FluentIcon as FIF
-from qfluentwidgets import PrimaryPushButton, RoundMenu, SearchLineEdit, StrongBodyLabel, TableWidget
+from qfluentwidgets import PrimaryPushButton, RoundMenu, StrongBodyLabel, TableWidget
 
 from gilda_app.i18n import tr
 from gilda_app.models.member import Member, STATUS_EX_MEMBRO, status_label
+from gilda_app.ui.persistent_clear_search import PersistentClearSearchLineEdit
 from gilda_app.utils.discord_format import discord_copy_text
 from gilda_app.utils.flags import MAX_FLAG_ICON_SIZE, combined_flag_icon, nations_text
 from gilda_app.utils.scrollbar import widen_scrollbar_on_hover
@@ -57,7 +58,7 @@ class MemberListPage(QWidget):
 
         header = QHBoxLayout()
         title = StrongBodyLabel(status_label(status), self)
-        self.search_box = SearchLineEdit(self)
+        self.search_box = PersistentClearSearchLineEdit(self)
         self.search_box.setPlaceholderText(tr("search.placeholder"))
         self.search_box.setFixedWidth(320)
         self.search_box.textChanged.connect(self._apply_filter)
