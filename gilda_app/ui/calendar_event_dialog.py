@@ -111,7 +111,9 @@ class CalendarEventDialog(MessageBoxBase):
                 self.end_picker.setDate(QDate.fromString(event["recurrence_end_date"], "yyyy-MM-dd"))
         self._update_recurrence_widgets()
 
-        self.widget.setMinimumWidth(500)
+        # 580 invece di 500: con 15 colori (invece dei precedenti 11) la fila di pallini
+        # è più larga e usciva dai bordi.
+        self.widget.setMinimumWidth(580)
         self.yesButton.setText(tr("button.save"))
         self.cancelButton.setText(tr("button.cancel"))
 

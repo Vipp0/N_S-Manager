@@ -6,6 +6,13 @@ usa il programma, non i dettagli tecnici del come."""
 
 CHANGELOG: list[dict] = [
     {
+        "version": "1.7.1",
+        "date": "23-09-2026",
+        "notes": [
+            "Colori disponibili per gli eventi del calendario: da 11 a 15 (aggiunti verde lime, verde acqua, indaco, magenta).",
+        ],
+    },
+    {
         "version": "1.7.0",
         "date": "23-09-2026",
         "notes": [
