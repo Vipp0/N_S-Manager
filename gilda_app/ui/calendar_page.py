@@ -15,6 +15,7 @@ from gilda_app.db.calendar_events import (
     occurrences_in_range,
     update_event,
 )
+from gilda_app.db.holidays import HOLIDAY_COLOR, get_holidays_in_range
 from gilda_app.i18n import get_language, tr
 from gilda_app.ui.calendar_event_dialog import CalendarEventDialog
 from gilda_app.ui.event_calendar_widget import EventCalendarWidget
@@ -112,6 +113,20 @@ class CalendarPage(QWidget):
             for occurrence in occurrences_in_range(row, range_start, range_end):
                 self._day_events.setdefault(occurrence, []).append(row)
 
+        for day, names in get_holidays_in_range(self.get_conn(), range_start, range_end).items():
+            for name in names:
+                self._day_events.setdefault(day, []).append(
+                    {
+                        "id": None,
+                        "title": name,
+                        "note": None,
+                        "color": HOLIDAY_COLOR,
+                        "recurrence_unit": RECURRENCE_NONE,
+                        "recurrence_interval": 1,
+                        "is_holiday": True,
+                    }
+                )
+
         self.calendar.set_day_events(
             {day: [(row["title"], row["color"]) for row in rows] for day, rows in self._day_events.items()}
         )
@@ -144,6 +159,10 @@ class CalendarPage(QWidget):
         for index, row in enumerate(rows):
             self.events_layout.insertWidget(index, self._event_row(row))
 
+    @staticmethod
+    def _is_holiday(row) -> bool:
+        return "is_holiday" in row.keys() and bool(row["is_holiday"])
+
     def _event_row(self, row) -> QWidget:
         frame = QFrame(self.events_container)
         frame.setFrameShape(QFrame.StyledPanel)
@@ -172,14 +191,15 @@ class CalendarPage(QWidget):
             text_col.addWidget(note)
         outer.addLayout(text_col, 1)
 
-        edit_btn = TransparentToolButton(FIF.EDIT, frame)
-        edit_btn.setToolTip(tr("menu.edit"))
-        edit_btn.clicked.connect(lambda _=False, r=row: self._on_edit(r))
-        delete_btn = TransparentToolButton(FIF.DELETE, frame)
-        delete_btn.setToolTip(tr("menu.delete"))
-        delete_btn.clicked.connect(lambda _=False, r=row: self._on_delete(r))
-        outer.addWidget(edit_btn, 0, Qt.AlignTop)
-        outer.addWidget(delete_btn, 0, Qt.AlignTop)
+        if not self._is_holiday(row):
+            edit_btn = TransparentToolButton(FIF.EDIT, frame)
+            edit_btn.setToolTip(tr("menu.edit"))
+            edit_btn.clicked.connect(lambda _=False, r=row: self._on_edit(r))
+            delete_btn = TransparentToolButton(FIF.DELETE, frame)
+            delete_btn.setToolTip(tr("menu.delete"))
+            delete_btn.clicked.connect(lambda _=False, r=row: self._on_delete(r))
+            outer.addWidget(edit_btn, 0, Qt.AlignTop)
+            outer.addWidget(delete_btn, 0, Qt.AlignTop)
         return frame
 
     # -- azioni -----------------------------------------------------------

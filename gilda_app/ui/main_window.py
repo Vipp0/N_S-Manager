@@ -1,7 +1,8 @@
 import sqlite3
+import threading
 from pathlib import Path
 
-from PySide6.QtCore import Qt, QUrl
+from PySide6.QtCore import QObject, Qt, QUrl, Signal
 from PySide6.QtGui import QDesktopServices, QGuiApplication, QIcon, QKeySequence, QShortcut
 from PySide6.QtWidgets import QApplication, QFileDialog
 from qfluentwidgets import FluentIcon as FIF
@@ -14,6 +15,7 @@ from gilda_app.db.backup import (
     list_backups,
     restore_backup,
 )
+from gilda_app.db.holidays import refresh_holidays_if_needed
 from gilda_app.db.database import (
     add_member,
     connect,
@@ -52,6 +54,13 @@ STATUS_ORDER = [STATUS_ATTIVO, STATUS_EX_MEMBRO, STATUS_BANNATO]
 APP_ICON_PATH = Path(__file__).resolve().parent.parent / "resources" / "app_icon.png"
 
 
+class _HolidayRefreshSignal(QObject):
+    """Ponte verso il thread Qt: un segnale può essere emesso da un altro thread in
+    sicurezza, una chiamata diretta a un widget no."""
+
+    finished = Signal(bool)
+
+
 class MainWindow(FluentWindow):
     def __init__(self, conn: sqlite3.Connection, db_path: Path):
         super().__init__()
@@ -84,6 +93,7 @@ class MainWindow(FluentWindow):
         self.calendar_page = CalendarPage(lambda: self.conn, self)
         self.calendar_page.setObjectName("page_calendar")
         self.addSubInterface(self.calendar_page, FIF.CALENDAR, tr("nav.calendar"))
+        self._start_holiday_refresh()
 
         self.stats_page = StatsPage(lambda: self.conn, self._open_nation_in_current, self)
         self.stats_page.setObjectName("page_stats")
@@ -152,6 +162,23 @@ class MainWindow(FluentWindow):
         for status, page in self.pages.items():
             page.set_members(get_members(self.conn, status))
         self.stats_page.refresh()
+
+    # -- Festività (aggiornamento in background) --------------------------
+    def _start_holiday_refresh(self) -> None:
+        """Il download è opzionale e non deve mai rallentare l'avvio: gira in un thread
+        separato, con la sua connessione al database (sqlite3 non è condivisibile tra
+        thread), e aggiorna la scheda Calendario solo se ha trovato qualcosa di nuovo."""
+        self._holiday_refresh_signal = _HolidayRefreshSignal()
+        self._holiday_refresh_signal.finished.connect(self._on_holidays_refreshed)
+        threading.Thread(target=self._refresh_holidays_worker, daemon=True).start()
+
+    def _refresh_holidays_worker(self) -> None:
+        updated = refresh_holidays_if_needed(self.db_path)
+        self._holiday_refresh_signal.finished.emit(updated)
+
+    def _on_holidays_refreshed(self, updated: bool) -> None:
+        if updated:
+            self.calendar_page.refresh()
 
     def _on_language_changed(self, lang_code: str) -> None:
         set_setting(self.conn, "language", lang_code)

@@ -85,7 +85,24 @@ def _upgrade_4(conn: sqlite3.Connection) -> None:
     )
 
 
-MIGRATIONS = [_upgrade_1, _upgrade_2, _upgrade_3, _upgrade_4]
+def _upgrade_5(conn: sqlite3.Connection) -> None:
+    # Festività della Corea del Sud (vedi db/holidays.py): tabella "usa e getta",
+    # ricostruita per intero ad ogni aggiornamento riuscito dalla fonte online, mai
+    # modificata a mano dall'utente.
+    conn.executescript(
+        """
+        CREATE TABLE holidays (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            date TEXT NOT NULL,
+            name TEXT NOT NULL,
+            UNIQUE(date, name)
+        );
+        CREATE INDEX idx_holidays_date ON holidays(date);
+        """
+    )
+
+
+MIGRATIONS = [_upgrade_1, _upgrade_2, _upgrade_3, _upgrade_4, _upgrade_5]
 
 
 def migrate(conn: sqlite3.Connection) -> None:
