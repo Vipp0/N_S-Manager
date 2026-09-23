@@ -33,7 +33,12 @@ splash = Splash(
     # Sfondo dell'immagine già nero fino ai bordi: niente riquadro chiaro con bordo come
     # nella vecchia splash, sarebbe stonato. Il testo "Loading..." animato (vedi
     # main.py) si sovrappone nello spazio vuoto sotto al logo.
-    text_pos=(360, 510),
+    # text_pos ancora l'angolo in basso a sinistra del testo (limite della Splash di
+    # PyInstaller: text_justify riguarda solo il testo su più righe, non la posizione).
+    # x calcolata misurando con Tk la larghezza di "Loading."/".."/"..." a questa
+    # dimensione, per restare centrata sull'immagine (720px) nonostante il testo cambi
+    # larghezza mentre i puntini si animano.
+    text_pos=(321, 510),
     text_size=14,
     text_color="#e6d9ff",
     text_default="Loading...",

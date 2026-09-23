@@ -6,6 +6,13 @@ usa il programma, non i dettagli tecnici del come."""
 
 CHANGELOG: list[dict] = [
     {
+        "version": "1.8.3",
+        "date": "23-09-2026",
+        "notes": [
+            "Testo \"Loading...\" della schermata di caricamento ora davvero centrato.",
+        ],
+    },
+    {
         "version": "1.8.2",
         "date": "23-09-2026",
         "notes": [
