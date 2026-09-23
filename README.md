@@ -10,7 +10,7 @@ venv\Scripts\pip install -r requirements.txt
 venv\Scripts\python -m gilda_app.main
 ```
 
-Al primo avvio, se il database `gilda.db` è vuoto e nella cartella è presente `List 2026.xlsx`, l'app propone l'import iniziale.
+Al primo avvio, se il database `gilda.db` è vuoto e nella cartella è presente un file Excel con l'elenco membri, l'app propone l'import iniziale.
 
 ## Test
 
@@ -37,3 +37,7 @@ Per aggiornare l'app senza perdere i dati: sostituire solo `Night_Shade Manager.
 - `tests/` — test automatici su import, CRUD, statistiche, calendario e formato date
 
 Le date sono salvate nel database come `yyyy-mm-dd` (si ordinano correttamente come testo) e mostrate all'utente come `dd-mm-yyyy`.
+
+## Licenza
+
+[MIT](LICENSE)
