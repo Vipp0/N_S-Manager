@@ -33,6 +33,7 @@ from gilda_app.importer.excel_export import export_workbook
 from gilda_app.importer.excel_import import find_intra_file_duplicates, import_row, parse_workbook
 from gilda_app.models.member import STATUS_ATTIVO, STATUS_BANNATO, STATUS_EX_MEMBRO, Member, status_label
 from gilda_app.ui.calendar_page import CalendarPage
+from gilda_app.ui.changelog_dialog import ChangelogDialog
 from gilda_app.ui.global_search import GlobalSearchDialog
 from gilda_app.ui.import_dialog import ImportPreviewDialog
 from gilda_app.ui.member_dialog import MemberDialog
@@ -110,6 +111,7 @@ class MainWindow(FluentWindow):
         self.settings_page.restore_requested.connect(self._on_restore)
         self.settings_page.extra_dir_pick_requested.connect(self._on_pick_extra_dir)
         self.settings_page.extra_dir_clear_requested.connect(self._on_clear_extra_dir)
+        self.settings_page.changelog_requested.connect(self._on_changelog)
         self.settings_page.set_extra_backup_dir(get_setting(self.conn, EXTRA_DIR_SETTING))
         self.addSubInterface(self.settings_page, FIF.SETTING, tr("nav.settings"), NavigationItemPosition.BOTTOM)
 
@@ -179,6 +181,9 @@ class MainWindow(FluentWindow):
     def _on_holidays_refreshed(self, updated: bool) -> None:
         if updated:
             self.calendar_page.refresh()
+
+    def _on_changelog(self) -> None:
+        ChangelogDialog(self).exec()
 
     def _on_language_changed(self, lang_code: str) -> None:
         set_setting(self.conn, "language", lang_code)

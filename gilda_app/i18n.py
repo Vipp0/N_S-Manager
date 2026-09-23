@@ -123,6 +123,8 @@ STRINGS: dict[str, dict[str, str]] = {
     "settings.export": {"it": "Esporta in Excel...", "en": "Export to Excel..."},
     "settings.reset": {"it": "Azzera database", "en": "Reset database"},
     "settings.version": {"it": "Night_Shade Manager — versione {version}", "en": "Night_Shade Manager — version {version}"},
+    "settings.changelog": {"it": "Changelog", "en": "Changelog"},
+    "settings.changelog_button": {"it": "Storico modifiche (changelog)", "en": "Version history (changelog)"},
 
     # -- Backup --------------------------------------------------------------
     "backup.title": {"it": "Backup", "en": "Backup"},

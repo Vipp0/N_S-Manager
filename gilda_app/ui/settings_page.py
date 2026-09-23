@@ -26,6 +26,7 @@ class SettingsPage(QWidget):
     restore_requested = Signal()
     extra_dir_pick_requested = Signal()
     extra_dir_clear_requested = Signal()
+    changelog_requested = Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -121,6 +122,9 @@ class SettingsPage(QWidget):
         layout.addWidget(reset_card)
 
         layout.addStretch(1)
+        changelog_btn = PushButton(FIF.HISTORY, tr("settings.changelog_button"), content)
+        changelog_btn.clicked.connect(self.changelog_requested)
+        layout.addWidget(changelog_btn)
         layout.addWidget(CaptionLabel(tr("settings.version", version=__version__), content))
 
     def set_extra_backup_dir(self, path: str | None) -> None:
