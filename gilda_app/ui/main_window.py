@@ -50,9 +50,11 @@ from gilda_app.version import __version__
 from gilda_app.utils.icons import ban_icon
 from gilda_app.utils.paths import backups_dir
 from gilda_app.utils.restart import restart_app
+from gilda_app.utils.update_check import RELEASES_PAGE_URL, fetch_latest_release_tag, is_newer
 
 STATUS_ORDER = [STATUS_ATTIVO, STATUS_EX_MEMBRO, STATUS_BANNATO]
 APP_ICON_PATH = Path(__file__).resolve().parent.parent / "resources" / "app_icon.png"
+UPDATE_NOTIFIED_SETTING = "update_notified_version"
 
 
 class _HolidayRefreshSignal(QObject):
@@ -60,6 +62,10 @@ class _HolidayRefreshSignal(QObject):
     sicurezza, una chiamata diretta a un widget no."""
 
     finished = Signal(bool)
+
+
+class _UpdateCheckSignal(QObject):
+    finished = Signal(str)
 
 
 class MainWindow(FluentWindow):
@@ -95,6 +101,7 @@ class MainWindow(FluentWindow):
         self.calendar_page.setObjectName("page_calendar")
         self.addSubInterface(self.calendar_page, FIF.CALENDAR, tr("nav.calendar"))
         self._start_holiday_refresh()
+        self._start_update_check()
 
         self.stats_page = StatsPage(lambda: self.conn, self._open_nation_in_current, self)
         self.stats_page.setObjectName("page_stats")
@@ -184,6 +191,31 @@ class MainWindow(FluentWindow):
 
     def _on_changelog(self) -> None:
         ChangelogDialog(self).exec()
+
+    # -- Controllo aggiornamenti -------------------------------------------
+    def _start_update_check(self) -> None:
+        """Un controllo veloce ad ogni avvio (una singola richiesta a GitHub, con
+        timeout breve): se c'è una versione più recente lo si segnala una volta sola,
+        non ad ogni riapertura del programma per la stessa versione già vista."""
+        self._update_check_signal = _UpdateCheckSignal()
+        self._update_check_signal.finished.connect(self._on_update_checked)
+        threading.Thread(target=self._check_update_worker, daemon=True).start()
+
+    def _check_update_worker(self) -> None:
+        tag = fetch_latest_release_tag()
+        self._update_check_signal.finished.emit(tag or "")
+
+    def _on_update_checked(self, tag: str) -> None:
+        if not tag or not is_newer(tag, __version__):
+            return
+        if get_setting(self.conn, UPDATE_NOTIFIED_SETTING) == tag:
+            return
+        set_setting(self.conn, UPDATE_NOTIFIED_SETTING, tag)
+        box = MessageBox(tr("update.available.title"), tr("update.available.body", version=tag.lstrip("vV")), self)
+        box.yesButton.setText(tr("update.available.open"))
+        box.cancelButton.setText(tr("button.later"))
+        if box.exec():
+            QDesktopServices.openUrl(QUrl(RELEASES_PAGE_URL))
 
     def _on_language_changed(self, lang_code: str) -> None:
         set_setting(self.conn, "language", lang_code)

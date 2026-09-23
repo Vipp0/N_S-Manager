@@ -6,6 +6,13 @@ usa il programma, non i dettagli tecnici del come."""
 
 CHANGELOG: list[dict] = [
     {
+        "version": "1.8.0",
+        "date": "23-09-2026",
+        "notes": [
+            "All'avvio il programma controlla se è disponibile una versione più recente e, se sì, propone di aprire la pagina per scaricarla (mai in automatico).",
+        ],
+    },
+    {
         "version": "1.7.1",
         "date": "23-09-2026",
         "notes": [

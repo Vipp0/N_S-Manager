@@ -119,6 +119,12 @@ STRINGS: dict[str, dict[str, str]] = {
     },
     "button.restart_now": {"it": "Riavvia ora", "en": "Restart now"},
     "button.later": {"it": "Più tardi", "en": "Later"},
+    "update.available.title": {"it": "Aggiornamento disponibile", "en": "Update available"},
+    "update.available.body": {
+        "it": "È disponibile la versione {version}. Vuoi aprire la pagina per scaricarla?",
+        "en": "Version {version} is available. Do you want to open the download page?",
+    },
+    "update.available.open": {"it": "Apri pagina", "en": "Open page"},
     "settings.import": {"it": "Importa da Excel...", "en": "Import from Excel..."},
     "settings.export": {"it": "Esporta in Excel...", "en": "Export to Excel..."},
     "settings.reset": {"it": "Azzera database", "en": "Reset database"},
