@@ -14,9 +14,11 @@ DAY_NUMBER_COLOR = QColor("#202020")
 EVENT_TITLE_COLOR = QColor("#202020")
 OVERFLOW_LABEL_COLOR = QColor("#5a5a5a")
 
-NUMBER_ROW_HEIGHT = 16
-DOT_DIAMETER = 6
+NUMBER_ROW_HEIGHT = 20
+DOT_DIAMETER = 9
 DOT_MARGIN = 3
+NUMBER_FONT_SIZE = 10
+EVENT_FONT_SIZE = 10
 
 
 class EventCalendarWidget(QCalendarWidget):
@@ -57,7 +59,7 @@ class EventCalendarWidget(QCalendarWidget):
             painter.fillRect(rect, TODAY_FILL_COLOR)
 
         number_font = QFont(painter.font())
-        number_font.setPointSize(8)
+        number_font.setPointSize(NUMBER_FONT_SIZE)
         painter.setFont(number_font)
         painter.setPen(DAY_NUMBER_COLOR)
         number_rect = QRect(rect.left(), rect.top(), rect.width() - 4, NUMBER_ROW_HEIGHT)
@@ -65,10 +67,10 @@ class EventCalendarWidget(QCalendarWidget):
 
         if events:
             event_font = QFont(painter.font())
-            event_font.setPointSize(7)
+            event_font.setPointSize(EVENT_FONT_SIZE)
             painter.setFont(event_font)
             metrics = QFontMetrics(event_font)
-            row_height = metrics.height() + 2
+            row_height = metrics.height() + 3
 
             top = rect.top() + NUMBER_ROW_HEIGHT
             available_height = rect.bottom() - top

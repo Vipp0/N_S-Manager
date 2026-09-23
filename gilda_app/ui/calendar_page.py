@@ -55,6 +55,15 @@ class CalendarPage(QWidget):
         self.calendar.setGridVisible(True)
         self.calendar.setVerticalHeaderFormat(QCalendarWidget.NoVerticalHeader)
         self.calendar.setMinimumSize(640, 480)
+        # Il giorno selezionato ha già un bordo scuro disegnato a mano in paintCell:
+        # senza questo, Windows disegna sopra anche la sua barra di selezione nativa
+        # (un accento verticale a sinistra della cella).
+        self.calendar.setStyleSheet(
+            "QCalendarWidget QAbstractItemView:enabled {"
+            " selection-background-color: transparent;"
+            " selection-color: black;"
+            "}"
+        )
         self.calendar.selectionChanged.connect(self._refresh_day_panel)
         # activated = doppio click (o Invio) su un giorno: apre subito il form di
         # aggiunta evento su quella data.
