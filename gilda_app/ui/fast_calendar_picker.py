@@ -1,5 +1,6 @@
-from PySide6.QtCore import QPoint, Qt, QTimer
-from qfluentwidgets import CalendarPicker
+from PySide6.QtCore import QDate, QPoint, Qt, QTimer, Signal
+from PySide6.QtWidgets import QApplication, QHBoxLayout, QWidget
+from qfluentwidgets import CalendarPicker, LineEdit
 from qfluentwidgets.components.date_time.calendar_view import CalendarView
 
 from gilda_app.utils.date_format import DISPLAY_DATE_QT_FORMAT
@@ -55,3 +56,80 @@ class FastCalendarPicker(CalendarPicker):
         x = int(self.width() / 2 - view.sizeHint().width() / 2)
         y = self.height()
         view.exec(self.mapToGlobal(QPoint(x, y)), ani=False)
+
+
+class _CalendarIconButton(FastCalendarPicker):
+    """FastCalendarPicker ridotto alla sola icona, senza testo: usato dentro DateEdit
+    accanto al campo scrivibile, dove il testo del bottone (la data formattata)
+    ripeterebbe quello già mostrato nel campo."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setText("")
+        self.setFixedWidth(34)
+
+    def _onDateChanged(self, date: QDate) -> None:
+        self._date = QDate(date)
+        self.setProperty("hasDate", True)
+        self.setStyle(QApplication.style())
+        self.update()
+        self.dateChanged.emit(date)
+
+
+class DateEdit(QWidget):
+    """Campo data: si può scrivere a mano (dd-mm-yyyy) oppure scegliere dal
+    calendarietto accanto, invece di poter usare solo quest'ultimo come con
+    FastCalendarPicker da solo. Utile per inserire in fretta molte date storiche
+    (vedi RebuildHistoryDialog) senza dover aprire il calendario ogni volta.
+    """
+
+    dateChanged = Signal(QDate)
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(6)
+
+        self._line = LineEdit(self)
+        # Maschera a griglia di cifre: impedisce di scrivere caratteri non numerici,
+        # ma non valida date inesistenti (es. 31-02) - quello avviene alla conferma.
+        self._line.setInputMask("00-00-0000;_")
+        self._line.editingFinished.connect(self._on_text_edited)
+
+        self._icon_btn = _CalendarIconButton(self)
+        self._icon_btn.dateChanged.connect(self._on_picker_changed)
+
+        layout.addWidget(self._line, 1)
+        layout.addWidget(self._icon_btn)
+
+        self._date = QDate()
+
+    def getDate(self) -> QDate:
+        return self._date
+
+    def setDate(self, date: QDate) -> None:
+        self._date = QDate(date)
+        # Sincronizza il bottone-icona senza passare da setDate: emetterebbe dateChanged
+        # e richiamerebbe questo stesso metodo di rimbalzo.
+        self._icon_btn._date = QDate(date)
+        self._icon_btn.setProperty("hasDate", date.isValid())
+        self._icon_btn.setStyle(QApplication.style())
+        self._refresh_text()
+
+    def _refresh_text(self) -> None:
+        self._line.setText(self._date.toString(DISPLAY_DATE_QT_FORMAT) if self._date.isValid() else "")
+
+    def _on_text_edited(self) -> None:
+        date = QDate.fromString(self._line.text(), DISPLAY_DATE_QT_FORMAT)
+        if date.isValid():
+            self.setDate(date)
+            self.dateChanged.emit(date)
+        else:
+            # testo incompleto o data inesistente (es. 31-02): torna all'ultima valida
+            self._refresh_text()
+
+    def _on_picker_changed(self, date: QDate) -> None:
+        self._date = QDate(date)
+        self._refresh_text()
+        self.dateChanged.emit(date)

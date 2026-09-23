@@ -305,6 +305,10 @@ class MainWindow(FluentWindow):
                 tr("notify.member_updated.title"),
                 tr("notify.member_updated.body", name=values["family_name"]),
             )
+        elif dialog.history_changed:
+            # Una ricostruzione dello storico scrive subito sul database anche se poi
+            # il form viene chiuso con Annulla: la lista del membro può essere cambiata.
+            self.refresh_all()
 
     def _on_delete(self, member: Member) -> None:
         box = MessageBox(

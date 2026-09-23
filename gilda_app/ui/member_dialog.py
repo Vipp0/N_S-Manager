@@ -14,20 +14,23 @@ from PySide6.QtWidgets import (
 from qfluentwidgets import (
     CheckBox,
     EditableComboBox,
+    FluentIcon as FIF,
     LineEdit,
     MessageBoxBase,
     PlainTextEdit,
+    PushButton,
     RadioButton,
     ScrollArea,
     StrongBodyLabel,
     SubtitleLabel,
 )
 
-from gilda_app.db.database import get_status_history, update_status_history_entry
+from gilda_app.db.database import get_status_history, rebuild_status_history, update_status_history_entry
 from gilda_app.i18n import tr
 from gilda_app.models.member import STATUS_ATTIVO, STATUS_BANNATO, STATUS_EX_MEMBRO, Member, status_label
-from gilda_app.ui.fast_calendar_picker import FastCalendarPicker
+from gilda_app.ui.fast_calendar_picker import DateEdit
 from gilda_app.ui.history_entry_dialog import HistoryEntryDialog
+from gilda_app.ui.rebuild_history_dialog import RebuildHistoryDialog
 from gilda_app.utils.countries import canonical_name, country_choices
 from gilda_app.utils.flags import display_nation
 from gilda_app.utils.history_format import format_history_line
@@ -58,8 +61,10 @@ class MemberDialog(MessageBoxBase):
     """Form di inserimento/modifica membro. Family Name obbligatorio.
 
     In modifica mostra anche lo storico movimenti, corregibile sul posto (doppio
-    click su una voce): questa parte scrive direttamente sul database invece di
-    passare da values(), perché deve riflettersi subito mentre il dialog resta aperto.
+    click su una voce) o ricostruibile da zero (pulsante dedicato, per inserire a
+    posteriori entrate/uscite/rientri già avvenuti): questa parte scrive direttamente
+    sul database invece di passare da values(), perché deve riflettersi subito mentre
+    il dialog resta aperto.
     """
 
     def __init__(self, parent=None, member: Member | None = None, conn=None, status: str | None = None):
@@ -67,6 +72,10 @@ class MemberDialog(MessageBoxBase):
         self.member = member
         self.conn = conn
         self._history_rows: list = []
+        # Ricostruire lo storico scrive subito sul database (come la correzione di una
+        # singola voce): se poi questo dialog viene chiuso con Annulla, chi lo apre deve
+        # comunque aggiornare le liste, perché lo stato del membro può essere cambiato.
+        self.history_changed = False
         is_edit = member is not None
         target_status = member.status if is_edit else status
 
@@ -119,7 +128,7 @@ class MemberDialog(MessageBoxBase):
         self.nation2_edit = _make_nation_combo(self, tr("field.nation2.placeholder"))
 
         self.date_check = CheckBox(tr("field.date_check"), self)
-        self.date_picker = FastCalendarPicker(self)
+        self.date_picker = DateEdit(self)
         self.date_picker.setDate(QDate.currentDate())
         date_row = QWidget(self)
         date_layout = QHBoxLayout(date_row)
@@ -178,6 +187,11 @@ class MemberDialog(MessageBoxBase):
             self.history_table.doubleClicked.connect(self._on_history_double_click)
             form.addWidget(self.history_table)
             form.addWidget(QLabel(tr("history.hint"), self))
+
+            self.rebuild_history_btn = PushButton(FIF.HISTORY, tr("button.rebuild_history"), self)
+            self.rebuild_history_btn.clicked.connect(self._on_rebuild_history)
+            form.addWidget(self.rebuild_history_btn)
+
             self._refresh_history()
 
         form.addWidget(self.error_label)
@@ -280,6 +294,17 @@ class MemberDialog(MessageBoxBase):
                 # la correzione ha aggiornato anche members.data_inserimento: riflettila nel form
                 self.date_check.setChecked(True)
                 self.date_picker.setDate(QDate.fromString(values["date"], "yyyy-MM-dd"))
+
+    def _on_rebuild_history(self) -> None:
+        dialog = RebuildHistoryDialog(self, self.member, self._history_rows)
+        if dialog.exec():
+            rebuild_status_history(self.conn, self.member.id, dialog.entries())
+            self.history_changed = True
+            self._refresh_history()
+            # Il primo passaggio ricostruito è il nuovo ingresso in gilda: riflettilo nel form.
+            first_entry = dialog.entries()[0]
+            self.date_check.setChecked(True)
+            self.date_picker.setDate(QDate.fromString(first_entry["date"], "yyyy-MM-dd"))
 
     def validate(self) -> bool:
         if not self.family_edit.text().strip():

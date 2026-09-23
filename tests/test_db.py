@@ -8,6 +8,7 @@ from gilda_app.db.database import (
     get_members,
     get_status_history,
     move_member_status,
+    rebuild_status_history,
     reset_database,
     update_member,
     update_status_history_entry,
@@ -124,3 +125,33 @@ def test_update_status_history_entry_syncs_join_date(conn):
     # correggere la voce di ingresso deve aggiornare anche members.data_inserimento
     member = get_members(conn, STATUS_BANNATO)[0]
     assert member.data_inserimento == "2022-03-10"
+
+
+def test_rebuild_status_history_replaces_sequence(conn):
+    member_id = add_member(conn, "Rossi", "Mario", "rossi#1234", ["Italy"], STATUS_ATTIVO)
+    move_member_status(conn, member_id, STATUS_BANNATO, note="voce vecchia da sostituire")
+
+    rebuild_status_history(
+        conn,
+        member_id,
+        [
+            {"status": STATUS_ATTIVO, "date": "2020-01-10", "note": None},
+            {"status": STATUS_EX_MEMBRO, "date": "2021-06-01", "note": "trasferito"},
+            {"status": STATUS_ATTIVO, "date": "2022-02-15", "note": "rientrato"},
+        ],
+    )
+
+    history = get_status_history(conn, member_id)
+    assert len(history) == 3
+    assert history[0]["previous_status"] is None
+    assert history[0]["new_status"] == STATUS_ATTIVO
+    assert history[0]["changed_at"].startswith("2020-01-10")
+    assert history[1]["previous_status"] == STATUS_ATTIVO
+    assert history[1]["new_status"] == STATUS_EX_MEMBRO
+    assert history[2]["previous_status"] == STATUS_EX_MEMBRO
+    assert history[2]["new_status"] == STATUS_ATTIVO
+
+    # lo stato corrente e la data di ingresso seguono l'ultimo/primo passaggio ricostruito
+    assert get_members(conn, STATUS_BANNATO) == []
+    member = get_members(conn, STATUS_ATTIVO)[0]
+    assert member.data_inserimento == "2020-01-10"

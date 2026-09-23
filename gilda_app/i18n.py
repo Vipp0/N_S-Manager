@@ -86,6 +86,21 @@ STRINGS: dict[str, dict[str, str]] = {
     "history.hint": {"it": "Doppio click su una voce per correggerne data o nota.", "en": "Double-click an entry to correct its date or note."},
     "label.date": {"it": "Data", "en": "Date"},
     "dialog.edit_history.title": {"it": "Correggi voce storico", "en": "Correct history entry"},
+    "button.rebuild_history": {"it": "Ricostruisci storico...", "en": "Rebuild history..."},
+    "dialog.rebuild_history.title": {"it": "Ricostruisci storico di {name}", "en": "Rebuild history of {name}"},
+    "dialog.rebuild_history.hint": {
+        "it": "Inserisci in ordine tutti i passaggi già avvenuti (es. entrato, uscito, rientrato...), "
+        "ognuno con la sua data: verranno ordinati automaticamente e sostituiranno l'intero storico "
+        "attuale di questo membro. Da qui in avanti si continua a tracciare come sempre.",
+        "en": "Enter every past change (e.g. joined, left, rejoined...) with its date: they'll be "
+        "sorted automatically and will replace this member's entire current history. "
+        "From here on, tracking continues as usual.",
+    },
+    "dialog.rebuild_history.add_row": {"it": "Aggiungi passaggio", "en": "Add step"},
+    "dialog.rebuild_history.error_same_status": {
+        "it": "Due passaggi consecutivi non possono avere la stessa lista: correggi le date o le liste scelte.",
+        "en": "Two consecutive steps can't have the same list: fix the dates or the lists chosen.",
+    },
     "error.family_name_required": {"it": "Family Name è obbligatorio.", "en": "Family Name is required."},
     "button.save": {"it": "Salva", "en": "Save"},
     "button.cancel": {"it": "Annulla", "en": "Cancel"},

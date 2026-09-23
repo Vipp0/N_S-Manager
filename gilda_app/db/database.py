@@ -211,6 +211,31 @@ def update_status_history_entry(conn: sqlite3.Connection, history_id: int, date:
     conn.commit()
 
 
+def rebuild_status_history(conn: sqlite3.Connection, member_id: int, entries: list[dict]) -> None:
+    """Sostituisce tutto lo storico movimenti di un membro con la sequenza passata
+    (ordinata cronologicamente da chi chiama), es. per inserire a posteriori lo storico
+    di un membro già esistente dopo un import. Aggiorna anche members.status e
+    data_inserimento in modo che i comandi normali (sposta, correggi voce) proseguano
+    da qui in avanti esattamente come se lo storico fosse stato costruito passo passo.
+    entries: lista di {"status", "date" (yyyy-mm-dd), "note"}, non vuota."""
+    conn.execute("DELETE FROM status_history WHERE member_id = ?", (member_id,))
+    previous_status = None
+    for entry in entries:
+        conn.execute(
+            """
+            INSERT INTO status_history (member_id, previous_status, new_status, changed_at, note)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (member_id, previous_status, entry["status"], f"{entry['date']} 00:00:00", entry["note"]),
+        )
+        previous_status = entry["status"]
+    conn.execute(
+        "UPDATE members SET status = ?, data_inserimento = ?, updated_at = datetime('now') WHERE id = ?",
+        (entries[-1]["status"], entries[0]["date"], member_id),
+    )
+    conn.commit()
+
+
 def reset_database(conn: sqlite3.Connection) -> None:
     conn.execute("DELETE FROM status_history")
     conn.execute("DELETE FROM member_nations")

@@ -6,6 +6,14 @@ usa il programma, non i dettagli tecnici del come."""
 
 CHANGELOG: list[dict] = [
     {
+        "version": "1.9.0",
+        "date": "23-09-2026",
+        "notes": [
+            "Nuovo pulsante \"Ricostruisci storico...\" nella scheda di modifica membro: permette di inserire in un colpo solo tutti i passaggi già avvenuti (entrato, uscito, rientrato...) con le rispettive date, utile per ricostruire lo storico di chi era già nel database prima che venisse tracciato.",
+            "Le date si possono ora anche scrivere a mano (formato gg-mm-aaaa) invece di scegliere solo dal calendarietto.",
+        ],
+    },
+    {
         "version": "1.8.5",
         "date": "23-09-2026",
         "notes": [

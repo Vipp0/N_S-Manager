@@ -18,7 +18,7 @@ from gilda_app.db.calendar_events import (
 )
 from gilda_app.i18n import tr
 from gilda_app.ui.color_swatch_picker import ColorSwatchPicker
-from gilda_app.ui.fast_calendar_picker import FastCalendarPicker
+from gilda_app.ui.fast_calendar_picker import DateEdit
 # Etichetta dell'unità nel campo "ogni N ...", per ciascuna ricorrenza.
 _UNIT_LABEL_KEYS = {
     RECURRENCE_DAILY: "calendar.unit.days",
@@ -42,7 +42,7 @@ class CalendarEventDialog(MessageBoxBase):
         self.viewLayout.addWidget(QLabel(tr("calendar.field.title"), self))
         self.viewLayout.addWidget(self.title_edit)
 
-        self.date_picker = FastCalendarPicker(self)
+        self.date_picker = DateEdit(self)
         self.date_picker.setDate(start_date or QDate.currentDate())
         self.viewLayout.addWidget(QLabel(tr("calendar.field.date"), self))
         self.viewLayout.addWidget(self.date_picker)
@@ -80,7 +80,7 @@ class CalendarEventDialog(MessageBoxBase):
         self.viewLayout.addWidget(self.interval_row)
 
         self.end_check = CheckBox(tr("calendar.field.end_check"), self)
-        self.end_picker = FastCalendarPicker(self)
+        self.end_picker = DateEdit(self)
         self.end_picker.setDate(QDate.currentDate())
         self.end_picker.setEnabled(False)
         self.end_check.toggled.connect(self.end_picker.setEnabled)
