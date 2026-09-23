@@ -6,6 +6,13 @@ usa il programma, non i dettagli tecnici del come."""
 
 CHANGELOG: list[dict] = [
     {
+        "version": "1.8.4",
+        "date": "23-09-2026",
+        "notes": [
+            "Nuovo logo nell'intestazione delle liste: \"Night_Shade\" e \"Manager\" nello stesso stile decorato, invece di due font diversi uniti a mano.",
+        ],
+    },
+    {
         "version": "1.8.3",
         "date": "23-09-2026",
         "notes": [

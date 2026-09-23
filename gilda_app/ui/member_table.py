@@ -70,7 +70,10 @@ class MemberListPage(QWidget):
         # (a sinistra) e la barra di ricerca (a destra).
         if WORDMARK_PATH.exists():
             wordmark = QLabel(self)
-            wordmark.setPixmap(QPixmap(str(WORDMARK_PATH)).scaledToHeight(40, Qt.SmoothTransformation))
+            # 56 invece di 40: il nuovo wordmark ha "Manager" su una riga separata sotto
+            # "Night_Shade" (proporzioni più quadrate del precedente), a 40px risultava
+            # troppo piccolo per restare leggibile e ben presente nell'intestazione.
+            wordmark.setPixmap(QPixmap(str(WORDMARK_PATH)).scaledToHeight(56, Qt.SmoothTransformation))
             header.addWidget(wordmark)
             header.addStretch(1)
         header.addWidget(self.search_box)
