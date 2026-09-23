@@ -1,9 +1,9 @@
 from datetime import date, timedelta
 
-from PySide6.QtCore import QLocale, Qt
+from PySide6.QtCore import QDate, QLocale, Qt
 from PySide6.QtWidgets import QCalendarWidget, QFrame, QHBoxLayout, QLabel, QScrollArea, QVBoxLayout, QWidget
 from qfluentwidgets import FluentIcon as FIF
-from qfluentwidgets import MessageBox, PrimaryPushButton, StrongBodyLabel, SubtitleLabel, TransparentToolButton
+from qfluentwidgets import MessageBox, PrimaryPushButton, PushButton, StrongBodyLabel, SubtitleLabel, TransparentToolButton
 
 from gilda_app.db.calendar_events import (
     RECURRENCE_DAILY,
@@ -42,7 +42,13 @@ class CalendarPage(QWidget):
         layout.setSpacing(20)
 
         left = QVBoxLayout()
-        left.addWidget(SubtitleLabel(tr("nav.calendar"), self))
+        title_row = QHBoxLayout()
+        title_row.addWidget(SubtitleLabel(tr("nav.calendar"), self))
+        title_row.addStretch(1)
+        today_btn = PushButton(FIF.CALENDAR, tr("calendar.today"), self)
+        today_btn.clicked.connect(self._go_to_today)
+        title_row.addWidget(today_btn)
+        left.addLayout(title_row)
         self.calendar = EventCalendarWidget(self)
         self.calendar.setLocale(QLocale(QLocale.Italian if get_language() == "it" else QLocale.English))
         self.calendar.setFirstDayOfWeek(Qt.Monday)
@@ -100,6 +106,11 @@ class CalendarPage(QWidget):
         self.calendar.set_day_colors(
             {day: [row["color"] for row in rows] for day, rows in self._day_events.items()}
         )
+
+    def _go_to_today(self) -> None:
+        today = QDate.currentDate()
+        self.calendar.setSelectedDate(today)
+        self.calendar.setCurrentPage(today.year(), today.month())
 
     def _selected_date(self) -> date:
         qd = self.calendar.selectedDate()
