@@ -54,7 +54,7 @@ class CalendarPage(QWidget):
         self.calendar.setFirstDayOfWeek(Qt.Monday)
         self.calendar.setGridVisible(True)
         self.calendar.setVerticalHeaderFormat(QCalendarWidget.NoVerticalHeader)
-        self.calendar.setMinimumSize(560, 420)
+        self.calendar.setMinimumSize(640, 480)
         self.calendar.selectionChanged.connect(self._refresh_day_panel)
         # activated = doppio click (o Invio) su un giorno: apre subito il form di
         # aggiunta evento su quella data.
@@ -103,8 +103,8 @@ class CalendarPage(QWidget):
             for occurrence in occurrences_in_range(row, range_start, range_end):
                 self._day_events.setdefault(occurrence, []).append(row)
 
-        self.calendar.set_day_colors(
-            {day: [row["color"] for row in rows] for day, rows in self._day_events.items()}
+        self.calendar.set_day_events(
+            {day: [(row["title"], row["color"]) for row in rows] for day, rows in self._day_events.items()}
         )
 
     def _go_to_today(self) -> None:

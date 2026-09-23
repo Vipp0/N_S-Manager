@@ -310,6 +310,7 @@ STRINGS: dict[str, dict[str, str]] = {
     "calendar.today": {"it": "Oggi", "en": "Today"},
     "calendar.add": {"it": "Aggiungi evento", "en": "Add event"},
     "calendar.no_events": {"it": "Nessun evento in questo giorno.", "en": "No events on this day."},
+    "calendar.more_events": {"it": "+{n} altri", "en": "+{n} more"},
     "calendar.dialog.new": {"it": "Nuovo evento", "en": "New event"},
     "calendar.dialog.edit": {"it": "Modifica evento", "en": "Edit event"},
     "calendar.field.title": {"it": "Titolo", "en": "Title"},
