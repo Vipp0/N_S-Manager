@@ -1,11 +1,12 @@
 from datetime import date, timedelta
 
-from PySide6.QtCore import QDate, QRect, Qt
-from PySide6.QtGui import QColor, QFont, QFontMetrics, QPen
+from PySide6.QtCore import QDate, QRect, QRectF, Qt
+from PySide6.QtGui import QColor, QFont, QFontMetrics, QPainter, QPen
 from PySide6.QtWidgets import QCalendarWidget
 
 from gilda_app.i18n import tr
 
+CELL_BACKGROUND_COLOR = QColor("#ffffff")
 TODAY_BORDER_COLOR = QColor("#ffb900")
 TODAY_FILL_COLOR = QColor(255, 185, 0, 40)
 CURRENT_WEEK_BORDER_COLOR = QColor("#2d7dfa")
@@ -53,8 +54,13 @@ class EventCalendarWidget(QCalendarWidget):
         in_month = qdate.month() == self.monthShown()
 
         painter.save()
+        painter.setRenderHint(QPainter.Antialiasing, True)
         painter.setOpacity(1.0 if in_month else 0.45)
 
+        # Qt disegna prima da sé lo sfondo nativo della cella (incluso l'accento di
+        # selezione di Windows sulla cella corrente): lo copriamo con uno sfondo pieno,
+        # così l'unico segno di selezione visibile resta il bordo scuro disegnato sotto.
+        painter.fillRect(rect, CELL_BACKGROUND_COLOR)
         if py_date == self._today:
             painter.fillRect(rect, TODAY_FILL_COLOR)
 
@@ -84,9 +90,10 @@ class EventCalendarWidget(QCalendarWidget):
 
             y = top
             for title, hex_color in shown:
-                dot_rect = QRect(
+                row_center_y = y + row_height / 2
+                dot_rect = QRectF(
                     rect.left() + DOT_MARGIN,
-                    y + (row_height - DOT_DIAMETER) // 2,
+                    row_center_y - DOT_DIAMETER / 2,
                     DOT_DIAMETER,
                     DOT_DIAMETER,
                 )
@@ -94,10 +101,11 @@ class EventCalendarWidget(QCalendarWidget):
                 painter.setBrush(QColor(hex_color))
                 painter.drawEllipse(dot_rect)
 
+                text_left = rect.left() + DOT_MARGIN + DOT_DIAMETER + 4
                 text_rect = QRect(
-                    dot_rect.right() + 4,
+                    text_left,
                     y,
-                    rect.right() - dot_rect.right() - 4 - DOT_MARGIN,
+                    rect.right() - text_left - DOT_MARGIN,
                     row_height,
                 )
                 painter.setPen(EVENT_TITLE_COLOR)
