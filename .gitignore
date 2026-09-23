@@ -7,3 +7,4 @@ build/
 dist/
 releases/
 .pytest_cache/
+*.xlsx
