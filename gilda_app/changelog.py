@@ -6,6 +6,13 @@ usa il programma, non i dettagli tecnici del come."""
 
 CHANGELOG: list[dict] = [
     {
+        "version": "1.8.5",
+        "date": "23-09-2026",
+        "notes": [
+            "Logo dell'intestazione ingrandito, era troppo piccolo su schermi larghi.",
+        ],
+    },
+    {
         "version": "1.8.4",
         "date": "23-09-2026",
         "notes": [
