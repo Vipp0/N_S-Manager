@@ -1,4 +1,5 @@
 import sys
+import time
 from pathlib import Path
 
 from PySide6.QtGui import QFont
@@ -34,6 +35,21 @@ def _maybe_run_initial_import(conn, db_file: Path, parent: MainWindow) -> None:
             parent.run_import(default_xlsx)
 
 
+def _animate_splash_dots() -> None:
+    """Fa scorrere "Loading." / "Loading.." / "Loading..." sulla schermata di avvio,
+    prima di chiuderla: senza questa pausa voluta la splash resta a schermo troppo poco
+    perché l'animazione si veda. Il modulo pyi_splash esiste solo nell'eseguibile
+    costruito: in sviluppo l'import fallisce e non c'è nulla da animare."""
+    try:
+        import pyi_splash
+    except ImportError:
+        return
+    for _ in range(2):
+        for frame in ("Loading.", "Loading..", "Loading..."):
+            pyi_splash.update_text(frame)
+            time.sleep(0.25)
+
+
 def _close_splash() -> None:
     """Chiude la schermata di avvio del bootloader (vedi gilda_app.spec). Il modulo
     pyi_splash esiste solo nell'eseguibile costruito: in sviluppo l'import fallisce e
@@ -61,6 +77,7 @@ def main() -> None:
 
     window = MainWindow(conn, db_file)
     window.refresh_all()
+    _animate_splash_dots()
     # Finestra mostrata prima di chiudere lo splash: altrimenti Windows non ha una
     # finestra in primo piano da cui passare il focus e l'app parte in background.
     window.show()

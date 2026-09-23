@@ -30,7 +30,14 @@ splash = Splash(
     "gilda_app/resources/splash.png",
     binaries=a.binaries,
     datas=a.datas,
-    text_pos=None,
+    # Sfondo dell'immagine già nero fino ai bordi: niente riquadro chiaro con bordo come
+    # nella vecchia splash, sarebbe stonato. Il testo "Loading..." animato (vedi
+    # main.py) si sovrappone nello spazio vuoto sotto al logo.
+    text_pos=(360, 450),
+    text_size=14,
+    text_color="#e6d9ff",
+    text_default="Loading...",
+    text_justify="center",
     always_on_top=False,
 )
 
