@@ -1,5 +1,6 @@
 import sqlite3
 import threading
+from datetime import date
 from pathlib import Path
 
 from PySide6.QtCore import QObject, Qt, QTimer, QUrl, Signal
@@ -35,6 +36,14 @@ from gilda_app.importer.excel_import import find_intra_file_duplicates, import_r
 from gilda_app.models.member import STATUS_ATTIVO, STATUS_BANNATO, STATUS_EX_MEMBRO, Member, status_label
 from gilda_app.ui.bdo_page import BdoPage
 from gilda_app.ui.calendar_page import CalendarPage
+from gilda_app.ui.dashboard_page import (
+    TILE_BDO,
+    TILE_CALENDAR,
+    TILE_NOTES,
+    TILE_SETTINGS,
+    TILE_STATS,
+    DashboardPage,
+)
 from gilda_app.ui.changelog_dialog import ChangelogDialog
 from gilda_app.ui.global_search import GlobalSearchDialog
 from gilda_app.ui.import_dialog import ImportPreviewDialog
@@ -52,7 +61,7 @@ from gilda_app.utils.discord_format import discord_copy_text
 from gilda_app.version import __version__
 from gilda_app.utils.icons import ban_icon
 from gilda_app.utils.paths import backups_dir
-from gilda_app.utils.bdo_news import fetch_news
+from gilda_app.utils.bdo_news import fetch_news, upcoming_maintenance
 from gilda_app.utils.bdoalerts_api import ERROR_NO_KEY, ApiError
 from gilda_app.utils.restart import restart_app
 from gilda_app.utils.server_status import DEFAULT_REGION, fetch_server_status
@@ -107,6 +116,16 @@ class MainWindow(FluentWindow):
             page.add_requested.connect(self._on_add)
             self.pages[status] = page
 
+        self.dashboard_page = DashboardPage(
+            lambda: self.conn, self._notes_text, self._last_backup_text, self
+        )
+        self.dashboard_page.setObjectName("page_dashboard")
+        self.dashboard_page.tile_clicked.connect(self._open_tile)
+        self.dashboard_page.add_member_requested.connect(lambda: self._on_add(STATUS_ATTIVO))
+        self.dashboard_page.add_event_requested.connect(lambda: self.calendar_page.add_event_today())
+        self.dashboard_page.backup_requested.connect(self._on_backup_now)
+        self.addSubInterface(self.dashboard_page, FIF.HOME, tr("nav.dashboard"))
+
         icons = {STATUS_ATTIVO: FIF.PEOPLE, STATUS_EX_MEMBRO: FIF.HISTORY, STATUS_BANNATO: ban_icon()}
         for status in STATUS_ORDER:
             self.addSubInterface(self.pages[status], icons[status], status_label(status))
@@ -151,7 +170,8 @@ class MainWindow(FluentWindow):
         self.addSubInterface(self.settings_page, FIF.SETTING, tr("nav.settings"), NavigationItemPosition.BOTTOM)
 
         self._setup_server_status_footer()
-        self.navigationInterface.setCurrentItem(self.pages[STATUS_ATTIVO].objectName())
+        self.navigationInterface.setCurrentItem(self.dashboard_page.objectName())
+        self.stackedWidget.currentChanged.connect(self._on_page_changed)
         self.refresh_all()
 
     def closeEvent(self, event) -> None:
@@ -200,6 +220,7 @@ class MainWindow(FluentWindow):
         for status, page in self.pages.items():
             page.set_members(get_members(self.conn, status))
         self.stats_page.refresh()
+        self.dashboard_page.refresh()
 
     # -- Festività (aggiornamento in background) --------------------------
     def _start_holiday_refresh(self) -> None:
@@ -218,6 +239,31 @@ class MainWindow(FluentWindow):
         if updated:
             self.calendar_page.refresh()
 
+    # -- Dashboard ---------------------------------------------------------------
+    def _notes_text(self) -> str:
+        return self.notes_page.editor.toPlainText()
+
+    def _last_backup_text(self) -> str | None:
+        extra = get_setting(self.conn, EXTRA_DIR_SETTING)
+        backups = list_backups(backups_dir(), *([Path(extra)] if extra else []))
+        return format_backup_when(backups[0]) if backups else None
+
+    def _open_tile(self, key: str) -> None:
+        pages = {
+            TILE_STATS: self.stats_page,
+            TILE_CALENDAR: self.calendar_page,
+            TILE_BDO: self.bdo_page,
+            TILE_NOTES: self.notes_page,
+            TILE_SETTINGS: self.settings_page,
+        }
+        self.switchTo(pages.get(key) or self.pages[key])
+
+    def _on_page_changed(self, _index: int) -> None:
+        # Calendario, note e backup cambiano fuori da refresh_all: la dashboard si
+        # aggiorna quando ci si torna, così non mostra mai dati vecchi.
+        if self.stackedWidget.currentWidget() is self.dashboard_page:
+            self.dashboard_page.refresh()
+
     # -- Stato server BDO (footer + scheda BDO) --------------------------------
     def _setup_server_status_footer(self) -> None:
         # Le pagine stanno in widgetLayout (solo lo stackedWidget): lo si affianca al
@@ -227,6 +273,7 @@ class MainWindow(FluentWindow):
         self._server_statuses: dict = {}
         self._server_error: str | None = ERROR_NO_KEY
         self._server_busy = False
+        self._upcoming_maintenance: str | None = None
         self._server_status_signal = _ServerStatusSignal()
         self._server_status_signal.finished.connect(self._on_server_status)
         self._news_signal = _NewsSignal()
@@ -281,8 +328,14 @@ class MainWindow(FluentWindow):
     def _on_news(self, result) -> None:
         if isinstance(result, str):
             self.bdo_page.show_news_error(result)
+            self._upcoming_maintenance = None
         else:
             self.bdo_page.show_news(result)
+            upcoming = upcoming_maintenance(result, date.today())
+            self._upcoming_maintenance = (
+                tr("bdo.news_upcoming", date=upcoming.maintenance_date.strftime("%d-%m-%Y")) if upcoming else None
+            )
+        self._update_dashboard_bdo()
 
     def _on_server_status(self, result) -> None:
         self._server_busy = False
@@ -306,6 +359,18 @@ class MainWindow(FluentWindow):
         else:
             text, color = describe_region(self._server_statuses.get(region))
             self.server_footer.set_state(label, text, color)
+        self._update_dashboard_bdo()
+
+    def _update_dashboard_bdo(self) -> None:
+        region = self._server_region()
+        if self._server_error:
+            self.dashboard_page.set_bdo("", None, [describe_error(self._server_error)[0]])
+            return
+        text, color = describe_region(self._server_statuses.get(region))
+        lines = [tr(f"region.{region}")]
+        if self._upcoming_maintenance:
+            lines.append(self._upcoming_maintenance)
+        self.dashboard_page.set_bdo(text, color, lines)
 
     def _on_api_key_saved(self, key: str) -> None:
         if key:

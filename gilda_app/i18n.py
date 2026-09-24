@@ -16,6 +16,18 @@ STRINGS: dict[str, dict[str, str]] = {
 
     # -- Finestra principale / navigazione ------------------------------
     "window.title": {"it": "Night_Shade Manager", "en": "Night_Shade Manager"},
+    "nav.dashboard": {"it": "Dashboard", "en": "Dashboard"},
+    "dash.joined_30": {"it": "Ingressi negli ultimi 30 giorni: {n}", "en": "Joined in the last 30 days: {n}"},
+    "dash.left_30": {"it": "Usciti negli ultimi 30 giorni: {n}", "en": "Left in the last 30 days: {n}"},
+    "dash.banned_30": {"it": "Bannati negli ultimi 30 giorni: {n}", "en": "Banned in the last 30 days: {n}"},
+    "dash.no_movements": {"it": "Nessun movimento recente.", "en": "No recent movements."},
+    "dash.next_days": {"it": "eventi nei prossimi {n} giorni", "en": "events in the next {n} days"},
+    "dash.no_events": {"it": "Nessun evento nei prossimi giorni.", "en": "No events in the coming days."},
+    "dash.holiday": {"it": "festività", "en": "holiday"},
+    "dash.notes_empty": {"it": "Nessuna nota.", "en": "No notes."},
+    "dash.version": {"it": "Versione {version}", "en": "Version {version}"},
+    "dash.backup_last": {"it": "Ultimo backup: {when}", "en": "Last backup: {when}"},
+    "dash.backup_none": {"it": "Nessun backup ancora.", "en": "No backups yet."},
     "nav.stats": {"it": "Statistiche", "en": "Statistics"},
     "nav.notes": {"it": "Note", "en": "Notes"},
     "nav.calendar": {"it": "Calendario", "en": "Calendar"},

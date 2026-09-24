@@ -6,6 +6,15 @@ usa il programma, non i dettagli tecnici del come."""
 
 CHANGELOG: list[dict] = [
     {
+        "version": "2.0.0",
+        "date": "24-09-2026",
+        "notes": [
+            "Nuova Dashboard, ora scheda iniziale: un riquadro per ogni scheda (liste membri, statistiche, calendario, BDO, note, impostazioni) con un riassunto, e un click apre la scheda corrispondente.",
+            "Azioni rapide in cima alla dashboard: aggiungi membro, nuovo evento, backup ora.",
+            "Nei riquadri: ingressi/uscite/ban degli ultimi 30 giorni, ultimi movimenti, prossimi eventi e festività, stato del server BDO con manutenzione annunciata, anteprima delle note, ultimo backup.",
+        ],
+    },
+    {
         "version": "1.11.0",
         "date": "24-09-2026",
         "notes": [

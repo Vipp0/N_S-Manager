@@ -203,6 +203,11 @@ class CalendarPage(QWidget):
         return frame
 
     # -- azioni -----------------------------------------------------------
+    def add_event_today(self) -> None:
+        """Da fuori (dashboard): nuovo evento con la data di oggi preselezionata."""
+        self._go_to_today()
+        self._on_add()
+
     def _on_add(self) -> None:
         dialog = CalendarEventDialog(self.window(), start_date=self.calendar.selectedDate())
         if dialog.exec():
