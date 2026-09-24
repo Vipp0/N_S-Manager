@@ -6,85 +6,16 @@ usa il programma, non i dettagli tecnici del come."""
 
 CHANGELOG: list[dict] = [
     {
-        "version": "2.0.11",
+        "version": "2.1",
         "date": "24-09-2026",
         "notes": [
-            "Modifica membro: nuovo pulsante \"Profilo BDO...\" con gilda e ruolo (Guild Master o membro), personaggio principale con classe e livello, numero di personaggi, gear score, punti contributo, energia e data di creazione della famiglia. Richiede la chiave API.",
-            "Scheda BDO: nuovo confronto con la gilda in gioco (nome della gilda in Impostazioni): chi è in gioco ma non nel programma, chi è registrato come ex membro o bannato ma risulta ancora in gilda, e chi è tra i Membri attuali ma non si trova in gioco. Solo consultazione, nessuna modifica automatica.",
-        ],
-    },
-    {
-        "version": "2.0.10",
-        "date": "24-09-2026",
-        "notes": [
-            "Scheda BDO: nuovi blocchi con i reset (giornaliero, settimanale, consegna imperiale, commercio, baratto, Black Shrine), il ciclo giorno/notte e i prossimi boss, con conti alla rovescia sempre aggiornati e orari nel fuso del computer.",
-            "Dashboard: linea di separazione netta tra i riquadri delle schede e le informazioni generali, e nuova card con i timer BDO (prossimo boss, reset giornaliero, consegna imperiale).",
-        ],
-    },
-    {
-        "version": "2.0.9",
-        "date": "24-09-2026",
-        "notes": [
-            "Dashboard: logo nell'intestazione e una seconda fascia con gli ultimi ingressi, i prossimi anniversari in gilda e la top 5 delle nazioni.",
-            "Statistiche: nuova sezione con i prossimi anniversari di ingresso in gilda (60 giorni).",
-        ],
-    },
-    {
-        "version": "2.0.8",
-        "date": "24-09-2026",
-        "notes": [
-            "Storico movimenti e storico nomi: le righe sono numerate (1, 2, 3...) e quelle dello storico nomi alternano due tonalità, per seguirle meglio scorrendo.",
-            "Tolta la frase di spiegazione sotto lo storico nomi, che occupava spazio.",
-        ],
-    },
-    {
-        "version": "2.0.7",
-        "date": "24-09-2026",
-        "notes": [
-            "Modifica membro: storico movimenti e storico nomi sono in due riquadri separati con bordo e titolo, più facili da distinguere.",
-        ],
-    },
-    {
-        "version": "2.0.6",
-        "date": "24-09-2026",
-        "notes": [
-            "Nuovo Storico nomi nella modifica membro: i cambi di Family Name vengono registrati da soli (vecchio nome, nuovo nome, data) e si possono anche aggiungere, correggere o eliminare a mano.",
-            "La ricerca (per lista e globale) trova un membro anche cercando un nome che non usa più.",
-        ],
-    },
-    {
-        "version": "2.0.5",
-        "date": "24-09-2026",
-        "notes": [
-            "Dashboard: il riquadro sotto il mouse si tinge di azzurro tenue con un sottile bordo, per capire subito quale si sta per aprire.",
-        ],
-    },
-    {
-        "version": "2.0.4",
-        "date": "24-09-2026",
-        "notes": [
-            "Storico movimenti nella modifica membro: le righe hanno sempre la stessa altezza, prima all'apertura risultavano più alte che dopo il salvataggio.",
-        ],
-    },
-    {
-        "version": "2.0.3",
-        "date": "24-09-2026",
-        "notes": [
-            "Modifica membro: su finestre larghe i dati e lo storico movimenti stanno affiancati in due colonne, invece di una lunga colonna da scorrere.",
-        ],
-    },
-    {
-        "version": "2.0.2",
-        "date": "24-09-2026",
-        "notes": [
-            "Storico movimenti di un membro con righe colorate: verde il primo ingresso, giallo il passaggio a ex membro, rosso il ban, azzurro il rientro.",
-        ],
-    },
-    {
-        "version": "2.0.1",
-        "date": "24-09-2026",
-        "notes": [
-            "Il controllo aggiornamenti riconosce le versioni scritte senza il terzo numero (es. 2.1).",
+            "Modifica membro: nuovo Storico nomi (i cambi di Family Name si registrano da soli, e si possono aggiungere, correggere o eliminare a mano). La ricerca trova un membro anche con un nome che non usa più.",
+            "Modifica membro: dati e storico affiancati in due colonne su finestre larghe; storico movimenti e storico nomi in riquadri separati, con righe numerate e colorate (verde ingresso, giallo ex membro, rosso ban, azzurro rientro).",
+            "Modifica membro: pulsante \"Profilo BDO...\" con gilda e ruolo, personaggio principale, gear score, punti contributo ed energia.",
+            "Dashboard: ora scheda iniziale, con logo, riquadri cliccabili per ogni scheda (evidenziati al passaggio del mouse) e azioni rapide; sotto, informazioni generali con ultimi ingressi, anniversari in gilda, top 5 nazioni e timer BDO.",
+            "Statistiche: nuova sezione con i prossimi anniversari di ingresso in gilda.",
+            "Scheda BDO: reset (giornaliero, settimanale, consegna imperiale...), ciclo giorno/notte e prossimi boss con conti alla rovescia, e confronto con la gilda in gioco (chi manca nel programma, chi risulta ex o bannato ma è ancora in gilda, chi non si trova in gioco).",
+            "Piccole correzioni: righe dello storico sempre della stessa altezza; il controllo aggiornamenti riconosce le versioni scritte senza il terzo numero.",
         ],
     },
     {
