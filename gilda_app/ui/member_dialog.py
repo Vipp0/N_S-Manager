@@ -77,6 +77,19 @@ TWO_COLUMN_DIALOG_WIDTH = 980
 MAX_HISTORY_ROW_HEIGHT = 78
 
 
+def _section_card(parent, title: str):
+    """Riquadro con bordo sottile e titolo, per separare a colpo d'occhio le sezioni
+    (storico movimenti, storico nomi) nella colonna di destra."""
+    frame = QFrame(parent)
+    frame.setObjectName("sectionCard")
+    frame.setStyleSheet("#sectionCard { border: 1px solid rgba(0, 0, 0, 45); border-radius: 8px; }")
+    box = QVBoxLayout(frame)
+    box.setContentsMargins(12, 10, 12, 12)
+    box.setSpacing(8)
+    box.addWidget(StrongBodyLabel(title, frame))
+    return frame, box
+
+
 def _make_nation_combo(parent, placeholder: str) -> EditableComboBox:
     choices = country_choices()
     combo = EditableComboBox(parent)
@@ -218,7 +231,8 @@ class MemberDialog(MessageBoxBase):
         form.addWidget(self.note_edit)
 
         if is_edit and conn is not None:
-            history_col.addWidget(StrongBodyLabel(tr("label.history"), self))
+            history_card, history_box = _section_card(self, tr("label.history"))
+            history_col.addWidget(history_card)
             self.history_table = QTableWidget(self)
             self.history_table.setColumnCount(1)
             self.history_table.horizontalHeader().hide()
@@ -234,22 +248,23 @@ class MemberDialog(MessageBoxBase):
             self.history_table.doubleClicked.connect(self._on_history_double_click)
             self.history_table.viewport().installEventFilter(self)
             if two_column:
-                self.history_table.setFixedHeight(160)
+                self.history_table.setFixedHeight(140)
                 # Larghezza decisa dal layout, non dal testo più lungo: le righe vanno a capo.
                 self.history_table.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Expanding)
-                history_col.addWidget(self.history_table)
+                history_box.addWidget(self.history_table)
             else:
-                self.history_table.setFixedHeight(160)
-                history_col.addWidget(self.history_table)
+                self.history_table.setFixedHeight(140)
+                history_box.addWidget(self.history_table)
             history_hint = QLabel(tr("history.hint"), self)
             history_hint.setWordWrap(True)
-            history_col.addWidget(history_hint)
+            history_box.addWidget(history_hint)
 
             self.rebuild_history_btn = PushButton(FIF.HISTORY, tr("button.rebuild_history"), self)
             self.rebuild_history_btn.clicked.connect(self._on_rebuild_history)
-            history_col.addWidget(self.rebuild_history_btn)
+            history_box.addWidget(self.rebuild_history_btn)
 
-            history_col.addWidget(StrongBodyLabel(tr("label.name_history"), self))
+            name_card, name_box = _section_card(self, tr("label.name_history"))
+            history_col.addWidget(name_card)
             self.name_table = QTableWidget(self)
             self.name_table.setColumnCount(1)
             self.name_table.horizontalHeader().hide()
@@ -258,13 +273,13 @@ class MemberDialog(MessageBoxBase):
             self.name_table.setEditTriggers(QAbstractItemView.NoEditTriggers)
             self.name_table.setSelectionBehavior(QAbstractItemView.SelectRows)
             self.name_table.setSelectionMode(QAbstractItemView.SingleSelection)
-            self.name_table.setFixedHeight(90)
+            self.name_table.setFixedHeight(76)
             self.name_table.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)
             self.name_table.doubleClicked.connect(self._on_name_double_click)
-            history_col.addWidget(self.name_table)
+            name_box.addWidget(self.name_table)
             name_hint = QLabel(tr("name_history.hint"), self)
             name_hint.setWordWrap(True)
-            history_col.addWidget(name_hint)
+            name_box.addWidget(name_hint)
             name_buttons = QHBoxLayout()
             add_name_btn = PushButton(FIF.ADD, tr("name_history.add"), self)
             add_name_btn.clicked.connect(self._on_add_name_change)
@@ -273,7 +288,7 @@ class MemberDialog(MessageBoxBase):
             name_buttons.addWidget(add_name_btn)
             name_buttons.addWidget(delete_name_btn)
             name_buttons.addStretch(1)
-            history_col.addLayout(name_buttons)
+            name_box.addLayout(name_buttons)
 
             self._refresh_history()
             self._refresh_name_history()
@@ -314,7 +329,7 @@ class MemberDialog(MessageBoxBase):
         self.cancelButton.setText(tr("button.cancel"))
 
     # Spazio della finestra non occupato dal form: titolo, bottoni, margini del riquadro.
-    _NON_SCROLL_RESERVE = 250
+    _NON_SCROLL_RESERVE = 205
 
     def _fit_scroll_height(self) -> None:
         needed = self._form_widget.sizeHint().height() + 2

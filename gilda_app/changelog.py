@@ -6,6 +6,13 @@ usa il programma, non i dettagli tecnici del come."""
 
 CHANGELOG: list[dict] = [
     {
+        "version": "2.0.7",
+        "date": "24-09-2026",
+        "notes": [
+            "Modifica membro: storico movimenti e storico nomi sono in due riquadri separati con bordo e titolo, più facili da distinguere.",
+        ],
+    },
+    {
         "version": "2.0.6",
         "date": "24-09-2026",
         "notes": [
