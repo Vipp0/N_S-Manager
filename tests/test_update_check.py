@@ -61,3 +61,10 @@ def test_fetch_latest_release_tag_missing_tag_name_returns_none():
     payload = json.dumps({"message": "Not Found"}).encode("utf-8")
     with patch.object(uc.urllib.request, "urlopen", return_value=_FakeResponse(payload)):
         assert uc.fetch_latest_release_tag() is None
+
+
+def test_is_newer_treats_missing_patch_as_zero():
+    assert not uc.is_newer("v2.1", "2.1.0")
+    assert not uc.is_newer("2.1.0", "2.1")
+    assert uc.is_newer("v2.1", "2.0.5")
+    assert uc.is_newer("2.1.1", "2.1")

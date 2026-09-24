@@ -21,7 +21,13 @@ def _parse_version(text: str) -> tuple[int, ...]:
 
 
 def is_newer(remote_version: str, current_version: str) -> bool:
-    return _parse_version(remote_version) > _parse_version(current_version)
+    """Le versioni delle release possono omettere il terzo numero quando è 0 ("2.1" =
+    "2.1.0"): si allineano a tre numeri prima di confrontare."""
+    def padded(text: str) -> tuple[int, ...]:
+        parts = _parse_version(text)
+        return parts + (0,) * (3 - len(parts))
+
+    return padded(remote_version) > padded(current_version)
 
 
 def fetch_latest_release_tag() -> str | None:

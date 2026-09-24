@@ -6,6 +6,13 @@ usa il programma, non i dettagli tecnici del come."""
 
 CHANGELOG: list[dict] = [
     {
+        "version": "2.0.1",
+        "date": "24-09-2026",
+        "notes": [
+            "Il controllo aggiornamenti riconosce le versioni scritte senza il terzo numero (es. 2.1).",
+        ],
+    },
+    {
         "version": "2.0.0",
         "date": "24-09-2026",
         "notes": [
