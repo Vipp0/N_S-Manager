@@ -22,3 +22,4 @@ class Member:
     note: str | None
     nations: list[str] = field(default_factory=list)
     still_on_discord: bool = False
+    birthday: str | None = None

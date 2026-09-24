@@ -210,6 +210,7 @@ class DashboardPage(QWidget):
         self._info_cards: dict[str, InfoCard] = {}
         for key, icon, title in [
             ("info_joins", FIF.ADD, tr("dash.recent_joins")),
+            ("info_birthdays", FIF.HEART, tr("dash.birthdays")),
             ("info_anniversaries", FIF.CALENDAR, tr("dash.anniversaries")),
             ("info_nations", FIF.PIE_SINGLE, tr("dash.top_nations")),
             ("info_timers", FIF.GLOBE, tr("dash.bdo_timers")),
@@ -288,6 +289,15 @@ class DashboardPage(QWidget):
             ]
             or [tr("dash.no_joins")],
         )
+        today = date.today()
+        birthday_lines = []
+        for day, family, main, age in stats.upcoming_birthdays(conn, today, days=14, limit=6):
+            name = family + (f" ({main})" if main else "")
+            age_text = tr("dash.birthday_age", age=age) if age else ""
+            key = "dash.birthday_today" if day == today else "dash.birthday_line"
+            birthday_lines.append(tr(key, date=day.strftime("%d-%m"), name=name, age=age_text))
+        self._info_cards["info_birthdays"].set_content("", birthday_lines or [tr("dash.no_birthdays")])
+
         anniversaries = stats.upcoming_anniversaries(conn, date.today(), days=30, limit=5)
         self._info_cards["info_anniversaries"].set_content(
             "",

@@ -36,13 +36,14 @@ def add_member(
     note: str | None = None,
     still_on_discord: bool = False,
     commit: bool = True,
+    birthday: str | None = None,
 ) -> int:
     cur = conn.execute(
         """
-        INSERT INTO members (family_name, main_name, discord_name, status, data_inserimento, note, still_on_discord)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO members (family_name, main_name, discord_name, status, data_inserimento, note, still_on_discord, birthday)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """,
-        (family_name, main_name, discord_name, status, data_inserimento, note, int(still_on_discord)),
+        (family_name, main_name, discord_name, status, data_inserimento, note, int(still_on_discord), birthday),
     )
     member_id = cur.lastrowid
     for ord_idx, nation in enumerate(nations):
@@ -88,13 +89,17 @@ def update_member(
     still_on_discord: bool | None = None,
     commit: bool = True,
     record_name_changes: bool = False,
+    update_birthday: bool = False,
+    birthday: str | None = None,
 ) -> None:
     """update_date=False (default, usato dall'import) lascia invariato data_inserimento;
     update_date=True (usato dal form di modifica) lo imposta al valore passato, anche None.
     still_on_discord=None (default) lascia invariato il campo: il form lo mostra/modifica
     solo per gli ex membri, per tutti gli altri stati va lasciato così com'è.
     record_name_changes=True (form di modifica) registra nello storico nomi i cambi dei
-    campi in TRACKED_NAME_FIELDS; l'import lo lascia False per non riempirlo di rumore."""
+    campi in TRACKED_NAME_FIELDS; l'import lo lascia False per non riempirlo di rumore.
+    update_birthday=True (form di modifica) imposta il compleanno al valore passato, anche
+    None; l'import lo lascia False per non cancellare quelli già inseriti."""
     if record_name_changes:
         old = conn.execute("SELECT * FROM members WHERE id = ?", (member_id,)).fetchone()
         new_values = {"family_name": family_name}
@@ -106,6 +111,9 @@ def update_member(
     if update_date:
         set_clauses.append("data_inserimento = ?")
         params.append(data_inserimento)
+    if update_birthday:
+        set_clauses.append("birthday = ?")
+        params.append(birthday)
     if still_on_discord is not None:
         set_clauses.append("still_on_discord = ?")
         params.append(int(still_on_discord))
@@ -247,6 +255,7 @@ def get_members(conn: sqlite3.Connection, status: str) -> list[Member]:
                 note=row["note"],
                 nations=nations,
                 still_on_discord=bool(row["still_on_discord"]),
+                birthday=row["birthday"],
             )
         )
     return members

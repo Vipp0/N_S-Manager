@@ -188,3 +188,23 @@ def upcoming_anniversaries(
             result.append((anniversary, row["family_name"], row["main_name"] or "", years))
     result.sort(key=lambda item: (item[0], item[1].lower()))
     return result[:limit]
+
+
+def upcoming_birthdays(
+    conn: sqlite3.Connection, today: date, days: int = 14, limit: int = 8
+) -> list[tuple[date, str, str, int | None]]:
+    """(data, family_name, main_name, età che compie o None) dei compleanni dei membri
+    attuali da oggi ai prossimi `days` giorni, in ordine di data."""
+    from gilda_app.utils.birthday import next_birthday
+
+    rows = conn.execute(
+        "SELECT family_name, main_name, birthday FROM members WHERE status = ? AND birthday IS NOT NULL",
+        (STATUS_ATTIVO,),
+    ).fetchall()
+    result = []
+    for row in rows:
+        upcoming = next_birthday(row["birthday"], today)
+        if upcoming is not None and (upcoming[0] - today).days <= days:
+            result.append((upcoming[0], row["family_name"], row["main_name"] or "", upcoming[1]))
+    result.sort(key=lambda item: (item[0], item[1].lower()))
+    return result[:limit]

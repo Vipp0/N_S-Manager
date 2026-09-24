@@ -6,6 +6,14 @@ usa il programma, non i dettagli tecnici del come."""
 
 CHANGELOG: list[dict] = [
     {
+        "version": "2.1.1",
+        "date": "24-09-2026",
+        "notes": [
+            "Nuovo campo Compleanno nella scheda del membro (giorno e mese, anno facoltativo).",
+            "Dashboard: nuova card Compleanni con quelli di oggi e dei prossimi 14 giorni (con l'età che compiono, se l'anno è noto).",
+        ],
+    },
+    {
         "version": "2.1",
         "date": "24-09-2026",
         "notes": [

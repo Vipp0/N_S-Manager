@@ -39,6 +39,7 @@ from gilda_app.db.database import (
 )
 from gilda_app.i18n import tr
 from gilda_app.models.member import STATUS_ATTIVO, STATUS_BANNATO, STATUS_EX_MEMBRO, Member, status_label
+from gilda_app.ui.birthday_edit import BirthdayEdit
 from gilda_app.ui.fast_calendar_picker import DateEdit
 from gilda_app.ui.history_entry_dialog import HistoryEntryDialog
 from gilda_app.ui.name_change_dialog import NameChangeDialog
@@ -73,7 +74,7 @@ def history_row_color(row) -> QColor:
 # in due colonne invece di una colonna lunga da scorrere; sotto questa larghezza si torna
 # alla colonna singola.
 TWO_COLUMN_MIN_PARENT_WIDTH = 1100
-TWO_COLUMN_DIALOG_WIDTH = 980
+TWO_COLUMN_DIALOG_WIDTH = 1040
 
 # Tetto all'altezza di una riga di storico con nota lunga: circa 3 righe di testo.
 MAX_HISTORY_ROW_HEIGHT = 78
@@ -208,6 +209,8 @@ class MemberDialog(MessageBoxBase):
         date_layout.addWidget(self.date_picker)
         self.date_check.toggled.connect(self.date_picker.setEnabled)
 
+        self.birthday_edit = BirthdayEdit(self)
+
         self.note_edit = PlainTextEdit(self)
         self.note_edit.setPlaceholderText(tr("field.note.placeholder"))
         self.note_edit.setFixedHeight(70)
@@ -237,6 +240,8 @@ class MemberDialog(MessageBoxBase):
                 form.addWidget(self.discord_check)
 
         form.addWidget(date_row)
+        form.addWidget(QLabel(tr("label.birthday"), self))
+        form.addWidget(self.birthday_edit)
         form.addWidget(QLabel(tr("label.note"), self))
         form.addWidget(self.note_edit)
 
@@ -321,6 +326,7 @@ class MemberDialog(MessageBoxBase):
                 self.nation2_edit.setText(display_nation(member.nations[1]))
             if member.note:
                 self.note_edit.setPlainText(member.note)
+            self.birthday_edit.set_value(member.birthday)
             if self.discord_check is not None:
                 self.discord_check.setChecked(member.still_on_discord)
 
@@ -501,6 +507,14 @@ class MemberDialog(MessageBoxBase):
             self.date_picker.setDate(QDate.fromString(first_entry["date"], "yyyy-MM-dd"))
 
     def validate(self) -> bool:
+        try:
+            self.birthday_edit.value()
+        except ValueError:
+            self.error_label.setText(tr("error.birthday_invalid"))
+            self.error_label.show()
+            self._fit_scroll_height()
+            self._scroll.ensureWidgetVisible(self.error_label)
+            return False
         if not self.family_edit.text().strip():
             self.error_label.setText(tr("error.family_name_required"))
             self.error_label.show()
@@ -523,6 +537,7 @@ class MemberDialog(MessageBoxBase):
             "nations": nations,
             "note": self.note_edit.toPlainText().strip() or None,
             "data_inserimento": data_inserimento,
+            "birthday": self.birthday_edit.value(),
             "status": self.selected_status(),
             "still_on_discord": (
                 self.discord_check.isChecked()

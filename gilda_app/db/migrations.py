@@ -120,7 +120,12 @@ def _upgrade_6(conn: sqlite3.Connection) -> None:
     )
 
 
-MIGRATIONS = [_upgrade_1, _upgrade_2, _upgrade_3, _upgrade_4, _upgrade_5, _upgrade_6]
+def _upgrade_7(conn: sqlite3.Connection) -> None:
+    # Compleanno del membro: "MM-DD" oppure "YYYY-MM-DD" (l'anno è facoltativo).
+    conn.executescript("ALTER TABLE members ADD COLUMN birthday TEXT;")
+
+
+MIGRATIONS = [_upgrade_1, _upgrade_2, _upgrade_3, _upgrade_4, _upgrade_5, _upgrade_6, _upgrade_7]
 
 
 def migrate(conn: sqlite3.Connection) -> None:

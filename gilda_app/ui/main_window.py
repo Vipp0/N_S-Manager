@@ -586,6 +586,7 @@ class MainWindow(FluentWindow):
                 note=values["note"],
                 data_inserimento=values["data_inserimento"],
                 still_on_discord=still_on_discord,
+                birthday=values["birthday"],
             )
             self.refresh_all()
 
@@ -622,6 +623,8 @@ class MainWindow(FluentWindow):
                 update_date=True,
                 still_on_discord=values["still_on_discord"],
                 record_name_changes=True,
+                update_birthday=True,
+                birthday=values["birthday"],
             )
             self.refresh_all()
             self._notify(
