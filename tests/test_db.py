@@ -155,3 +155,16 @@ def test_rebuild_status_history_replaces_sequence(conn):
     assert get_members(conn, STATUS_BANNATO) == []
     member = get_members(conn, STATUS_ATTIVO)[0]
     assert member.data_inserimento == "2020-01-10"
+
+
+def test_delete_setting_leaves_no_trace_in_file(tmp_path):
+    from gilda_app.db.database import connect, delete_setting, get_setting, set_setting
+
+    path = tmp_path / "t.db"
+    connection = connect(path)
+    set_setting(connection, "bdoalerts_api_key", "SEGRETO-DA-CANCELLARE-123456")
+    delete_setting(connection, "bdoalerts_api_key")
+    connection.close()
+
+    assert b"SEGRETO-DA-CANCELLARE" not in path.read_bytes()
+    assert get_setting(connect(path), "bdoalerts_api_key") is None

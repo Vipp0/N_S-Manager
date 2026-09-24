@@ -395,10 +395,11 @@ STRINGS: dict[str, dict[str, str]] = {
     "settings.bdo_title": {"it": "Server BDO (bdoalerts.net)", "en": "BDO servers (bdoalerts.net)"},
     "settings.bdo_hint": {
         "it": "Chiave API personale di bdoalerts.net, usata per mostrare lo stato dei server. "
-        "Resta solo su questo computer, nel database locale.",
+        "Resta solo su questo computer, nel database locale: prima di dare a qualcuno il database usa \"Rimuovi chiave\".",
         "en": "Your personal bdoalerts.net API key, used to show the server status. "
-        "It stays only on this computer, in the local database.",
+        "It stays only on this computer, in the local database: use \"Remove key\" before giving the database to anyone.",
     },
+    "settings.bdo_key_remove": {"it": "Rimuovi chiave", "en": "Remove key"},
     "settings.bdo_key_placeholder": {"it": "Chiave API", "en": "API key"},
     "settings.bdo_region_label": {"it": "Regione mostrata nel footer", "en": "Region shown in the footer"},
 

@@ -22,6 +22,7 @@ from gilda_app.db.database import (
     delete_member,
     find_duplicate,
     get_members,
+    delete_setting,
     get_setting,
     move_member_status,
     reset_database,
@@ -286,7 +287,11 @@ class MainWindow(FluentWindow):
             self.server_footer.set_state(label, text, color)
 
     def _on_api_key_saved(self, key: str) -> None:
-        set_setting(self.conn, API_KEY_SETTING, key)
+        if key:
+            set_setting(self.conn, API_KEY_SETTING, key)
+        else:
+            delete_setting(self.conn, API_KEY_SETTING)
+            self._server_statuses = {}
         self._refresh_server_status()
 
     def _on_server_region_changed(self, region: str) -> None:

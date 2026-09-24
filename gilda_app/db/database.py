@@ -249,6 +249,15 @@ def get_setting(conn: sqlite3.Connection, key: str, default: str | None = None) 
     return row["value"] if row else default
 
 
+def delete_setting(conn: sqlite3.Connection, key: str) -> None:
+    """Rimuove un'impostazione e riscrive il file: senza VACUUM SQLite lascia il vecchio
+    valore leggibile nelle pagine libere del database (pensato per le chiavi API, da
+    poter togliere prima di dare il database a qualcun altro)."""
+    conn.execute("DELETE FROM app_settings WHERE key = ?", (key,))
+    conn.commit()
+    conn.execute("VACUUM")
+
+
 def set_setting(conn: sqlite3.Connection, key: str, value: str) -> None:
     conn.execute(
         "INSERT INTO app_settings (key, value) VALUES (?, ?) "

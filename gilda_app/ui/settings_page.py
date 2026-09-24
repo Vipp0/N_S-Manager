@@ -79,7 +79,10 @@ class SettingsPage(QWidget):
         save_key_btn = PushButton(FIF.SAVE, tr("button.save"), bdo_card)
         save_key_btn.clicked.connect(lambda: self.api_key_saved.emit(self.api_key_edit.text().strip()))
         key_row.addWidget(self.api_key_edit, 1)
+        remove_key_btn = PushButton(FIF.DELETE, tr("settings.bdo_key_remove"), bdo_card)
+        remove_key_btn.clicked.connect(self._on_remove_key)
         key_row.addWidget(save_key_btn)
+        key_row.addWidget(remove_key_btn)
         bdo_layout.addLayout(key_row)
         bdo_layout.addWidget(QLabel(tr("settings.bdo_region_label"), bdo_card))
         self.region_combo = ComboBox(bdo_card)
@@ -155,6 +158,10 @@ class SettingsPage(QWidget):
         changelog_btn.clicked.connect(self.changelog_requested)
         layout.addWidget(changelog_btn)
         layout.addWidget(CaptionLabel(tr("settings.version", version=__version__), content))
+
+    def _on_remove_key(self) -> None:
+        self.api_key_edit.clear()
+        self.api_key_saved.emit("")
 
     def set_bdo_settings(self, api_key: str | None, region: str) -> None:
         self.api_key_edit.setText(api_key or "")
