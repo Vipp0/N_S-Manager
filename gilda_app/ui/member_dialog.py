@@ -7,6 +7,7 @@ from PySide6.QtWidgets import (
     QFrame,
     QHBoxLayout,
     QLabel,
+    QSizePolicy,
     QTableWidget,
     QTableWidgetItem,
     QVBoxLayout,
@@ -53,6 +54,12 @@ def history_row_color(row) -> QColor:
         return HISTORY_COLOR_BAN
     return HISTORY_COLOR_JOIN if row["previous_status"] is None else HISTORY_COLOR_REJOIN
 
+
+# In modifica, se la finestra dell'app è abbastanza larga, dati e storico stanno affiancati
+# in due colonne invece di una colonna lunga da scorrere; sotto questa larghezza si torna
+# alla colonna singola.
+TWO_COLUMN_MIN_PARENT_WIDTH = 1100
+TWO_COLUMN_DIALOG_WIDTH = 980
 
 # Tetto all'altezza di una riga di storico con nota lunga: circa 3 righe di testo.
 MAX_HISTORY_ROW_HEIGHT = 78
@@ -105,9 +112,20 @@ class MemberDialog(MessageBoxBase):
         self._form_widget = QWidget(self)
         self._form_widget.setObjectName("memberFormContent")
         self._form_widget.setStyleSheet("#memberFormContent { background: transparent; }")
-        form = QVBoxLayout(self._form_widget)
-        form.setContentsMargins(0, 0, 12, 0)
+        two_column = bool(
+            is_edit and conn is not None and parent is not None and parent.width() >= TWO_COLUMN_MIN_PARENT_WIDTH
+        )
+        root = QHBoxLayout(self._form_widget)
+        root.setContentsMargins(0, 0, 12, 0)
+        root.setSpacing(28)
+        form = QVBoxLayout()
         form.setSpacing(self.viewLayout.spacing())
+        root.addLayout(form, 1)
+        history_col = form
+        if two_column:
+            history_col = QVBoxLayout()
+            history_col.setSpacing(self.viewLayout.spacing())
+            root.addLayout(history_col, 1)
         self._scroll = ScrollArea(self)
         self._scroll.setWidget(self._form_widget)
         self._scroll.setWidgetResizable(True)
@@ -147,6 +165,7 @@ class MemberDialog(MessageBoxBase):
         self.date_check = CheckBox(tr("field.date_check"), self)
         self.date_picker = DateEdit(self)
         self.date_picker.setDate(QDate.currentDate())
+        self.date_picker.setMinimumWidth(170)
         date_row = QWidget(self)
         date_layout = QHBoxLayout(date_row)
         date_layout.setContentsMargins(0, 0, 0, 0)
@@ -187,7 +206,7 @@ class MemberDialog(MessageBoxBase):
         form.addWidget(self.note_edit)
 
         if is_edit and conn is not None:
-            form.addWidget(StrongBodyLabel(tr("label.history"), self))
+            history_col.addWidget(StrongBodyLabel(tr("label.history"), self))
             self.history_table = QTableWidget(self)
             self.history_table.setColumnCount(1)
             self.history_table.horizontalHeader().hide()
@@ -200,20 +219,30 @@ class MemberDialog(MessageBoxBase):
             # word wrap + altezza riga adattata le mandano a capo invece di troncarle.
             self.history_table.setWordWrap(True)
             self.history_table.setTextElideMode(Qt.ElideNone)
-            self.history_table.setFixedHeight(160)
             self.history_table.doubleClicked.connect(self._on_history_double_click)
-            form.addWidget(self.history_table)
-            form.addWidget(QLabel(tr("history.hint"), self))
+            if two_column:
+                self.history_table.setMinimumHeight(320)
+                # Larghezza decisa dal layout, non dal testo più lungo: le righe vanno a capo.
+                self.history_table.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Expanding)
+                history_col.addWidget(self.history_table, 1)
+            else:
+                self.history_table.setFixedHeight(160)
+                history_col.addWidget(self.history_table)
+            history_hint = QLabel(tr("history.hint"), self)
+            history_hint.setWordWrap(True)
+            history_col.addWidget(history_hint)
 
             self.rebuild_history_btn = PushButton(FIF.HISTORY, tr("button.rebuild_history"), self)
             self.rebuild_history_btn.clicked.connect(self._on_rebuild_history)
-            form.addWidget(self.rebuild_history_btn)
+            history_col.addWidget(self.rebuild_history_btn)
 
             self._refresh_history()
 
         form.addWidget(self.error_label)
+        if two_column:
+            form.addStretch(1)
         # Form più largo: 380px era stretto e tagliava le voci di storico più lunghe.
-        self.widget.setMinimumWidth(520)
+        self.widget.setMinimumWidth(TWO_COLUMN_DIALOG_WIDTH if two_column else 520)
 
         if member is not None:
             self.family_edit.setText(member.family_name)

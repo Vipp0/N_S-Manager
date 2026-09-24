@@ -6,6 +6,13 @@ usa il programma, non i dettagli tecnici del come."""
 
 CHANGELOG: list[dict] = [
     {
+        "version": "2.0.3",
+        "date": "24-09-2026",
+        "notes": [
+            "Modifica membro: su finestre larghe i dati e lo storico movimenti stanno affiancati in due colonne, invece di una lunga colonna da scorrere.",
+        ],
+    },
+    {
         "version": "2.0.2",
         "date": "24-09-2026",
         "notes": [
