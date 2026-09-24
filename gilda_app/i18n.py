@@ -105,10 +105,6 @@ STRINGS: dict[str, dict[str, str]] = {
     "name_history.line": {"it": "{date} — {field}: {old} → {new}", "en": "{date} — {field}: {old} → {new}"},
     "name_history.line_first": {"it": "{date} — {field}: {new}", "en": "{date} — {field}: {new}"},
     "name_history.empty": {"it": "Nessun cambio di nome registrato.", "en": "No name changes recorded."},
-    "name_history.hint": {
-        "it": "I cambi di Family Name fatti da qui vengono registrati da soli. Doppio click su una voce per correggerla.",
-        "en": "Family Name changes made here are recorded automatically. Double-click an entry to correct it.",
-    },
     "name_history.add": {"it": "Aggiungi cambio nome", "en": "Add name change"},
     "name_history.delete": {"it": "Elimina voce", "en": "Delete entry"},
     "name_history.dialog_title": {"it": "Cambio di nome", "en": "Name change"},

@@ -56,7 +56,8 @@ HISTORY_COLOR_JOIN = QColor("#d7f0dc")
 HISTORY_COLOR_EX = QColor("#fff2c2")
 HISTORY_COLOR_BAN = QColor("#f8d4d4")
 HISTORY_COLOR_REJOIN = QColor("#d3e8fa")
-NAME_CHANGE_COLOR = QColor("#e6e0f5")
+# Due tonalità alternate, per non perdere la riga scorrendo l'elenco.
+NAME_CHANGE_COLORS = (QColor("#e2daf4"), QColor("#f1edfa"))
 
 
 def history_row_color(row) -> QColor:
@@ -277,9 +278,6 @@ class MemberDialog(MessageBoxBase):
             self.name_table.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)
             self.name_table.doubleClicked.connect(self._on_name_double_click)
             name_box.addWidget(self.name_table)
-            name_hint = QLabel(tr("name_history.hint"), self)
-            name_hint.setWordWrap(True)
-            name_box.addWidget(name_hint)
             name_buttons = QHBoxLayout()
             add_name_btn = PushButton(FIF.ADD, tr("name_history.add"), self)
             add_name_btn.clicked.connect(self._on_add_name_change)
@@ -370,7 +368,7 @@ class MemberDialog(MessageBoxBase):
         self.history_table.setRowCount(len(self._history_rows))
         for row_idx, row in enumerate(self._history_rows):
             line = format_history_line(row)
-            item = QTableWidgetItem(line)
+            item = QTableWidgetItem(f"{row_idx + 1}.  {line}")
             item.setToolTip(line)  # testo completo al passaggio del mouse
             item.setBackground(QBrush(history_row_color(row)))
             item.setForeground(QBrush(QColor("#202020")))
@@ -393,9 +391,9 @@ class MemberDialog(MessageBoxBase):
                 line = tr("name_history.line", date=date, field=field_label, old=row["old_value"], new=row["new_value"])
             else:
                 line = tr("name_history.line_first", date=date, field=field_label, new=row["new_value"])
-            item = QTableWidgetItem(line)
+            item = QTableWidgetItem(f"{row_idx + 1}.  {line}")
             item.setToolTip(line)
-            item.setBackground(QBrush(NAME_CHANGE_COLOR))
+            item.setBackground(QBrush(NAME_CHANGE_COLORS[row_idx % 2]))
             item.setForeground(QBrush(QColor("#202020")))
             self.name_table.setItem(row_idx, 0, item)
 

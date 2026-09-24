@@ -6,6 +6,14 @@ usa il programma, non i dettagli tecnici del come."""
 
 CHANGELOG: list[dict] = [
     {
+        "version": "2.0.8",
+        "date": "24-09-2026",
+        "notes": [
+            "Storico movimenti e storico nomi: le righe sono numerate (1, 2, 3...) e quelle dello storico nomi alternano due tonalità, per seguirle meglio scorrendo.",
+            "Tolta la frase di spiegazione sotto lo storico nomi, che occupava spazio.",
+        ],
+    },
+    {
         "version": "2.0.7",
         "date": "24-09-2026",
         "notes": [
