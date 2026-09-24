@@ -7,7 +7,7 @@ from qfluentwidgets.components.widgets.spin_box import SpinButton
 from gilda_app.i18n import get_language, tr
 from gilda_app.utils.birthday import build_birthday, split_birthday
 
-BUTTON_TEXT_MARGIN = 36
+BUTTON_TEXT_MARGIN = 34
 
 
 class _DaySpinBox(SpinBox):
@@ -32,8 +32,11 @@ class _DaySpinBox(SpinBox):
         layout.addWidget(self._plus, 0, Qt.AlignRight)
         self._minus.clicked.connect(self.stepDown)
         self._plus.clicked.connect(self.stepUp)
+        # Lo stile predefinito riserva ~66px a destra per le due frecce impilate: qui le
+        # frecce stanno ai lati, quindi il riquadro del testo va centrato tra le due.
+        padding_rule = f"SpinBox {{ padding: 0px {BUTTON_TEXT_MARGIN}px 0px {BUTTON_TEXT_MARGIN}px; }}"
+        self.setStyleSheet(self.styleSheet() + "\n" + padding_rule)
         self.lineEdit().setAlignment(Qt.AlignCenter)
-        self.lineEdit().setTextMargins(BUTTON_TEXT_MARGIN, 0, BUTTON_TEXT_MARGIN, 0)
 
     def stepBy(self, steps: int) -> None:
         new = self.value() + steps
