@@ -18,7 +18,7 @@ class BirthdayEdit(QWidget):
         self.day_spin = SpinBox(self)
         self.day_spin.setRange(0, 31)
         self.day_spin.setSpecialValueText("—")  # 0 = non indicato
-        self.day_spin.setFixedWidth(96)
+        self.day_spin.setFixedWidth(136)  # le frecce dello spinbox occupano molto: con meno spazio il numero si taglia
 
         locale = QLocale(QLocale.Italian if get_language() == "it" else QLocale.English)
         self.month_combo = ComboBox(self)
@@ -29,7 +29,7 @@ class BirthdayEdit(QWidget):
         self.year_edit = LineEdit(self)
         self.year_edit.setPlaceholderText(tr("birthday.year_placeholder"))
         self.year_edit.setMaxLength(4)
-        self.year_edit.setFixedWidth(96)
+        self.year_edit.setFixedWidth(90)
 
         layout.addWidget(self.day_spin)
         self.month_combo.setMinimumWidth(0)

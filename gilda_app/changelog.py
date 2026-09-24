@@ -6,6 +6,13 @@ usa il programma, non i dettagli tecnici del come."""
 
 CHANGELOG: list[dict] = [
     {
+        "version": "2.1.2",
+        "date": "24-09-2026",
+        "notes": [
+            "Campo Compleanno: il giorno ha più spazio e i numeri a due cifre si leggono per intero.",
+        ],
+    },
+    {
         "version": "2.1.1",
         "date": "24-09-2026",
         "notes": [
