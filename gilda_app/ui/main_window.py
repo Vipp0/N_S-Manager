@@ -2,9 +2,9 @@ import sqlite3
 import threading
 from pathlib import Path
 
-from PySide6.QtCore import QObject, Qt, QUrl, Signal
+from PySide6.QtCore import QObject, Qt, QTimer, QUrl, Signal
 from PySide6.QtGui import QDesktopServices, QGuiApplication, QIcon, QKeySequence, QShortcut
-from PySide6.QtWidgets import QApplication, QFileDialog
+from PySide6.QtWidgets import QApplication, QFileDialog, QVBoxLayout
 from qfluentwidgets import FluentIcon as FIF
 from qfluentwidgets import FluentWindow, InfoBar, InfoBarPosition, MessageBox, NavigationItemPosition, TransparentToolButton
 
@@ -32,6 +32,7 @@ from gilda_app.i18n import tr
 from gilda_app.importer.excel_export import export_workbook
 from gilda_app.importer.excel_import import find_intra_file_duplicates, import_row, parse_workbook
 from gilda_app.models.member import STATUS_ATTIVO, STATUS_BANNATO, STATUS_EX_MEMBRO, Member, status_label
+from gilda_app.ui.bdo_page import BdoPage
 from gilda_app.ui.calendar_page import CalendarPage
 from gilda_app.ui.changelog_dialog import ChangelogDialog
 from gilda_app.ui.global_search import GlobalSearchDialog
@@ -43,18 +44,24 @@ from gilda_app.ui.notes_page import NotesPage
 from gilda_app.ui.progress_dialog import ImportProgressDialog
 from gilda_app.ui.reset_dialog import ResetConfirmDialog
 from gilda_app.ui.restore_dialog import RestoreBackupDialog, format_backup_when
+from gilda_app.ui.server_status_footer import ServerStatusFooter, describe_error, describe_region
 from gilda_app.ui.settings_page import SettingsPage
 from gilda_app.ui.stats_view import StatsPage
 from gilda_app.utils.discord_format import discord_copy_text
 from gilda_app.version import __version__
 from gilda_app.utils.icons import ban_icon
 from gilda_app.utils.paths import backups_dir
+from gilda_app.utils.bdoalerts_api import ERROR_NO_KEY, ApiError
 from gilda_app.utils.restart import restart_app
+from gilda_app.utils.server_status import DEFAULT_REGION, fetch_server_status
 from gilda_app.utils.update_check import RELEASES_PAGE_URL, fetch_latest_release_tag, is_newer
 
 STATUS_ORDER = [STATUS_ATTIVO, STATUS_EX_MEMBRO, STATUS_BANNATO]
 APP_ICON_PATH = Path(__file__).resolve().parent.parent / "resources" / "app_icon.png"
 UPDATE_NOTIFIED_SETTING = "update_notified_version"
+API_KEY_SETTING = "bdoalerts_api_key"
+SERVER_REGION_SETTING = "server_status_region"
+SERVER_STATUS_INTERVAL_MS = 5 * 60 * 1000
 
 
 class _HolidayRefreshSignal(QObject):
@@ -66,6 +73,11 @@ class _HolidayRefreshSignal(QObject):
 
 class _UpdateCheckSignal(QObject):
     finished = Signal(str)
+
+
+class _ServerStatusSignal(QObject):
+    # Porta al thread Qt o il dict delle regioni o il "kind" dell'errore (str).
+    finished = Signal(object)
 
 
 class MainWindow(FluentWindow):
@@ -103,6 +115,11 @@ class MainWindow(FluentWindow):
         self._start_holiday_refresh()
         self._start_update_check()
 
+        self.bdo_page = BdoPage(self)
+        self.bdo_page.setObjectName("page_bdo")
+        self.bdo_page.refresh_requested.connect(self._refresh_server_status)
+        self.addSubInterface(self.bdo_page, FIF.GLOBE, tr("nav.bdo"))
+
         self.stats_page = StatsPage(lambda: self.conn, self._open_nation_in_current, self)
         self.stats_page.setObjectName("page_stats")
         self.addSubInterface(self.stats_page, FIF.PIE_SINGLE, tr("nav.stats"))
@@ -119,9 +136,15 @@ class MainWindow(FluentWindow):
         self.settings_page.extra_dir_pick_requested.connect(self._on_pick_extra_dir)
         self.settings_page.extra_dir_clear_requested.connect(self._on_clear_extra_dir)
         self.settings_page.changelog_requested.connect(self._on_changelog)
+        self.settings_page.api_key_saved.connect(self._on_api_key_saved)
+        self.settings_page.server_region_changed.connect(self._on_server_region_changed)
         self.settings_page.set_extra_backup_dir(get_setting(self.conn, EXTRA_DIR_SETTING))
+        self.settings_page.set_bdo_settings(
+            get_setting(self.conn, API_KEY_SETTING), get_setting(self.conn, SERVER_REGION_SETTING, DEFAULT_REGION)
+        )
         self.addSubInterface(self.settings_page, FIF.SETTING, tr("nav.settings"), NavigationItemPosition.BOTTOM)
 
+        self._setup_server_status_footer()
         self.navigationInterface.setCurrentItem(self.pages[STATUS_ATTIVO].objectName())
         self.refresh_all()
 
@@ -188,6 +211,87 @@ class MainWindow(FluentWindow):
     def _on_holidays_refreshed(self, updated: bool) -> None:
         if updated:
             self.calendar_page.refresh()
+
+    # -- Stato server BDO (footer + scheda BDO) --------------------------------
+    def _setup_server_status_footer(self) -> None:
+        # Le pagine stanno in widgetLayout (solo lo stackedWidget): lo si affianca al
+        # footer in una colonna, così la striscia sta sotto il contenuto e non sotto
+        # anche la barra di navigazione. widgetLayout non è API documentata: se cambiasse
+        # struttura in una versione futura, il footer semplicemente non compare.
+        self._server_statuses: dict = {}
+        self._server_error: str | None = ERROR_NO_KEY
+        self._server_busy = False
+        self._server_status_signal = _ServerStatusSignal()
+        self._server_status_signal.finished.connect(self._on_server_status)
+        self.server_footer = ServerStatusFooter(self)
+        self.server_footer.clicked.connect(lambda: self.switchTo(self.bdo_page))
+        try:
+            self.widgetLayout.removeWidget(self.stackedWidget)
+            column = QVBoxLayout()
+            column.setContentsMargins(0, 0, 0, 0)
+            column.setSpacing(0)
+            column.addWidget(self.stackedWidget, 1)
+            column.addWidget(self.server_footer)
+            self.widgetLayout.addLayout(column)
+        except AttributeError:
+            self.server_footer.hide()
+        self._update_server_footer()
+        self._server_timer = QTimer(self)
+        self._server_timer.timeout.connect(self._refresh_server_status)
+        self._server_timer.start(SERVER_STATUS_INTERVAL_MS)
+        self._refresh_server_status()
+
+    def _server_region(self) -> str:
+        return get_setting(self.conn, SERVER_REGION_SETTING, DEFAULT_REGION) or DEFAULT_REGION
+
+    def _refresh_server_status(self) -> None:
+        """Richiesta in un thread a parte (mai bloccare l'interfaccia). La chiave si
+        legge qui, nel thread Qt, perché la connessione sqlite non è usabile altrove.
+        Senza chiave non parte nessuna richiesta."""
+        api_key = get_setting(self.conn, API_KEY_SETTING)
+        if not api_key:
+            self._on_server_status(ERROR_NO_KEY)
+            return
+        if self._server_busy:
+            return
+        self._server_busy = True
+        threading.Thread(target=self._server_status_worker, args=(api_key,), daemon=True).start()
+
+    def _server_status_worker(self, api_key: str) -> None:
+        try:
+            result = fetch_server_status(api_key)
+        except ApiError as exc:
+            result = exc.kind
+        self._server_status_signal.finished.emit(result)
+
+    def _on_server_status(self, result) -> None:
+        self._server_busy = False
+        if isinstance(result, str):
+            self._server_error = result
+            self.bdo_page.show_error(result)
+        else:
+            self._server_error = None
+            self._server_statuses = result
+            self.bdo_page.show_status(result)
+        self._update_server_footer()
+
+    def _update_server_footer(self) -> None:
+        region = self._server_region()
+        label = tr(f"region.{region}")
+        if self._server_error:
+            text, color = describe_error(self._server_error)
+            self.server_footer.set_state("", text, color)
+        else:
+            text, color = describe_region(self._server_statuses.get(region))
+            self.server_footer.set_state(label, text, color)
+
+    def _on_api_key_saved(self, key: str) -> None:
+        set_setting(self.conn, API_KEY_SETTING, key)
+        self._refresh_server_status()
+
+    def _on_server_region_changed(self, region: str) -> None:
+        set_setting(self.conn, SERVER_REGION_SETTING, region)
+        self._update_server_footer()
 
     def _on_changelog(self) -> None:
         ChangelogDialog(self).exec()

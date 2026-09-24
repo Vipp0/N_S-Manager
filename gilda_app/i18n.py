@@ -367,6 +367,41 @@ STRINGS: dict[str, dict[str, str]] = {
         "en": "Delete the event \"{title}\"? It's recurring: all its repetitions will be deleted.",
     },
 
+    # -- Stato server BDO (footer, scheda BDO, impostazioni) -----------------
+    "nav.bdo": {"it": "BDO", "en": "BDO"},
+    "bdo.title": {"it": "Black Desert", "en": "Black Desert"},
+    "bdo.server_status": {"it": "Stato dei server", "en": "Server status"},
+    "bdo.refresh": {"it": "Aggiorna ora", "en": "Refresh now"},
+    "footer.server_status": {"it": "Stato server", "en": "Server status"},
+    "server.online": {"it": "Online", "en": "Online"},
+    "server.maintenance": {"it": "In manutenzione", "en": "Under maintenance"},
+    "server.maintenance_remaining": {"it": "In manutenzione (fine tra {time})", "en": "Under maintenance ({time} left)"},
+    "server.unknown": {"it": "n/d", "en": "n/a"},
+    "server.error.no_key": {
+        "it": "Chiave API non configurata (Impostazioni → Server BDO)",
+        "en": "API key not set (Settings → BDO servers)",
+    },
+    "server.error.auth": {"it": "Chiave API non valida", "en": "Invalid API key"},
+    "server.error.rate_limit": {"it": "Troppe richieste, riprovo più tardi", "en": "Too many requests, will retry later"},
+    "server.error.network": {"it": "Servizio non raggiungibile", "en": "Service unreachable"},
+    "server.error.bad_response": {"it": "Risposta non valida dal servizio", "en": "Invalid response from the service"},
+    "region.eu": {"it": "Europa (PC)", "en": "Europe (PC)"},
+    "region.na": {"it": "Nord America (PC)", "en": "North America (PC)"},
+    "region.console-eu": {"it": "Europa (Console)", "en": "Europe (Console)"},
+    "region.console-na": {"it": "Nord America (Console)", "en": "North America (Console)"},
+    "region.kr": {"it": "Corea (PC)", "en": "Korea (PC)"},
+    "region.sa": {"it": "Sud America (PC)", "en": "South America (PC)"},
+    "region.asia": {"it": "Asia (PC)", "en": "Asia (PC)"},
+    "settings.bdo_title": {"it": "Server BDO (bdoalerts.net)", "en": "BDO servers (bdoalerts.net)"},
+    "settings.bdo_hint": {
+        "it": "Chiave API personale di bdoalerts.net, usata per mostrare lo stato dei server. "
+        "Resta solo su questo computer, nel database locale.",
+        "en": "Your personal bdoalerts.net API key, used to show the server status. "
+        "It stays only on this computer, in the local database.",
+    },
+    "settings.bdo_key_placeholder": {"it": "Chiave API", "en": "API key"},
+    "settings.bdo_region_label": {"it": "Regione mostrata nel footer", "en": "Region shown in the footer"},
+
     # -- Note --------------------------------------------------------------
     "notes.placeholder": {
         "it": "Scrivi qui le note della gilda... vengono salvate automaticamente.",

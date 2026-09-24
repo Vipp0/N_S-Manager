@@ -5,6 +5,7 @@ from qfluentwidgets import (
     CardWidget,
     ComboBox,
     FluentIcon as FIF,
+    LineEdit,
     PrimaryPushButton,
     PushButton,
     ScrollArea,
@@ -13,6 +14,7 @@ from qfluentwidgets import (
 )
 
 from gilda_app.i18n import LANGUAGES, get_language, tr
+from gilda_app.utils.server_status import REGIONS
 from gilda_app.version import __version__
 
 
@@ -27,6 +29,8 @@ class SettingsPage(QWidget):
     extra_dir_pick_requested = Signal()
     extra_dir_clear_requested = Signal()
     changelog_requested = Signal()
+    api_key_saved = Signal(str)
+    server_region_changed = Signal(str)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -61,6 +65,31 @@ class SettingsPage(QWidget):
         self.language_combo.currentIndexChanged.connect(self._on_language_changed)
         language_layout.addWidget(self.language_combo)
         layout.addWidget(language_card)
+
+        bdo_card = CardWidget(self)
+        bdo_layout = QVBoxLayout(bdo_card)
+        bdo_layout.addWidget(StrongBodyLabel(tr("settings.bdo_title"), bdo_card))
+        bdo_hint = QLabel(tr("settings.bdo_hint"), bdo_card)
+        bdo_hint.setWordWrap(True)
+        bdo_layout.addWidget(bdo_hint)
+        key_row = QHBoxLayout()
+        self.api_key_edit = LineEdit(bdo_card)
+        self.api_key_edit.setEchoMode(LineEdit.Password)
+        self.api_key_edit.setPlaceholderText(tr("settings.bdo_key_placeholder"))
+        save_key_btn = PushButton(FIF.SAVE, tr("button.save"), bdo_card)
+        save_key_btn.clicked.connect(lambda: self.api_key_saved.emit(self.api_key_edit.text().strip()))
+        key_row.addWidget(self.api_key_edit, 1)
+        key_row.addWidget(save_key_btn)
+        bdo_layout.addLayout(key_row)
+        bdo_layout.addWidget(QLabel(tr("settings.bdo_region_label"), bdo_card))
+        self.region_combo = ComboBox(bdo_card)
+        for region in REGIONS:
+            self.region_combo.addItem(tr(f"region.{region}"), userData=region)
+        self.region_combo.currentIndexChanged.connect(
+            lambda: self.server_region_changed.emit(self.region_combo.currentData())
+        )
+        bdo_layout.addWidget(self.region_combo)
+        layout.addWidget(bdo_card)
 
         import_card = CardWidget(self)
         import_layout = QVBoxLayout(import_card)
@@ -126,6 +155,13 @@ class SettingsPage(QWidget):
         changelog_btn.clicked.connect(self.changelog_requested)
         layout.addWidget(changelog_btn)
         layout.addWidget(CaptionLabel(tr("settings.version", version=__version__), content))
+
+    def set_bdo_settings(self, api_key: str | None, region: str) -> None:
+        self.api_key_edit.setText(api_key or "")
+        # Senza segnali: è il caricamento del valore salvato, non una scelta dell'utente.
+        self.region_combo.blockSignals(True)
+        self.region_combo.setCurrentIndex(max(0, self.region_combo.findData(region)))
+        self.region_combo.blockSignals(False)
 
     def set_extra_backup_dir(self, path: str | None) -> None:
         self.extra_dir_label.setText(path or tr("backup.extra_none"))

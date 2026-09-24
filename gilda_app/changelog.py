@@ -6,6 +6,15 @@ usa il programma, non i dettagli tecnici del come."""
 
 CHANGELOG: list[dict] = [
     {
+        "version": "1.10.0",
+        "date": "24-09-2026",
+        "notes": [
+            "Stato dei server di Black Desert: in fondo alla finestra, a destra, compare online/in manutenzione della regione scelta (con il tempo rimasto), aggiornato ogni 5 minuti.",
+            "Nuova scheda BDO con lo stato di tutte le regioni; ci si arriva anche cliccando sul footer.",
+            "In Impostazioni si inserisce la propria chiave API di bdoalerts.net (salvata solo sul computer) e si sceglie la regione mostrata nel footer.",
+        ],
+    },
+    {
         "version": "1.9.0",
         "date": "23-09-2026",
         "notes": [
