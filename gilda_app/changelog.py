@@ -6,6 +6,13 @@ usa il programma, non i dettagli tecnici del come."""
 
 CHANGELOG: list[dict] = [
     {
+        "version": "2.0.2",
+        "date": "24-09-2026",
+        "notes": [
+            "Storico movimenti di un membro con righe colorate: verde il primo ingresso, giallo il passaggio a ex membro, rosso il ban, azzurro il rientro.",
+        ],
+    },
+    {
         "version": "2.0.1",
         "date": "24-09-2026",
         "notes": [

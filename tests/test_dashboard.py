@@ -47,3 +47,17 @@ def test_upcoming_agenda_merges_events_and_holidays(conn):
         (date(2026, 9, 25), "GvG", False),
         (date(2026, 9, 25), "Chuseok", True),
     ]
+
+
+def test_history_row_colors():
+    from gilda_app.ui.member_dialog import (
+        HISTORY_COLOR_BAN, HISTORY_COLOR_EX, HISTORY_COLOR_JOIN, HISTORY_COLOR_REJOIN, history_row_color,
+    )
+
+    def row(prev, new):
+        return {"previous_status": prev, "new_status": new}
+
+    assert history_row_color(row(None, STATUS_ATTIVO)) == HISTORY_COLOR_JOIN
+    assert history_row_color(row(STATUS_ATTIVO, STATUS_EX_MEMBRO)) == HISTORY_COLOR_EX
+    assert history_row_color(row(STATUS_ATTIVO, STATUS_BANNATO)) == HISTORY_COLOR_BAN
+    assert history_row_color(row(STATUS_EX_MEMBRO, STATUS_ATTIVO)) == HISTORY_COLOR_REJOIN

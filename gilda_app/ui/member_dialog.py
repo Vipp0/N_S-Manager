@@ -1,4 +1,5 @@
 from PySide6.QtCore import QDate, Qt
+from PySide6.QtGui import QBrush, QColor
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QButtonGroup,
@@ -36,6 +37,22 @@ from gilda_app.utils.flags import display_nation
 from gilda_app.utils.history_format import format_history_line
 
 NEW_MEMBER_STATUSES = [STATUS_ATTIVO, STATUS_EX_MEMBRO, STATUS_BANNATO]
+
+# Sfondi pastello delle righe dello storico, per capire a colpo d'occhio di che passaggio si
+# tratta: primo ingresso, uscita (ex membro), ban, rientro.
+HISTORY_COLOR_JOIN = QColor("#d7f0dc")
+HISTORY_COLOR_EX = QColor("#fff2c2")
+HISTORY_COLOR_BAN = QColor("#f8d4d4")
+HISTORY_COLOR_REJOIN = QColor("#d3e8fa")
+
+
+def history_row_color(row) -> QColor:
+    if row["new_status"] == STATUS_EX_MEMBRO:
+        return HISTORY_COLOR_EX
+    if row["new_status"] == STATUS_BANNATO:
+        return HISTORY_COLOR_BAN
+    return HISTORY_COLOR_JOIN if row["previous_status"] is None else HISTORY_COLOR_REJOIN
+
 
 # Tetto all'altezza di una riga di storico con nota lunga: circa 3 righe di testo.
 MAX_HISTORY_ROW_HEIGHT = 78
@@ -271,6 +288,8 @@ class MemberDialog(MessageBoxBase):
             line = format_history_line(row)
             item = QTableWidgetItem(line)
             item.setToolTip(line)  # testo completo al passaggio del mouse
+            item.setBackground(QBrush(history_row_color(row)))
+            item.setForeground(QBrush(QColor("#202020")))
             self.history_table.setItem(row_idx, 0, item)
         # Adatta l'altezza di ogni riga al testo mandato a capo, ma con un tetto: una
         # nota molto lunga faceva diventare la riga altissima. Oltre il tetto la riga
