@@ -26,6 +26,7 @@ from gilda_app.db.database import (
     delete_setting,
     get_setting,
     move_member_status,
+    old_names_by_member,
     reset_database,
     set_setting,
     update_member,
@@ -217,8 +218,9 @@ class MainWindow(FluentWindow):
 
     # -- refresh -----------------------------------------------------
     def refresh_all(self) -> None:
+        old_names = old_names_by_member(self.conn)
         for status, page in self.pages.items():
-            page.set_members(get_members(self.conn, status))
+            page.set_members(get_members(self.conn, status), old_names)
         self.stats_page.refresh()
         self.dashboard_page.refresh()
 
@@ -494,6 +496,7 @@ class MainWindow(FluentWindow):
                 data_inserimento=values["data_inserimento"],
                 update_date=True,
                 still_on_discord=values["still_on_discord"],
+                record_name_changes=True,
             )
             self.refresh_all()
             self._notify(

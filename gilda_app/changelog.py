@@ -6,6 +6,14 @@ usa il programma, non i dettagli tecnici del come."""
 
 CHANGELOG: list[dict] = [
     {
+        "version": "2.0.6",
+        "date": "24-09-2026",
+        "notes": [
+            "Nuovo Storico nomi nella modifica membro: i cambi di Family Name vengono registrati da soli (vecchio nome, nuovo nome, data) e si possono anche aggiungere, correggere o eliminare a mano.",
+            "La ricerca (per lista e globale) trova un membro anche cercando un nome che non usa più.",
+        ],
+    },
+    {
         "version": "2.0.5",
         "date": "24-09-2026",
         "notes": [

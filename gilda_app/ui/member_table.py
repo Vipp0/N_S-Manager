@@ -49,6 +49,7 @@ class MemberListPage(QWidget):
         super().__init__(parent)
         self.status = status
         self._members: list[Member] = []
+        self._old_names: dict[int, list[str]] = {}
         self._columns = _columns(status)
         self._still_on_discord_col = self._columns.index(tr("column.still_on_discord")) if status == STATUS_EX_MEMBRO else None
 
@@ -109,8 +110,9 @@ class MemberListPage(QWidget):
         widen_scrollbar_on_hover(self.table.scrollDelagate.vScrollBar)
         layout.addWidget(self.table)
 
-    def set_members(self, members: list[Member]) -> None:
+    def set_members(self, members: list[Member], old_names: dict[int, list[str]] | None = None) -> None:
         self._members = members
+        self._old_names = old_names or {}
         self.table.setSortingEnabled(False)
         self.table.setRowCount(len(members))
         for row, member in enumerate(members):
@@ -167,6 +169,10 @@ class MemberListPage(QWidget):
                 for col in range(1, self.table.columnCount())
                 if self.table.item(row, col) is not None
             )
+            if not match:
+                # I vecchi nomi non sono una colonna, ma la ricerca deve trovarli lo stesso.
+                member_id = self.table.item(row, NUMBER_COLUMN).data(Qt.UserRole)
+                match = any(text in name.lower() for name in self._old_names.get(member_id, []))
             self.table.setRowHidden(row, not match)
 
     def _member_at_row(self, row: int) -> Member | None:

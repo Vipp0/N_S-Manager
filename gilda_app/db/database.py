@@ -5,6 +5,11 @@ from gilda_app.db.migrations import migrate
 from gilda_app.models.member import Member
 
 
+# Nomi di cui si registra lo storico dei cambi (colonne di members). Per tracciarne altri
+# basta aggiungerli qui e prevederne l'etichetta ("label.<campo>") in i18n.
+TRACKED_NAME_FIELDS = ("family_name",)
+
+
 def connect(path: Path) -> sqlite3.Connection:
     conn = sqlite3.connect(str(path))
     conn.execute("PRAGMA foreign_keys = ON")
@@ -82,11 +87,20 @@ def update_member(
     update_date: bool = False,
     still_on_discord: bool | None = None,
     commit: bool = True,
+    record_name_changes: bool = False,
 ) -> None:
     """update_date=False (default, usato dall'import) lascia invariato data_inserimento;
     update_date=True (usato dal form di modifica) lo imposta al valore passato, anche None.
     still_on_discord=None (default) lascia invariato il campo: il form lo mostra/modifica
-    solo per gli ex membri, per tutti gli altri stati va lasciato così com'è."""
+    solo per gli ex membri, per tutti gli altri stati va lasciato così com'è.
+    record_name_changes=True (form di modifica) registra nello storico nomi i cambi dei
+    campi in TRACKED_NAME_FIELDS; l'import lo lascia False per non riempirlo di rumore."""
+    if record_name_changes:
+        old = conn.execute("SELECT * FROM members WHERE id = ?", (member_id,)).fetchone()
+        new_values = {"family_name": family_name}
+        for field in TRACKED_NAME_FIELDS:
+            if old is not None and old[field] and old[field] != new_values[field]:
+                add_name_change(conn, member_id, field, old[field], new_values[field], commit=False)
     set_clauses = ["family_name = ?", "main_name = ?", "discord_name = ?", "note = ?"]
     params: list = [family_name, main_name, discord_name, note]
     if update_date:
@@ -116,6 +130,58 @@ def update_member(
         )
     if commit:
         conn.commit()
+
+
+def add_name_change(
+    conn: sqlite3.Connection,
+    member_id: int,
+    field: str,
+    old_value: str | None,
+    new_value: str,
+    date: str | None = None,
+    commit: bool = True,
+) -> None:
+    """date (yyyy-mm-dd) None = adesso."""
+    if date:
+        conn.execute(
+            "INSERT INTO name_history (member_id, field, old_value, new_value, changed_at) VALUES (?, ?, ?, ?, ?)",
+            (member_id, field, old_value, new_value, f"{date} 00:00:00"),
+        )
+    else:
+        conn.execute(
+            "INSERT INTO name_history (member_id, field, old_value, new_value) VALUES (?, ?, ?, ?)",
+            (member_id, field, old_value, new_value),
+        )
+    if commit:
+        conn.commit()
+
+
+def get_name_history(conn: sqlite3.Connection, member_id: int) -> list[sqlite3.Row]:
+    return conn.execute(
+        "SELECT * FROM name_history WHERE member_id = ? ORDER BY changed_at, id", (member_id,)
+    ).fetchall()
+
+
+def update_name_change(conn: sqlite3.Connection, entry_id: int, old_value: str | None, new_value: str, date: str) -> None:
+    conn.execute(
+        "UPDATE name_history SET old_value = ?, new_value = ?, changed_at = ? WHERE id = ?",
+        (old_value, new_value, f"{date} 00:00:00", entry_id),
+    )
+    conn.commit()
+
+
+def delete_name_change(conn: sqlite3.Connection, entry_id: int) -> None:
+    conn.execute("DELETE FROM name_history WHERE id = ?", (entry_id,))
+    conn.commit()
+
+
+def old_names_by_member(conn: sqlite3.Connection) -> dict[int, list[str]]:
+    """Vecchi nomi di ogni membro, per far trovare la persona anche cercando un nome che
+    non usa più."""
+    result: dict[int, list[str]] = {}
+    for row in conn.execute("SELECT member_id, old_value FROM name_history WHERE IFNULL(old_value, '') != ''"):
+        result.setdefault(row["member_id"], []).append(row["old_value"])
+    return result
 
 
 def delete_member(conn: sqlite3.Connection, member_id: int) -> None:
@@ -238,9 +304,12 @@ def rebuild_status_history(conn: sqlite3.Connection, member_id: int, entries: li
 
 def reset_database(conn: sqlite3.Connection) -> None:
     conn.execute("DELETE FROM status_history")
+    conn.execute("DELETE FROM name_history")
     conn.execute("DELETE FROM member_nations")
     conn.execute("DELETE FROM members")
-    conn.execute("DELETE FROM sqlite_sequence WHERE name IN ('members', 'member_nations', 'status_history')")
+    conn.execute(
+        "DELETE FROM sqlite_sequence WHERE name IN ('members', 'member_nations', 'status_history', 'name_history')"
+    )
     conn.commit()
 
 

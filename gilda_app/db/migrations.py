@@ -102,7 +102,25 @@ def _upgrade_5(conn: sqlite3.Connection) -> None:
     )
 
 
-MIGRATIONS = [_upgrade_1, _upgrade_2, _upgrade_3, _upgrade_4, _upgrade_5]
+def _upgrade_6(conn: sqlite3.Connection) -> None:
+    # Storico dei cambi di nome di un membro. "field" dice quale nome è cambiato (oggi solo
+    # family_name, ma la struttura regge anche main_name/discord_name senza altre modifiche).
+    conn.executescript(
+        """
+        CREATE TABLE name_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            member_id INTEGER NOT NULL REFERENCES members(id) ON DELETE CASCADE,
+            field TEXT NOT NULL,
+            old_value TEXT,
+            new_value TEXT NOT NULL,
+            changed_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE INDEX idx_name_history_member ON name_history(member_id);
+        """
+    )
+
+
+MIGRATIONS = [_upgrade_1, _upgrade_2, _upgrade_3, _upgrade_4, _upgrade_5, _upgrade_6]
 
 
 def migrate(conn: sqlite3.Connection) -> None:

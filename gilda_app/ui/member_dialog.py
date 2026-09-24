@@ -27,14 +27,25 @@ from qfluentwidgets import (
     SubtitleLabel,
 )
 
-from gilda_app.db.database import get_status_history, rebuild_status_history, update_status_history_entry
+from gilda_app.db.database import (
+    TRACKED_NAME_FIELDS,
+    add_name_change,
+    delete_name_change,
+    get_name_history,
+    get_status_history,
+    rebuild_status_history,
+    update_name_change,
+    update_status_history_entry,
+)
 from gilda_app.i18n import tr
 from gilda_app.models.member import STATUS_ATTIVO, STATUS_BANNATO, STATUS_EX_MEMBRO, Member, status_label
 from gilda_app.ui.fast_calendar_picker import DateEdit
 from gilda_app.ui.history_entry_dialog import HistoryEntryDialog
+from gilda_app.ui.name_change_dialog import NameChangeDialog
 from gilda_app.ui.rebuild_history_dialog import RebuildHistoryDialog
 from gilda_app.utils.countries import canonical_name, country_choices
 from gilda_app.utils.flags import display_nation
+from gilda_app.utils.date_format import iso_to_display
 from gilda_app.utils.history_format import format_history_line
 
 NEW_MEMBER_STATUSES = [STATUS_ATTIVO, STATUS_EX_MEMBRO, STATUS_BANNATO]
@@ -45,6 +56,7 @@ HISTORY_COLOR_JOIN = QColor("#d7f0dc")
 HISTORY_COLOR_EX = QColor("#fff2c2")
 HISTORY_COLOR_BAN = QColor("#f8d4d4")
 HISTORY_COLOR_REJOIN = QColor("#d3e8fa")
+NAME_CHANGE_COLOR = QColor("#e6e0f5")
 
 
 def history_row_color(row) -> QColor:
@@ -222,10 +234,10 @@ class MemberDialog(MessageBoxBase):
             self.history_table.doubleClicked.connect(self._on_history_double_click)
             self.history_table.viewport().installEventFilter(self)
             if two_column:
-                self.history_table.setMinimumHeight(320)
+                self.history_table.setFixedHeight(160)
                 # Larghezza decisa dal layout, non dal testo più lungo: le righe vanno a capo.
                 self.history_table.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Expanding)
-                history_col.addWidget(self.history_table, 1)
+                history_col.addWidget(self.history_table)
             else:
                 self.history_table.setFixedHeight(160)
                 history_col.addWidget(self.history_table)
@@ -237,7 +249,34 @@ class MemberDialog(MessageBoxBase):
             self.rebuild_history_btn.clicked.connect(self._on_rebuild_history)
             history_col.addWidget(self.rebuild_history_btn)
 
+            history_col.addWidget(StrongBodyLabel(tr("label.name_history"), self))
+            self.name_table = QTableWidget(self)
+            self.name_table.setColumnCount(1)
+            self.name_table.horizontalHeader().hide()
+            self.name_table.verticalHeader().hide()
+            self.name_table.horizontalHeader().setStretchLastSection(True)
+            self.name_table.setEditTriggers(QAbstractItemView.NoEditTriggers)
+            self.name_table.setSelectionBehavior(QAbstractItemView.SelectRows)
+            self.name_table.setSelectionMode(QAbstractItemView.SingleSelection)
+            self.name_table.setFixedHeight(90)
+            self.name_table.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)
+            self.name_table.doubleClicked.connect(self._on_name_double_click)
+            history_col.addWidget(self.name_table)
+            name_hint = QLabel(tr("name_history.hint"), self)
+            name_hint.setWordWrap(True)
+            history_col.addWidget(name_hint)
+            name_buttons = QHBoxLayout()
+            add_name_btn = PushButton(FIF.ADD, tr("name_history.add"), self)
+            add_name_btn.clicked.connect(self._on_add_name_change)
+            delete_name_btn = PushButton(FIF.DELETE, tr("name_history.delete"), self)
+            delete_name_btn.clicked.connect(self._on_delete_name_change)
+            name_buttons.addWidget(add_name_btn)
+            name_buttons.addWidget(delete_name_btn)
+            name_buttons.addStretch(1)
+            history_col.addLayout(name_buttons)
+
             self._refresh_history()
+            self._refresh_name_history()
 
         form.addWidget(self.error_label)
         if two_column:
@@ -322,6 +361,64 @@ class MemberDialog(MessageBoxBase):
             item.setForeground(QBrush(QColor("#202020")))
             self.history_table.setItem(row_idx, 0, item)
         self._fit_history_rows()
+
+    def _refresh_name_history(self) -> None:
+        self._name_rows = get_name_history(self.conn, self.member.id)
+        if not self._name_rows:
+            self.name_table.setRowCount(1)
+            item = QTableWidgetItem(tr("name_history.empty"))
+            item.setFlags(item.flags() & ~Qt.ItemIsSelectable & ~Qt.ItemIsEnabled)
+            self.name_table.setItem(0, 0, item)
+            return
+        self.name_table.setRowCount(len(self._name_rows))
+        for row_idx, row in enumerate(self._name_rows):
+            field_label = tr(f"label.{row['field']}_field")
+            date = iso_to_display(row["changed_at"])
+            if row["old_value"]:
+                line = tr("name_history.line", date=date, field=field_label, old=row["old_value"], new=row["new_value"])
+            else:
+                line = tr("name_history.line_first", date=date, field=field_label, new=row["new_value"])
+            item = QTableWidgetItem(line)
+            item.setToolTip(line)
+            item.setBackground(QBrush(NAME_CHANGE_COLOR))
+            item.setForeground(QBrush(QColor("#202020")))
+            self.name_table.setItem(row_idx, 0, item)
+
+    def _selected_name_row(self):
+        index = self.name_table.currentRow()
+        rows = getattr(self, "_name_rows", [])
+        return rows[index] if 0 <= index < len(rows) else None
+
+    def _on_add_name_change(self) -> None:
+        field = TRACKED_NAME_FIELDS[0]
+        dialog = NameChangeDialog(self, tr(f"label.{field}_field"), new_value=self.member.family_name)
+        if dialog.exec():
+            values = dialog.values()
+            add_name_change(self.conn, self.member.id, field, values["old_value"], values["new_value"], values["date"])
+            self._refresh_name_history()
+
+    def _on_name_double_click(self, index) -> None:
+        rows = getattr(self, "_name_rows", [])
+        if index.row() >= len(rows):
+            return
+        row = rows[index.row()]
+        dialog = NameChangeDialog(
+            self,
+            tr(f"label.{row['field']}_field"),
+            old_value=row["old_value"] or "",
+            new_value=row["new_value"],
+            date=QDate.fromString(row["changed_at"][:10], "yyyy-MM-dd"),
+        )
+        if dialog.exec():
+            values = dialog.values()
+            update_name_change(self.conn, row["id"], values["old_value"], values["new_value"], values["date"])
+            self._refresh_name_history()
+
+    def _on_delete_name_change(self) -> None:
+        row = self._selected_name_row()
+        if row is not None:
+            delete_name_change(self.conn, row["id"])
+            self._refresh_name_history()
 
     def _fit_history_rows(self) -> None:
         """Adatta l'altezza di ogni riga al testo mandato a capo, ma con un tetto: una

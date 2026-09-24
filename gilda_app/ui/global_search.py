@@ -4,7 +4,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QAbstractItemView, QHeaderView, QTableWidget, QTableWidgetItem
 from qfluentwidgets import MessageBoxBase, SubtitleLabel
 
-from gilda_app.db.database import get_members
+from gilda_app.db.database import get_members, old_names_by_member
 from gilda_app.i18n import tr
 from gilda_app.ui.persistent_clear_search import PersistentClearSearchLineEdit
 from gilda_app.models.member import STATUS_ATTIVO, STATUS_BANNATO, STATUS_EX_MEMBRO, status_label
@@ -66,16 +66,21 @@ class GlobalSearchDialog(MessageBoxBase):
             self._update_button_state()
             return
 
+        old_names = old_names_by_member(self.conn)
         for status in ALL_STATUSES:
             for member in get_members(self.conn, status):
                 nation_text = nations_text(member.nations)
                 haystacks = [member.family_name, member.main_name, member.discord_name, nation_text]
-                if not any(text in (h or "").lower() for h in haystacks):
+                matched_old = next((n for n in old_names.get(member.id, []) if text in n.lower()), None)
+                if not any(text in (h or "").lower() for h in haystacks) and matched_old is None:
                     continue
 
                 row = self.results_table.rowCount()
                 self.results_table.insertRow(row)
-                values = [member.family_name, member.main_name, nation_text, member.discord_name, status_label(status)]
+                family_shown = member.family_name
+                if matched_old is not None and text not in member.family_name.lower():
+                    family_shown += f" ({tr('search.formerly', name=matched_old)})"
+                values = [family_shown, member.main_name, nation_text, member.discord_name, status_label(status)]
                 for col, value in enumerate(values):
                     self.results_table.setItem(row, col, QTableWidgetItem(value))
                 self._result_ids.append((status, member.id))

@@ -168,3 +168,39 @@ def test_delete_setting_leaves_no_trace_in_file(tmp_path):
 
     assert b"SEGRETO-DA-CANCELLARE" not in path.read_bytes()
     assert get_setting(connect(path), "bdoalerts_api_key") is None
+
+
+def test_name_history_recorded_on_edit(conn):
+    from gilda_app.db.database import get_name_history, old_names_by_member
+
+    member_id = add_member(conn, "Rossi", "Mario", "rossi#1234", [], STATUS_ATTIVO)
+    # senza record_name_changes (import) non si registra nulla
+    update_member(conn, member_id, "Bianchi", "Mario", "rossi#1234", [])
+    assert get_name_history(conn, member_id) == []
+
+    update_member(conn, member_id, "Verdi", "Mario", "rossi#1234", [], record_name_changes=True)
+    history = get_name_history(conn, member_id)
+    assert [(h["field"], h["old_value"], h["new_value"]) for h in history] == [("family_name", "Bianchi", "Verdi")]
+    assert old_names_by_member(conn) == {member_id: ["Bianchi"]}
+
+    # nessuna modifica del nome: nessuna nuova voce
+    update_member(conn, member_id, "Verdi", "Mario2", "rossi#1234", [], record_name_changes=True)
+    assert len(get_name_history(conn, member_id)) == 1
+
+
+def test_name_history_manual_crud_and_cascade(conn):
+    from gilda_app.db.database import add_name_change, delete_name_change, get_name_history, update_name_change
+
+    member_id = add_member(conn, "Rossi", "", "", [], STATUS_ATTIVO)
+    add_name_change(conn, member_id, "family_name", "Vecchio", "Rossi", date="2023-05-01")
+    entry = get_name_history(conn, member_id)[0]
+    assert entry["changed_at"].startswith("2023-05-01")
+    update_name_change(conn, entry["id"], "Altro", "Rossi", "2023-06-02")
+    entry = get_name_history(conn, member_id)[0]
+    assert entry["old_value"] == "Altro" and entry["changed_at"].startswith("2023-06-02")
+    delete_name_change(conn, entry["id"])
+    assert get_name_history(conn, member_id) == []
+
+    add_name_change(conn, member_id, "family_name", "X", "Rossi")
+    delete_member(conn, member_id)
+    assert conn.execute("SELECT COUNT(*) FROM name_history").fetchone()[0] == 0
