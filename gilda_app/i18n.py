@@ -28,6 +28,8 @@ STRINGS: dict[str, dict[str, str]] = {
     "stats.anniversaries": {"it": "Prossimi anniversari in gilda (60 giorni)", "en": "Upcoming guild anniversaries (60 days)"},
     "label.birthday": {"it": "Compleanno", "en": "Birthday"},
     "birthday.year_placeholder": {"it": "Anno (opz.)", "en": "Year (opt.)"},
+    "birthday.year_tooltip": {"it": "Anno di nascita: facoltativo", "en": "Birth year: optional"},
+    "birthday.month_placeholder": {"it": "Mese", "en": "Month"},
     "error.birthday_invalid": {
         "it": "Compleanno non valido: controlla giorno, mese e anno (o lascia tutto vuoto).",
         "en": "Invalid birthday: check day, month and year (or leave everything empty).",

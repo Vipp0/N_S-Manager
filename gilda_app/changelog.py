@@ -6,6 +6,13 @@ usa il programma, non i dettagli tecnici del come."""
 
 CHANGELOG: list[dict] = [
     {
+        "version": "2.1.3",
+        "date": "24-09-2026",
+        "notes": [
+            "Campo Compleanno: freccia sinistra per scendere e destra per salire, il giorno riparte da 1 dopo il 31 (e da 31 dopo l'1); il mese si può scegliere dal menù oppure scrivere a mano, con completamento; il segnaposto dell'anno ha più spazio.",
+        ],
+    },
+    {
         "version": "2.1.2",
         "date": "24-09-2026",
         "notes": [
