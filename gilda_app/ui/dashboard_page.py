@@ -2,6 +2,7 @@ from datetime import date
 from typing import Callable
 
 from PySide6.QtCore import Qt, Signal
+from PySide6.QtGui import QColor, QPainter, QPen
 from PySide6.QtWidgets import QFrame, QGridLayout, QHBoxLayout, QLabel, QVBoxLayout, QWidget
 from qfluentwidgets import (
     BodyLabel,
@@ -12,6 +13,7 @@ from qfluentwidgets import (
     ScrollArea,
     StrongBodyLabel,
     SubtitleLabel,
+    isDarkTheme,
 )
 
 from gilda_app.db import dashboard as queries
@@ -62,6 +64,25 @@ class DashboardTile(CardWidget):
         layout.addWidget(self._lines)
         layout.addStretch(1)
         self.setCursor(Qt.PointingHandCursor)
+
+    # Il colore di passaggio predefinito di CardWidget è bianco quasi trasparente: su un
+    # fondo chiaro non si vede. Qui il riquadro si tinge di azzurro tenue al passaggio
+    # del mouse, un po' più scuro mentre lo si preme, con un sottile bordo d'accento.
+    def _hoverBackgroundColor(self):
+        return QColor(255, 255, 255, 30) if isDarkTheme() else QColor(0, 120, 212, 22)
+
+    def _pressedBackgroundColor(self):
+        return QColor(255, 255, 255, 18) if isDarkTheme() else QColor(0, 120, 212, 40)
+
+    def paintEvent(self, event) -> None:
+        super().paintEvent(event)
+        if self.isHover:
+            painter = QPainter(self)
+            painter.setRenderHint(QPainter.Antialiasing)
+            painter.setPen(QPen(QColor(0, 120, 212, 110), 1.2))
+            painter.setBrush(Qt.NoBrush)
+            r = self.borderRadius
+            painter.drawRoundedRect(self.rect().adjusted(1, 1, -1, -1), r, r)
 
     def set_content(self, value: str, lines: list[str], value_color: str | None = None) -> None:
         self._value.setText(value)

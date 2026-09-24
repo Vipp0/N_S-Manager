@@ -6,6 +6,13 @@ usa il programma, non i dettagli tecnici del come."""
 
 CHANGELOG: list[dict] = [
     {
+        "version": "2.0.5",
+        "date": "24-09-2026",
+        "notes": [
+            "Dashboard: il riquadro sotto il mouse si tinge di azzurro tenue con un sottile bordo, per capire subito quale si sta per aprire.",
+        ],
+    },
+    {
         "version": "2.0.4",
         "date": "24-09-2026",
         "notes": [
