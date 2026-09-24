@@ -6,6 +6,14 @@ usa il programma, non i dettagli tecnici del come."""
 
 CHANGELOG: list[dict] = [
     {
+        "version": "2.0.10",
+        "date": "24-09-2026",
+        "notes": [
+            "Scheda BDO: nuovi blocchi con i reset (giornaliero, settimanale, consegna imperiale, commercio, baratto, Black Shrine), il ciclo giorno/notte e i prossimi boss, con conti alla rovescia sempre aggiornati e orari nel fuso del computer.",
+            "Dashboard: linea di separazione netta tra i riquadri delle schede e le informazioni generali, e nuova card con i timer BDO (prossimo boss, reset giornaliero, consegna imperiale).",
+        ],
+    },
+    {
         "version": "2.0.9",
         "date": "24-09-2026",
         "notes": [

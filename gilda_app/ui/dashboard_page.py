@@ -196,6 +196,15 @@ class DashboardPage(QWidget):
             self._tiles[key] = tile
         layout.addLayout(self._grid)
 
+        # Divisione netta tra i riquadri delle schede (sopra) e le informazioni generali (sotto).
+        layout.addSpacing(14)
+        divider = QFrame(self)
+        divider.setFrameShape(QFrame.HLine)
+        divider.setFixedHeight(1)
+        divider.setStyleSheet("background-color: rgba(0, 0, 0, 55); border: none;")
+        layout.addWidget(divider)
+        layout.addWidget(StrongBodyLabel(tr("dash.divider"), self))
+
         self._info_grid = QGridLayout()
         self._info_grid.setSpacing(16)
         self._info_cards: dict[str, InfoCard] = {}
@@ -203,12 +212,14 @@ class DashboardPage(QWidget):
             ("info_joins", FIF.ADD, tr("dash.recent_joins")),
             ("info_anniversaries", FIF.CALENDAR, tr("dash.anniversaries")),
             ("info_nations", FIF.PIE_SINGLE, tr("dash.top_nations")),
+            ("info_timers", FIF.GLOBE, tr("dash.bdo_timers")),
         ]:
             self._info_cards[key] = InfoCard(icon, title, self)
         layout.addLayout(self._info_grid)
         layout.addStretch(1)
         self._reflow(1)
         self.set_bdo("", None, [tr("server.error.no_key")])
+        self.set_timers([])
 
     # -- layout -----------------------------------------------------------
     def _reflow(self, columns: int) -> None:
@@ -221,7 +232,7 @@ class DashboardPage(QWidget):
             self._grid.addWidget(tile, index // columns, index % columns)
         for col in range(MAX_COLUMNS):
             self._grid.setColumnStretch(col, 1 if col < columns else 0)
-        info_columns = min(columns, len(self._info_cards))
+        info_columns = max(1, min(columns, len(self._info_cards)))
         for card in self._info_cards.values():
             self._info_grid.removeWidget(card)
         for index, card in enumerate(self._info_cards.values()):
@@ -305,6 +316,9 @@ class DashboardPage(QWidget):
                 tr("dash.backup_last", when=last_backup) if last_backup else tr("dash.backup_none"),
             ],
         )
+
+    def set_timers(self, lines: list[str]) -> None:
+        self._info_cards["info_timers"].set_content("", lines or [tr("server.error.no_key")])
 
     def set_bdo(self, value: str, color: str | None, lines: list[str]) -> None:
         self._tiles[TILE_BDO].set_content(value, lines, color)

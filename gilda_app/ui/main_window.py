@@ -1,6 +1,6 @@
 import sqlite3
 import threading
-from datetime import date
+from datetime import date, datetime, timezone
 from pathlib import Path
 
 from PySide6.QtCore import QObject, Qt, QTimer, QUrl, Signal
@@ -35,7 +35,7 @@ from gilda_app.i18n import tr
 from gilda_app.importer.excel_export import export_workbook
 from gilda_app.importer.excel_import import find_intra_file_duplicates, import_row, parse_workbook
 from gilda_app.models.member import STATUS_ATTIVO, STATUS_BANNATO, STATUS_EX_MEMBRO, Member, status_label
-from gilda_app.ui.bdo_page import BdoPage
+from gilda_app.ui.bdo_page import BdoPage, timer_summary_lines
 from gilda_app.ui.calendar_page import CalendarPage
 from gilda_app.ui.dashboard_page import (
     TILE_BDO,
@@ -63,6 +63,7 @@ from gilda_app.version import __version__
 from gilda_app.utils.icons import ban_icon
 from gilda_app.utils.paths import backups_dir
 from gilda_app.utils.bdo_news import fetch_news, upcoming_maintenance
+from gilda_app.utils.bdo_timers import fetch_boss_timers, fetch_reset_timers
 from gilda_app.utils.bdoalerts_api import ERROR_NO_KEY, ApiError
 from gilda_app.utils.restart import restart_app
 from gilda_app.utils.server_status import DEFAULT_REGION, fetch_server_status
@@ -74,6 +75,7 @@ UPDATE_NOTIFIED_SETTING = "update_notified_version"
 API_KEY_SETTING = "bdoalerts_api_key"
 SERVER_REGION_SETTING = "server_status_region"
 SERVER_STATUS_INTERVAL_MS = 5 * 60 * 1000
+TIMERS_TICK_MS = 30 * 1000
 
 
 class _HolidayRefreshSignal(QObject):
@@ -93,6 +95,11 @@ class _ServerStatusSignal(QObject):
 
 
 class _NewsSignal(QObject):
+    finished = Signal(object)
+
+
+class _TimersSignal(QObject):
+    # (ResetTimers | kind, BossTimers | kind): ogni metà è i dati oppure il "kind" dell'errore.
     finished = Signal(object)
 
 
@@ -278,6 +285,11 @@ class MainWindow(FluentWindow):
         self._upcoming_maintenance: str | None = None
         self._server_status_signal = _ServerStatusSignal()
         self._server_status_signal.finished.connect(self._on_server_status)
+        self._resets = None
+        self._bosses = None
+        self._timers_error: str | None = None
+        self._timers_signal = _TimersSignal()
+        self._timers_signal.finished.connect(self._on_timers)
         self._news_signal = _NewsSignal()
         self._news_signal.finished.connect(self._on_news)
         self.server_footer = ServerStatusFooter(self)
@@ -296,6 +308,10 @@ class MainWindow(FluentWindow):
         self._server_timer = QTimer(self)
         self._server_timer.timeout.connect(self._refresh_server_status)
         self._server_timer.start(SERVER_STATUS_INTERVAL_MS)
+        # I conti alla rovescia si ricalcolano ogni mezzo minuto dagli orari già scaricati.
+        self._timers_tick = QTimer(self)
+        self._timers_tick.timeout.connect(self._render_timers)
+        self._timers_tick.start(TIMERS_TICK_MS)
         self._refresh_server_status()
 
     def _server_region(self) -> str:
@@ -308,13 +324,14 @@ class MainWindow(FluentWindow):
         api_key = get_setting(self.conn, API_KEY_SETTING)
         if not api_key:
             self._on_server_status(ERROR_NO_KEY)
+            self._on_timers((ERROR_NO_KEY, ERROR_NO_KEY))
             return
         if self._server_busy:
             return
         self._server_busy = True
-        threading.Thread(target=self._server_status_worker, args=(api_key,), daemon=True).start()
+        threading.Thread(target=self._server_status_worker, args=(api_key, self._server_region()), daemon=True).start()
 
-    def _server_status_worker(self, api_key: str) -> None:
+    def _server_status_worker(self, api_key: str, region: str) -> None:
         try:
             result = fetch_server_status(api_key)
         except ApiError as exc:
@@ -326,6 +343,43 @@ class MainWindow(FluentWindow):
         except ApiError as exc:
             news = exc.kind
         self._news_signal.finished.emit(news)
+        # Reset e boss: l'API accetta il nome della regione con il trattino basso.
+        api_region = region.replace("-", "_")
+        try:
+            resets = fetch_reset_timers(api_key, api_region)
+        except ApiError as exc:
+            resets = exc.kind
+        try:
+            bosses = fetch_boss_timers(api_key, api_region)
+        except ApiError as exc:
+            bosses = exc.kind
+        self._timers_signal.finished.emit((resets, bosses))
+
+    def _on_timers(self, result) -> None:
+        resets, bosses = result
+        error = None
+        # Un errore passeggero non cancella gli ultimi dati validi: si continua a
+        # mostrare i conti alla rovescia calcolati dagli orari già in mano.
+        if isinstance(resets, str):
+            error = resets
+        else:
+            self._resets = resets
+        if isinstance(bosses, str):
+            error = error or bosses
+        else:
+            self._bosses = bosses
+        if error == ERROR_NO_KEY:
+            self._resets = self._bosses = None
+        self._timers_error = error
+        self.bdo_page.set_timer_data(self._resets, self._bosses, error)
+        self._render_timers()
+
+    def _render_timers(self) -> None:
+        self.bdo_page.render_timers()
+        lines = timer_summary_lines(self._resets, self._bosses, datetime.now(timezone.utc))
+        if not lines and self._timers_error:
+            lines = [describe_error(self._timers_error)[0]]
+        self.dashboard_page.set_timers(lines)
 
     def _on_news(self, result) -> None:
         if isinstance(result, str):
@@ -385,6 +439,7 @@ class MainWindow(FluentWindow):
     def _on_server_region_changed(self, region: str) -> None:
         set_setting(self.conn, SERVER_REGION_SETTING, region)
         self._update_server_footer()
+        self._refresh_server_status()
 
     def _on_changelog(self) -> None:
         ChangelogDialog(self).exec()
