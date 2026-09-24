@@ -53,3 +53,15 @@ def upcoming_agenda(conn: sqlite3.Connection, today: date, days: int = AGENDA_DA
         for name in names:
             items.append((day, name, True))
     return sorted(items, key=lambda item: (item[0], item[2]))
+
+
+def recent_joins(conn: sqlite3.Connection, limit: int = 5) -> list[sqlite3.Row]:
+    """Ultimi membri attuali entrati, dalla data di ingresso registrata."""
+    return conn.execute(
+        """
+        SELECT family_name, main_name, data_inserimento FROM members
+        WHERE status = 'attivo' AND data_inserimento IS NOT NULL
+        ORDER BY data_inserimento DESC, id DESC LIMIT ?
+        """,
+        (limit,),
+    ).fetchall()

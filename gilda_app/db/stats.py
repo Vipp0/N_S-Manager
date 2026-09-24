@@ -1,7 +1,7 @@
 """Query statistiche derivate da members + status_history."""
 import sqlite3
 from collections import defaultdict
-from datetime import datetime
+from datetime import date, datetime
 
 from gilda_app.models.member import STATUS_ATTIVO, STATUS_BANNATO, STATUS_EX_MEMBRO
 
@@ -153,3 +153,38 @@ def hall_of_fame(conn: sqlite3.Connection, limit: int = 10) -> list[sqlite3.Row]
         """,
         (STATUS_ATTIVO, limit),
     ).fetchall()
+
+
+def _anniversary_in_year(joined: date, year: int) -> date:
+    try:
+        return joined.replace(year=year)
+    except ValueError:  # 29 febbraio in un anno non bisestile
+        return date(year, 2, 28)
+
+
+def upcoming_anniversaries(
+    conn: sqlite3.Connection, today: date, days: int = 30, limit: int = 10
+) -> list[tuple[date, str, str, int]]:
+    """(data, family_name, main_name, anni) dei prossimi anniversari di ingresso dei
+    membri attuali con data di ingresso nota, da oggi a `days` giorni. Solo dal primo
+    anno compiuto in poi."""
+    rows = conn.execute(
+        "SELECT family_name, main_name, data_inserimento FROM members "
+        "WHERE status = ? AND data_inserimento IS NOT NULL",
+        (STATUS_ATTIVO,),
+    ).fetchall()
+    result = []
+    for row in rows:
+        try:
+            joined = date.fromisoformat(row["data_inserimento"][:10])
+        except ValueError:
+            continue
+        for year in (today.year, today.year + 1):
+            anniversary = _anniversary_in_year(joined, year)
+            if anniversary >= today:
+                break
+        years = anniversary.year - joined.year
+        if years >= 1 and (anniversary - today).days <= days:
+            result.append((anniversary, row["family_name"], row["main_name"] or "", years))
+    result.sort(key=lambda item: (item[0], item[1].lower()))
+    return result[:limit]

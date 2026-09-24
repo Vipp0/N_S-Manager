@@ -1,3 +1,5 @@
+from datetime import date
+
 from PySide6.QtCharts import QAbstractBarSeries, QBarCategoryAxis, QBarSeries, QBarSet, QChart, QChartView, QLineSeries, QValueAxis
 from PySide6.QtCore import QPoint, Qt, QTimer
 from PySide6.QtGui import QCursor, QGuiApplication, QPainter
@@ -183,6 +185,23 @@ class StatsPage(QScrollArea):
                     [
                         tr("stats.hall_of_fame_line", name=r["family_name"], main=r["main_name"], since=iso_to_display(r["since"]))
                         for r in hall_of_fame
+                    ],
+                )
+            )
+
+            anniversaries = stats.upcoming_anniversaries(conn, date.today(), days=60, limit=10)
+            self.main_layout.addWidget(
+                _list_card(
+                    tr("stats.anniversaries"),
+                    [
+                        tr(
+                            "dash.anniversary_line",
+                            date=day.strftime("%d-%m-%Y"),
+                            name=family + (f" ({main})" if main else ""),
+                            years=years,
+                            unit=tr("dash.year_one") if years == 1 else tr("dash.year_many"),
+                        )
+                        for day, family, main, years in anniversaries
                     ],
                 )
             )

@@ -61,3 +61,23 @@ def test_history_row_colors():
     assert history_row_color(row(STATUS_ATTIVO, STATUS_EX_MEMBRO)) == HISTORY_COLOR_EX
     assert history_row_color(row(STATUS_ATTIVO, STATUS_BANNATO)) == HISTORY_COLOR_BAN
     assert history_row_color(row(STATUS_EX_MEMBRO, STATUS_ATTIVO)) == HISTORY_COLOR_REJOIN
+
+
+def test_recent_joins_and_anniversaries(conn):
+    from gilda_app.db.dashboard import recent_joins
+    from gilda_app.db.stats import upcoming_anniversaries
+
+    add_member(conn, "Vecchio", "V", "", [], STATUS_ATTIVO, data_inserimento="2023-10-05")
+    add_member(conn, "Nuovo", "N", "", [], STATUS_ATTIVO, data_inserimento="2026-09-20")
+    add_member(conn, "Bisestile", "B", "", [], STATUS_ATTIVO, data_inserimento="2024-02-29")
+    add_member(conn, "Senza", "S", "", [], STATUS_ATTIVO)
+    add_member(conn, "Ex", "E", "", [], STATUS_EX_MEMBRO, data_inserimento="2020-10-01")
+
+    assert [r["family_name"] for r in recent_joins(conn, 2)] == ["Nuovo", "Bisestile"]
+
+    today = date(2026, 9, 24)
+    result = upcoming_anniversaries(conn, today, days=30)
+    assert result == [(date(2026, 10, 5), "Vecchio", "V", 3)]
+    # 29 febbraio -> 28 febbraio negli anni non bisestili; il "Nuovo" (0 anni) non compare
+    result = upcoming_anniversaries(conn, date(2027, 2, 20), days=30)
+    assert result == [(date(2027, 2, 28), "Bisestile", "B", 3)]

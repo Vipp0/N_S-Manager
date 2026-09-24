@@ -1,8 +1,9 @@
 from datetime import date
+from pathlib import Path
 from typing import Callable
 
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtGui import QColor, QPainter, QPen
+from PySide6.QtGui import QColor, QPainter, QPen, QPixmap
 from PySide6.QtWidgets import QFrame, QGridLayout, QHBoxLayout, QLabel, QVBoxLayout, QWidget
 from qfluentwidgets import (
     BodyLabel,
@@ -17,10 +18,12 @@ from qfluentwidgets import (
 )
 
 from gilda_app.db import dashboard as queries
+from gilda_app.db import stats
 from gilda_app.db.database import get_members
 from gilda_app.i18n import tr
 from gilda_app.models.member import STATUS_ATTIVO, STATUS_BANNATO, STATUS_EX_MEMBRO, status_label
 from gilda_app.utils.date_format import iso_to_display
+from gilda_app.utils.flags import display_nation
 from gilda_app.utils.icons import ban_icon
 from gilda_app.version import __version__
 
@@ -34,6 +37,10 @@ TILE_CALENDAR = "calendar"
 TILE_BDO = "bdo"
 TILE_NOTES = "notes"
 TILE_SETTINGS = "settings"
+
+WORDMARK_PATH = Path(__file__).resolve().parent.parent / "resources" / "wordmark.png"
+WORDMARK_HEIGHT = 86
+TILE_KEYS_INFO = ("info_joins", "info_anniversaries", "info_nations")
 
 _VALUE_STYLE = "font-size: 28px; font-weight: 600;"
 
@@ -91,6 +98,24 @@ class DashboardTile(CardWidget):
         self._lines.setText("\n".join(lines))
 
 
+class InfoCard(DashboardTile):
+    """Riquadro solo informativo: stesso aspetto dei riquadri ma senza effetto al
+    passaggio del mouse e senza click."""
+
+    def __init__(self, icon, title: str, parent=None):
+        super().__init__(icon, title, parent)
+        self.setCursor(Qt.ArrowCursor)
+
+    def _hoverBackgroundColor(self):
+        return self._normalBackgroundColor()
+
+    def _pressedBackgroundColor(self):
+        return self._normalBackgroundColor()
+
+    def paintEvent(self, event) -> None:
+        CardWidget.paintEvent(self, event)
+
+
 class DashboardPage(QWidget):
     """Scheda iniziale: azioni rapide e un riquadro per ogni scheda dell'app con un
     riassunto; il click su un riquadro apre la scheda corrispondente."""
@@ -129,7 +154,16 @@ class DashboardPage(QWidget):
         layout = QVBoxLayout(content)
         layout.setContentsMargins(24, 20, 24, 20)
         layout.setSpacing(16)
-        layout.addWidget(SubtitleLabel(tr("nav.dashboard"), self))
+        header = QHBoxLayout()
+        header.addWidget(SubtitleLabel(tr("nav.dashboard"), self))
+        header.addStretch(1)
+        # Wordmark al centro dell'intestazione, come nelle liste dei membri.
+        if WORDMARK_PATH.exists():
+            wordmark = QLabel(self)
+            wordmark.setPixmap(QPixmap(str(WORDMARK_PATH)).scaledToHeight(WORDMARK_HEIGHT, Qt.SmoothTransformation))
+            header.addWidget(wordmark)
+        header.addStretch(1)
+        layout.addLayout(header)
 
         actions = QHBoxLayout()
         add_member = PrimaryPushButton(FIF.ADD, tr("button.add_member"), self)
@@ -161,6 +195,17 @@ class DashboardPage(QWidget):
             tile.clicked.connect(lambda k=key: self.tile_clicked.emit(k))
             self._tiles[key] = tile
         layout.addLayout(self._grid)
+
+        self._info_grid = QGridLayout()
+        self._info_grid.setSpacing(16)
+        self._info_cards: dict[str, InfoCard] = {}
+        for key, icon, title in [
+            ("info_joins", FIF.ADD, tr("dash.recent_joins")),
+            ("info_anniversaries", FIF.CALENDAR, tr("dash.anniversaries")),
+            ("info_nations", FIF.PIE_SINGLE, tr("dash.top_nations")),
+        ]:
+            self._info_cards[key] = InfoCard(icon, title, self)
+        layout.addLayout(self._info_grid)
         layout.addStretch(1)
         self._reflow(1)
         self.set_bdo("", None, [tr("server.error.no_key")])
@@ -176,6 +221,13 @@ class DashboardPage(QWidget):
             self._grid.addWidget(tile, index // columns, index % columns)
         for col in range(MAX_COLUMNS):
             self._grid.setColumnStretch(col, 1 if col < columns else 0)
+        info_columns = min(columns, len(self._info_cards))
+        for card in self._info_cards.values():
+            self._info_grid.removeWidget(card)
+        for index, card in enumerate(self._info_cards.values()):
+            self._info_grid.addWidget(card, index // info_columns, index % info_columns)
+        for col in range(MAX_COLUMNS):
+            self._info_grid.setColumnStretch(col, 1 if col < info_columns else 0)
 
     def resizeEvent(self, event) -> None:
         super().resizeEvent(event)
@@ -214,6 +266,36 @@ class DashboardPage(QWidget):
         notes = [line.strip() for line in self.get_notes_text().splitlines() if line.strip()]
         preview = [line if len(line) <= 60 else line[:57] + "..." for line in notes[:NOTES_PREVIEW_LINES]]
         self._tiles[TILE_NOTES].set_content("", preview or [tr("dash.notes_empty")])
+
+        joins = queries.recent_joins(conn)
+        self._info_cards["info_joins"].set_content(
+            "",
+            [
+                f"{iso_to_display(r['data_inserimento'])}  {r['family_name']}"
+                + (f" ({r['main_name']})" if r["main_name"] else "")
+                for r in joins
+            ]
+            or [tr("dash.no_joins")],
+        )
+        anniversaries = stats.upcoming_anniversaries(conn, date.today(), days=30, limit=5)
+        self._info_cards["info_anniversaries"].set_content(
+            "",
+            [
+                tr(
+                    "dash.anniversary_line",
+                    date=day.strftime("%d-%m"),
+                    name=family + (f" ({main})" if main else ""),
+                    years=years,
+                    unit=tr("dash.year_one") if years == 1 else tr("dash.year_many"),
+                )
+                for day, family, main, years in anniversaries
+            ]
+            or [tr("dash.no_anniversaries")],
+        )
+        nations = stats.nation_distribution(conn)[:5]
+        self._info_cards["info_nations"].set_content(
+            "", [f"{display_nation(r['nation'])} — {r['cnt']}" for r in nations] or [tr("stats.no_data")]
+        )
 
         last_backup = self.get_last_backup()
         self._tiles[TILE_SETTINGS].set_content(

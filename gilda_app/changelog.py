@@ -6,6 +6,14 @@ usa il programma, non i dettagli tecnici del come."""
 
 CHANGELOG: list[dict] = [
     {
+        "version": "2.0.9",
+        "date": "24-09-2026",
+        "notes": [
+            "Dashboard: logo nell'intestazione e una seconda fascia con gli ultimi ingressi, i prossimi anniversari in gilda e la top 5 delle nazioni.",
+            "Statistiche: nuova sezione con i prossimi anniversari di ingresso in gilda (60 giorni).",
+        ],
+    },
+    {
         "version": "2.0.8",
         "date": "24-09-2026",
         "notes": [
