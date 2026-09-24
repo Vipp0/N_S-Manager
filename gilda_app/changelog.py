@@ -6,6 +6,14 @@ usa il programma, non i dettagli tecnici del come."""
 
 CHANGELOG: list[dict] = [
     {
+        "version": "2.0.11",
+        "date": "24-09-2026",
+        "notes": [
+            "Modifica membro: nuovo pulsante \"Profilo BDO...\" con gilda e ruolo (Guild Master o membro), personaggio principale con classe e livello, numero di personaggi, gear score, punti contributo, energia e data di creazione della famiglia. Richiede la chiave API.",
+            "Scheda BDO: nuovo confronto con la gilda in gioco (nome della gilda in Impostazioni): chi è in gioco ma non nel programma, chi è registrato come ex membro o bannato ma risulta ancora in gilda, e chi è tra i Membri attuali ma non si trova in gioco. Solo consultazione, nessuna modifica automatica.",
+        ],
+    },
+    {
         "version": "2.0.10",
         "date": "24-09-2026",
         "notes": [

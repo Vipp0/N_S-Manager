@@ -15,6 +15,7 @@ REQUEST_TIMEOUT_SECONDS = 6
 ERROR_NO_KEY = "no_key"
 ERROR_AUTH = "auth"
 ERROR_RATE_LIMIT = "rate_limit"
+ERROR_NOT_FOUND = "not_found"
 ERROR_NETWORK = "network"
 ERROR_BAD_RESPONSE = "bad_response"
 
@@ -45,6 +46,8 @@ def api_get(path: str, api_key: str, params: dict | None = None) -> dict:
             raise ApiError(ERROR_AUTH) from None
         if exc.code == 429:
             raise ApiError(ERROR_RATE_LIMIT) from None
+        if exc.code == 404:
+            raise ApiError(ERROR_NOT_FOUND) from None
         raise ApiError(ERROR_BAD_RESPONSE) from None
     except (urllib.error.URLError, OSError):
         raise ApiError(ERROR_NETWORK) from None

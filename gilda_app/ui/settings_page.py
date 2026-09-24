@@ -30,6 +30,7 @@ class SettingsPage(QWidget):
     extra_dir_clear_requested = Signal()
     changelog_requested = Signal()
     api_key_saved = Signal(str)
+    guild_name_saved = Signal(str)
     server_region_changed = Signal(str)
 
     def __init__(self, parent=None):
@@ -84,6 +85,15 @@ class SettingsPage(QWidget):
         key_row.addWidget(save_key_btn)
         key_row.addWidget(remove_key_btn)
         bdo_layout.addLayout(key_row)
+        bdo_layout.addWidget(QLabel(tr("settings.bdo_guild_label"), bdo_card))
+        guild_row = QHBoxLayout()
+        self.guild_name_edit = LineEdit(bdo_card)
+        self.guild_name_edit.setPlaceholderText(tr("settings.bdo_guild_placeholder"))
+        save_guild_btn = PushButton(FIF.SAVE, tr("button.save"), bdo_card)
+        save_guild_btn.clicked.connect(lambda: self.guild_name_saved.emit(self.guild_name_edit.text().strip()))
+        guild_row.addWidget(self.guild_name_edit, 1)
+        guild_row.addWidget(save_guild_btn)
+        bdo_layout.addLayout(guild_row)
         bdo_layout.addWidget(QLabel(tr("settings.bdo_region_label"), bdo_card))
         self.region_combo = ComboBox(bdo_card)
         for region in REGIONS:
@@ -163,8 +173,9 @@ class SettingsPage(QWidget):
         self.api_key_edit.clear()
         self.api_key_saved.emit("")
 
-    def set_bdo_settings(self, api_key: str | None, region: str) -> None:
+    def set_bdo_settings(self, api_key: str | None, region: str, guild_name: str | None = None) -> None:
         self.api_key_edit.setText(api_key or "")
+        self.guild_name_edit.setText(guild_name or "")
         # Senza segnali: è il caricamento del valore salvato, non una scelta dell'utente.
         self.region_combo.blockSignals(True)
         self.region_combo.setCurrentIndex(max(0, self.region_combo.findData(region)))

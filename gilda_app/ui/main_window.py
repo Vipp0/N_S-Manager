@@ -52,6 +52,7 @@ from gilda_app.ui.member_dialog import MemberDialog
 from gilda_app.ui.member_table import MemberListPage
 from gilda_app.ui.move_dialog import MoveDialog
 from gilda_app.ui.notes_page import NotesPage
+from gilda_app.ui.player_profile_dialog import BdoContext
 from gilda_app.ui.progress_dialog import ImportProgressDialog
 from gilda_app.ui.reset_dialog import ResetConfirmDialog
 from gilda_app.ui.restore_dialog import RestoreBackupDialog, format_backup_when
@@ -62,6 +63,7 @@ from gilda_app.utils.discord_format import discord_copy_text
 from gilda_app.version import __version__
 from gilda_app.utils.icons import ban_icon
 from gilda_app.utils.paths import backups_dir
+from gilda_app.utils.bdo_guild import compare_guild, fetch_guild
 from gilda_app.utils.bdo_news import fetch_news, upcoming_maintenance
 from gilda_app.utils.bdo_timers import fetch_boss_timers, fetch_reset_timers
 from gilda_app.utils.bdoalerts_api import ERROR_NO_KEY, ApiError
@@ -74,6 +76,7 @@ APP_ICON_PATH = Path(__file__).resolve().parent.parent / "resources" / "app_icon
 UPDATE_NOTIFIED_SETTING = "update_notified_version"
 API_KEY_SETTING = "bdoalerts_api_key"
 SERVER_REGION_SETTING = "server_status_region"
+GUILD_NAME_SETTING = "bdo_guild_name"
 SERVER_STATUS_INTERVAL_MS = 5 * 60 * 1000
 TIMERS_TICK_MS = 30 * 1000
 
@@ -100,6 +103,10 @@ class _NewsSignal(QObject):
 
 class _TimersSignal(QObject):
     # (ResetTimers | kind, BossTimers | kind): ogni metà è i dati oppure il "kind" dell'errore.
+    finished = Signal(object)
+
+
+class _GuildSignal(QObject):
     finished = Signal(object)
 
 
@@ -171,9 +178,12 @@ class MainWindow(FluentWindow):
         self.settings_page.changelog_requested.connect(self._on_changelog)
         self.settings_page.api_key_saved.connect(self._on_api_key_saved)
         self.settings_page.server_region_changed.connect(self._on_server_region_changed)
+        self.settings_page.guild_name_saved.connect(self._on_guild_name_saved)
         self.settings_page.set_extra_backup_dir(get_setting(self.conn, EXTRA_DIR_SETTING))
         self.settings_page.set_bdo_settings(
-            get_setting(self.conn, API_KEY_SETTING), get_setting(self.conn, SERVER_REGION_SETTING, DEFAULT_REGION)
+            get_setting(self.conn, API_KEY_SETTING),
+            get_setting(self.conn, SERVER_REGION_SETTING, DEFAULT_REGION),
+            get_setting(self.conn, GUILD_NAME_SETTING),
         )
         self.addSubInterface(self.settings_page, FIF.SETTING, tr("nav.settings"), NavigationItemPosition.BOTTOM)
 
@@ -230,6 +240,8 @@ class MainWindow(FluentWindow):
             page.set_members(get_members(self.conn, status), old_names)
         self.stats_page.refresh()
         self.dashboard_page.refresh()
+        if getattr(self, "_guild", None) is not None:
+            self._update_guild_comparison()
 
     # -- Festività (aggiornamento in background) --------------------------
     def _start_holiday_refresh(self) -> None:
@@ -288,6 +300,10 @@ class MainWindow(FluentWindow):
         self._resets = None
         self._bosses = None
         self._timers_error: str | None = None
+        self._guild = None
+        self._guild_error: str | None = None
+        self._guild_signal = _GuildSignal()
+        self._guild_signal.finished.connect(self._on_guild)
         self._timers_signal = _TimersSignal()
         self._timers_signal.finished.connect(self._on_timers)
         self._news_signal = _NewsSignal()
@@ -329,9 +345,12 @@ class MainWindow(FluentWindow):
         if self._server_busy:
             return
         self._server_busy = True
-        threading.Thread(target=self._server_status_worker, args=(api_key, self._server_region()), daemon=True).start()
+        guild_name = get_setting(self.conn, GUILD_NAME_SETTING) or ""
+        threading.Thread(
+            target=self._server_status_worker, args=(api_key, self._server_region(), guild_name), daemon=True
+        ).start()
 
-    def _server_status_worker(self, api_key: str, region: str) -> None:
+    def _server_status_worker(self, api_key: str, region: str, guild_name: str) -> None:
         try:
             result = fetch_server_status(api_key)
         except ApiError as exc:
@@ -354,6 +373,57 @@ class MainWindow(FluentWindow):
         except ApiError as exc:
             bosses = exc.kind
         self._timers_signal.finished.emit((resets, bosses))
+        if guild_name:
+            try:
+                guild = fetch_guild(api_key, region, guild_name)
+            except ApiError as exc:
+                guild = exc.kind
+            self._guild_signal.finished.emit(guild)
+        else:
+            self._guild_signal.finished.emit("no_guild_name")
+
+    def _on_guild(self, result) -> None:
+        if isinstance(result, str):
+            self._guild = None
+            self._guild_error = result
+        else:
+            self._guild = result
+            self._guild_error = None
+        self._update_guild_comparison()
+
+    def _update_guild_comparison(self) -> None:
+        """Ricalcolato anche quando cambiano i membri (refresh_all), non solo quando
+        arrivano dati nuovi dall'API."""
+        if self._guild is not None:
+            names = {
+                status: [m.family_name for m in get_members(self.conn, status)] for status in STATUS_ORDER
+            }
+            comparison = compare_guild(self._guild.members, names)
+            self.bdo_page.show_guild(
+                self._guild, comparison, {status: status_label(status) for status in STATUS_ORDER}
+            )
+        elif self._guild_error == "no_guild_name":
+            self.bdo_page.show_guild_message(tr("bdo.guild_no_name"))
+        elif self._guild_error:
+            self.bdo_page.show_guild_message(describe_error(self._guild_error)[0])
+
+    def _bdo_context(self) -> BdoContext | None:
+        api_key = get_setting(self.conn, API_KEY_SETTING)
+        if not api_key:
+            return None
+        return BdoContext(
+            api_key=api_key,
+            region=self._server_region(),
+            guild_name=get_setting(self.conn, GUILD_NAME_SETTING) or "",
+            guild=self._guild,
+        )
+
+    def _on_guild_name_saved(self, name: str) -> None:
+        if name:
+            set_setting(self.conn, GUILD_NAME_SETTING, name)
+        else:
+            delete_setting(self.conn, GUILD_NAME_SETTING)
+        self._refresh_server_status()
 
     def _on_timers(self, result) -> None:
         resets, bosses = result
@@ -537,7 +607,7 @@ class MainWindow(FluentWindow):
             )
 
     def _on_edit(self, member: Member) -> None:
-        dialog = MemberDialog(self, member=member, conn=self.conn)
+        dialog = MemberDialog(self, member=member, conn=self.conn, bdo=self._bdo_context())
         if dialog.exec():
             values = dialog.values()
             update_member(

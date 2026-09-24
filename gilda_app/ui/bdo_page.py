@@ -7,6 +7,7 @@ from qfluentwidgets import CardWidget, CaptionLabel, FluentIcon as FIF, PushButt
 
 from gilda_app.i18n import tr
 from gilda_app.ui.server_status_footer import COLOR_MAINTENANCE, COLOR_UNKNOWN, describe_error, describe_region
+from gilda_app.utils.bdo_guild import GuildComparison, GuildInfo
 from gilda_app.utils.bdo_news import NewsItem, upcoming_maintenance
 from gilda_app.utils.bdo_timers import (
     BOSS_ROWS_LIMIT,
@@ -17,6 +18,9 @@ from gilda_app.utils.bdo_timers import (
     upcoming_bosses,
 )
 from gilda_app.utils.server_status import REGIONS, RegionStatus
+
+
+GUILD_NAMES_SHOWN = 15
 
 
 def _local_time(when: datetime, now: datetime) -> str:
@@ -106,6 +110,17 @@ class BdoPage(QWidget):
         timers_row.addWidget(reset_card, 1)
         timers_row.addWidget(boss_card, 1)
         layout.addLayout(timers_row)
+
+        guild_card = CardWidget(self)
+        guild_layout = QVBoxLayout(guild_card)
+        guild_layout.addWidget(StrongBodyLabel(tr("bdo.guild_title"), guild_card))
+        self._guild_label = QLabel(guild_card)
+        self._guild_label.setTextFormat(Qt.RichText)
+        self._guild_label.setWordWrap(True)
+        guild_layout.addWidget(self._guild_label)
+        guild_layout.addWidget(CaptionLabel(tr("bdo.guild_hint"), guild_card))
+        layout.addWidget(guild_card)
+        self.show_guild_message(describe_error("no_key")[0])
 
         news_card = CardWidget(self)
         news_layout = QVBoxLayout(news_card)
@@ -212,3 +227,30 @@ class BdoPage(QWidget):
                 )
                 lines.append(f"<span style='color: #8a8886;'>{html.escape(previous)}</span>")
         self._boss_label.setText("<br>".join(lines))
+
+    # -- Confronto con la gilda in gioco --------------------------------------
+    def show_guild_message(self, text: str) -> None:
+        self._guild_label.setText(html.escape(text))
+
+    def show_guild(self, info: GuildInfo, comparison: GuildComparison, status_names: dict[str, str]) -> None:
+        lines = [f"<b>{html.escape(tr('bdo.guild_summary', name=info.name, count=len(info.members), master=info.master))}</b>"]
+        groups = [
+            ("bdo.guild_not_in_app", [html.escape(n) for n in comparison.not_in_app]),
+            (
+                "bdo.guild_ex_banned",
+                [f"{html.escape(n)} ({html.escape(status_names.get(s, s))})" for n, s in comparison.ex_or_banned_in_game],
+            ),
+            ("bdo.guild_not_in_game", [html.escape(n) for n in comparison.active_not_in_game]),
+        ]
+        any_diff = False
+        for key, names in groups:
+            if not names:
+                continue
+            any_diff = True
+            shown = ", ".join(names[:GUILD_NAMES_SHOWN])
+            more = len(names) - GUILD_NAMES_SHOWN
+            suffix = f" … +{more}" if more > 0 else ""
+            lines.append(f"{html.escape(tr(key, n=len(names)))} {shown}{suffix}")
+        if not any_diff:
+            lines.append(html.escape(tr("bdo.guild_all_match")))
+        self._guild_label.setText("<br>".join(lines))

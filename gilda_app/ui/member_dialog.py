@@ -42,6 +42,7 @@ from gilda_app.models.member import STATUS_ATTIVO, STATUS_BANNATO, STATUS_EX_MEM
 from gilda_app.ui.fast_calendar_picker import DateEdit
 from gilda_app.ui.history_entry_dialog import HistoryEntryDialog
 from gilda_app.ui.name_change_dialog import NameChangeDialog
+from gilda_app.ui.player_profile_dialog import BdoContext, PlayerProfileDialog
 from gilda_app.ui.rebuild_history_dialog import RebuildHistoryDialog
 from gilda_app.utils.countries import canonical_name, country_choices
 from gilda_app.utils.flags import display_nation
@@ -117,9 +118,17 @@ class MemberDialog(MessageBoxBase):
     il dialog resta aperto.
     """
 
-    def __init__(self, parent=None, member: Member | None = None, conn=None, status: str | None = None):
+    def __init__(
+        self,
+        parent=None,
+        member: Member | None = None,
+        conn=None,
+        status: str | None = None,
+        bdo: BdoContext | None = None,
+    ):
         super().__init__(parent)
         self.member = member
+        self._bdo = bdo
         self.conn = conn
         self._history_rows: list = []
         # Ricostruire lo storico scrive subito sul database (come la correzione di una
@@ -291,6 +300,11 @@ class MemberDialog(MessageBoxBase):
             self._refresh_history()
             self._refresh_name_history()
 
+        if is_edit and bdo is not None and bdo.api_key:
+            self.bdo_profile_btn = PushButton(FIF.GLOBE, tr("bdo.profile_button"), self)
+            self.bdo_profile_btn.clicked.connect(self._on_bdo_profile)
+            form.addWidget(self.bdo_profile_btn, 0, Qt.AlignLeft)
+
         form.addWidget(self.error_label)
         if two_column:
             form.addStretch(1)
@@ -374,6 +388,10 @@ class MemberDialog(MessageBoxBase):
             item.setForeground(QBrush(QColor("#202020")))
             self.history_table.setItem(row_idx, 0, item)
         self._fit_history_rows()
+
+    def _on_bdo_profile(self) -> None:
+        name = self.family_edit.text().strip() or self.member.family_name
+        PlayerProfileDialog(self, name, self._bdo).exec()
 
     def _refresh_name_history(self) -> None:
         self._name_rows = get_name_history(self.conn, self.member.id)
