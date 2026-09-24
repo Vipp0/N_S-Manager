@@ -371,6 +371,13 @@ STRINGS: dict[str, dict[str, str]] = {
     "nav.bdo": {"it": "BDO", "en": "BDO"},
     "bdo.title": {"it": "Black Desert", "en": "Black Desert"},
     "bdo.server_status": {"it": "Stato dei server", "en": "Server status"},
+    "bdo.news_title": {"it": "Avvisi ufficiali (NA/EU)", "en": "Official notices (NA/EU)"},
+    "bdo.news_upcoming": {"it": "Manutenzione annunciata per il {date}", "en": "Maintenance announced for {date}"},
+    "bdo.news_none_upcoming": {"it": "Nessuna manutenzione annunciata al momento.", "en": "No maintenance announced at the moment."},
+    "bdo.news_hint": {
+        "it": "Dati dagli avvisi ufficiali. L'orario preciso è nella pagina dell'avviso: clicca sul titolo per aprirla.",
+        "en": "Data from the official notices. The exact time is on the notice page: click the title to open it.",
+    },
     "bdo.refresh": {"it": "Aggiorna ora", "en": "Refresh now"},
     "footer.server_status": {"it": "Stato server", "en": "Server status"},
     "server.online": {"it": "Online", "en": "Online"},

@@ -1,9 +1,13 @@
+import html
+from datetime import date
+
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import QGridLayout, QLabel, QVBoxLayout, QWidget
 from qfluentwidgets import CardWidget, CaptionLabel, FluentIcon as FIF, PushButton, StrongBodyLabel, SubtitleLabel
 
 from gilda_app.i18n import tr
-from gilda_app.ui.server_status_footer import COLOR_UNKNOWN, describe_error, describe_region
+from gilda_app.ui.server_status_footer import COLOR_MAINTENANCE, COLOR_UNKNOWN, describe_error, describe_region
+from gilda_app.utils.bdo_news import NewsItem, upcoming_maintenance
 from gilda_app.utils.server_status import REGIONS, RegionStatus
 
 
@@ -42,6 +46,20 @@ class BdoPage(QWidget):
         refresh_btn.clicked.connect(self.refresh_requested)
         card_layout.addWidget(refresh_btn, 0, Qt.AlignLeft)
         layout.addWidget(status_card)
+
+        news_card = CardWidget(self)
+        news_layout = QVBoxLayout(news_card)
+        news_layout.addWidget(StrongBodyLabel(tr("bdo.news_title"), news_card))
+        self._upcoming = QLabel(news_card)
+        self._upcoming.setWordWrap(True)
+        news_layout.addWidget(self._upcoming)
+        self._news_list = QLabel(news_card)
+        self._news_list.setWordWrap(True)
+        self._news_list.setTextFormat(Qt.RichText)
+        self._news_list.setOpenExternalLinks(True)
+        news_layout.addWidget(self._news_list)
+        news_layout.addWidget(CaptionLabel(tr("bdo.news_hint"), news_card))
+        layout.addWidget(news_card)
         layout.addStretch(1)
 
         self.show_error("no_key")
@@ -62,3 +80,28 @@ class BdoPage(QWidget):
         for region in REGIONS:
             self._set_value(region, tr("server.unknown"), COLOR_UNKNOWN)
         self._message.setText(describe_error(kind)[0])
+
+    def show_news(self, items: list[NewsItem]) -> None:
+        upcoming = upcoming_maintenance(items, date.today())
+        if upcoming is not None:
+            when = upcoming.maintenance_date.strftime("%d-%m-%Y")
+            self._upcoming.setText(f"<b>{html.escape(tr('bdo.news_upcoming', date=when))}</b>")
+            self._upcoming.setStyleSheet(f"color: {COLOR_MAINTENANCE};")
+        else:
+            self._upcoming.setText(tr("bdo.news_none_upcoming"))
+            self._upcoming.setStyleSheet("")
+        lines = []
+        for item in items:
+            title = html.escape(item.title)
+            if item.url:
+                title = f'<a href="{html.escape(item.url, quote=True)}">{title}</a>'
+            if item.is_maintenance:
+                title = f'<b style="color: {COLOR_MAINTENANCE};">{title}</b>'
+            posted = item.posted.strftime("%d-%m-%Y") if item.posted else ""
+            lines.append(f"{posted} &nbsp; {title}")
+        self._news_list.setText("<br>".join(lines))
+
+    def show_news_error(self, kind: str) -> None:
+        self._upcoming.setText(describe_error(kind)[0])
+        self._upcoming.setStyleSheet("")
+        self._news_list.setText("")

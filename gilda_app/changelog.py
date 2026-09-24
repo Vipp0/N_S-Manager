@@ -6,6 +6,14 @@ usa il programma, non i dettagli tecnici del come."""
 
 CHANGELOG: list[dict] = [
     {
+        "version": "1.11.0",
+        "date": "24-09-2026",
+        "notes": [
+            "Scheda BDO: nuovo blocco con gli ultimi avvisi ufficiali (NA/EU), cliccabili, con le manutenzioni in evidenza.",
+            "Se c'è una manutenzione già annunciata, la scheda ne mostra la data (l'orario preciso resta nella pagina dell'avviso).",
+        ],
+    },
+    {
         "version": "1.10.1",
         "date": "24-09-2026",
         "notes": [

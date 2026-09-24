@@ -52,6 +52,7 @@ from gilda_app.utils.discord_format import discord_copy_text
 from gilda_app.version import __version__
 from gilda_app.utils.icons import ban_icon
 from gilda_app.utils.paths import backups_dir
+from gilda_app.utils.bdo_news import fetch_news
 from gilda_app.utils.bdoalerts_api import ERROR_NO_KEY, ApiError
 from gilda_app.utils.restart import restart_app
 from gilda_app.utils.server_status import DEFAULT_REGION, fetch_server_status
@@ -78,6 +79,10 @@ class _UpdateCheckSignal(QObject):
 
 class _ServerStatusSignal(QObject):
     # Porta al thread Qt o il dict delle regioni o il "kind" dell'errore (str).
+    finished = Signal(object)
+
+
+class _NewsSignal(QObject):
     finished = Signal(object)
 
 
@@ -224,6 +229,8 @@ class MainWindow(FluentWindow):
         self._server_busy = False
         self._server_status_signal = _ServerStatusSignal()
         self._server_status_signal.finished.connect(self._on_server_status)
+        self._news_signal = _NewsSignal()
+        self._news_signal.finished.connect(self._on_news)
         self.server_footer = ServerStatusFooter(self)
         self.server_footer.clicked.connect(lambda: self.switchTo(self.bdo_page))
         try:
@@ -264,12 +271,26 @@ class MainWindow(FluentWindow):
         except ApiError as exc:
             result = exc.kind
         self._server_status_signal.finished.emit(result)
+        # Gli avvisi sono secondari: se falliscono lo stato dei server resta com'è.
+        try:
+            news = fetch_news(api_key)
+        except ApiError as exc:
+            news = exc.kind
+        self._news_signal.finished.emit(news)
+
+    def _on_news(self, result) -> None:
+        if isinstance(result, str):
+            self.bdo_page.show_news_error(result)
+        else:
+            self.bdo_page.show_news(result)
 
     def _on_server_status(self, result) -> None:
         self._server_busy = False
         if isinstance(result, str):
             self._server_error = result
             self.bdo_page.show_error(result)
+            if result == ERROR_NO_KEY:
+                self.bdo_page.show_news_error(result)
         else:
             self._server_error = None
             self._server_statuses = result
