@@ -6,6 +6,13 @@ usa il programma, non i dettagli tecnici del come."""
 
 CHANGELOG: list[dict] = [
     {
+        "version": "2.0.4",
+        "date": "24-09-2026",
+        "notes": [
+            "Storico movimenti nella modifica membro: le righe hanno sempre la stessa altezza, prima all'apertura risultavano più alte che dopo il salvataggio.",
+        ],
+    },
+    {
         "version": "2.0.3",
         "date": "24-09-2026",
         "notes": [

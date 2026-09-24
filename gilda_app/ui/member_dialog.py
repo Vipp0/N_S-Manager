@@ -1,4 +1,4 @@
-from PySide6.QtCore import QDate, Qt
+from PySide6.QtCore import QDate, QEvent, Qt, QTimer
 from PySide6.QtGui import QBrush, QColor
 from PySide6.QtWidgets import (
     QAbstractItemView,
@@ -220,6 +220,7 @@ class MemberDialog(MessageBoxBase):
             self.history_table.setWordWrap(True)
             self.history_table.setTextElideMode(Qt.ElideNone)
             self.history_table.doubleClicked.connect(self._on_history_double_click)
+            self.history_table.viewport().installEventFilter(self)
             if two_column:
                 self.history_table.setMinimumHeight(320)
                 # Larghezza decisa dal layout, non dal testo più lungo: le righe vanno a capo.
@@ -320,13 +321,30 @@ class MemberDialog(MessageBoxBase):
             item.setBackground(QBrush(history_row_color(row)))
             item.setForeground(QBrush(QColor("#202020")))
             self.history_table.setItem(row_idx, 0, item)
-        # Adatta l'altezza di ogni riga al testo mandato a capo, ma con un tetto: una
-        # nota molto lunga faceva diventare la riga altissima. Oltre il tetto la riga
-        # resta compatta (2-3 righe) e il testo intero è comunque nel tooltip.
+        self._fit_history_rows()
+
+    def _fit_history_rows(self) -> None:
+        """Adatta l'altezza di ogni riga al testo mandato a capo, ma con un tetto: una
+        nota molto lunga faceva diventare la riga altissima. Oltre il tetto la riga
+        resta compatta (2-3 righe) e il testo intero è comunque nel tooltip. Va rifatto
+        quando cambia la larghezza della tabella: alla prima apertura la tabella non
+        ha ancora la larghezza definitiva e le righe uscivano troppo alte."""
+        if not self._history_rows:
+            return
         self.history_table.resizeRowsToContents()
         for row_idx in range(self.history_table.rowCount()):
             if self.history_table.rowHeight(row_idx) > MAX_HISTORY_ROW_HEIGHT:
                 self.history_table.setRowHeight(row_idx, MAX_HISTORY_ROW_HEIGHT)
+
+    def eventFilter(self, obj, event) -> bool:
+        if (
+            event.type() == QEvent.Resize
+            and getattr(self, "history_table", None) is not None
+            and obj is self.history_table.viewport()
+        ):
+            # Differito: nel momento dell'evento la colonna non ha ancora la larghezza nuova.
+            QTimer.singleShot(0, self._fit_history_rows)
+        return super().eventFilter(obj, event)
 
     def _on_history_double_click(self, index) -> None:
         row = index.row()
