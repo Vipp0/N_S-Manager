@@ -37,8 +37,6 @@ STRINGS: dict[str, dict[str, str]] = {
     },
     "dash.birthdays": {"it": "Compleanni", "en": "Birthdays"},
     "dash.no_birthdays": {"it": "Nessun compleanno nei prossimi 14 giorni.", "en": "No birthdays in the next 14 days."},
-    "dash.birthday_today": {"it": "Oggi  {name}{age}", "en": "Today  {name}{age}"},
-    "dash.birthday_line": {"it": "{date}  {name}{age}", "en": "{date}  {name}{age}"},
     "dash.birthday_age": {"it": " — compie {age} anni", "en": " — turns {age}"},
     "dash.today": {"it": "Oggi", "en": "Today"},
     "dash.tomorrow": {"it": "Domani", "en": "Tomorrow"},

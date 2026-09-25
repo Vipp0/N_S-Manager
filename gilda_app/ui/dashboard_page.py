@@ -102,19 +102,33 @@ class DashboardTile(CardWidget):
             painter.drawRoundedRect(self.rect().adjusted(1, 1, -1, -1), r, r)
 
     def set_content(
-        self, value: str, lines: list[str], value_color: str | None = None, today_lines: frozenset[int] = frozenset()
+        self,
+        value: str,
+        lines: list,
+        value_color: str | None = None,
+        today_lines: frozenset[int] = frozenset(),
     ) -> None:
-        """today_lines: indici delle righe da evidenziare perché riguardano oggi."""
+        """lines: stringhe semplici oppure coppie (etichetta, testo): le etichette (Oggi,
+        Domani, una data) stanno in una colonna allineata, così i testi partono tutti dallo
+        stesso punto. today_lines: indici delle righe da evidenziare perché riguardano oggi."""
         self._value.setText(value)
         self._value.setVisible(bool(value))
         self._value.setStyleSheet(_VALUE_STYLE + (f" color: {value_color};" if value_color else ""))
-        rendered = []
-        for index, line in enumerate(lines):
-            text = html.escape(line)
-            if index in today_lines:
-                text = f'<b style="color: {TODAY_COLOR};">{text}</b>'
-            rendered.append(text)
-        self._lines.setText("<br>".join(rendered))
+        def fmt(index: int, text: str) -> str:
+            text = html.escape(text)
+            return f'<b style="color: {TODAY_COLOR};">{text}</b>' if index in today_lines else text
+
+        if any(isinstance(line, tuple) for line in lines):
+            rows = []
+            for index, line in enumerate(lines):
+                if isinstance(line, tuple):
+                    label, text = line
+                    rows.append(f"<tr><td>{fmt(index, label)}&nbsp;&nbsp;&nbsp;</td><td>{fmt(index, text)}</td></tr>")
+                else:
+                    rows.append(f'<tr><td colspan="2">{fmt(index, line)}</td></tr>')
+            self._lines.setText('<table cellspacing="0" cellpadding="1">' + "".join(rows) + "</table>")
+        else:
+            self._lines.setText("<br>".join(fmt(index, line) for index, line in enumerate(lines)))
 
 
 class InfoCard(DashboardTile):
@@ -278,8 +292,10 @@ class DashboardPage(QWidget):
 
         movements = queries.recent_transitions(conn)
         lines = [
-            f"{day_text(date.fromisoformat(row['changed_at'][:10]), date.today(), iso_to_display(row['changed_at']))}"
-            f"  {row['family_name']} → {status_label(row['new_status'])}"
+            (
+                day_text(date.fromisoformat(row["changed_at"][:10]), date.today(), iso_to_display(row["changed_at"])),
+                f"{row['family_name']} → {status_label(row['new_status'])}",
+            )
             for row in movements
         ]
         self._tiles[TILE_STATS].set_content("", lines or [tr("dash.no_movements")])
@@ -292,7 +308,7 @@ class DashboardPage(QWidget):
                 tag = f" ({tr('dash.holiday')})" if is_holiday else ""
                 if day == date.today():
                     highlighted.add(len(agenda_lines))
-                agenda_lines.append(f"{day_text(day, date.today(), day.strftime('%d-%m'))}  {title}{tag}")
+                agenda_lines.append((day_text(day, date.today(), day.strftime("%d-%m")), f"{title}{tag}"))
             events_count = str(sum(1 for _, _, holiday in agenda if not holiday))
             self._tiles[TILE_CALENDAR].set_content(events_count, agenda_lines, today_lines=frozenset(highlighted))
         else:
@@ -306,9 +322,12 @@ class DashboardPage(QWidget):
         self._info_cards["info_joins"].set_content(
             "",
             [
-                f"{day_text(date.fromisoformat(r['data_inserimento'][:10]), date.today(), iso_to_display(r['data_inserimento']))}"
-                f"  {r['family_name']}"
-                + (f" ({r['main_name']})" if r["main_name"] else "")
+                (
+                    day_text(
+                        date.fromisoformat(r["data_inserimento"][:10]), date.today(), iso_to_display(r["data_inserimento"])
+                    ),
+                    r["family_name"] + (f" ({r['main_name']})" if r["main_name"] else ""),
+                )
                 for r in joins
             ]
             or [tr("dash.no_joins")],
@@ -321,9 +340,7 @@ class DashboardPage(QWidget):
             age_text = tr("dash.birthday_age", age=age) if age else ""
             if day == today:
                 birthday_today.add(len(birthday_lines))
-            birthday_lines.append(
-                tr("dash.birthday_line", date=day_text(day, today, day.strftime("%d-%m")), name=name, age=age_text)
-            )
+            birthday_lines.append((day_text(day, today, day.strftime("%d-%m")), f"{name}{age_text}"))
         self._info_cards["info_birthdays"].set_content(
             "", birthday_lines or [tr("dash.no_birthdays")], today_lines=frozenset(birthday_today)
         )
@@ -332,12 +349,10 @@ class DashboardPage(QWidget):
         self._info_cards["info_anniversaries"].set_content(
             "",
             [
-                tr(
-                    "dash.anniversary_line",
-                    date=day_text(day, today, day.strftime("%d-%m")),
-                    name=family + (f" ({main})" if main else ""),
-                    years=years,
-                    unit=tr("dash.year_one") if years == 1 else tr("dash.year_many"),
+                (
+                    day_text(day, today, day.strftime("%d-%m")),
+                    f"{family + (f' ({main})' if main else '')} — {years} "
+                    f"{tr('dash.year_one') if years == 1 else tr('dash.year_many')}",
                 )
                 for day, family, main, years in anniversaries
             ]

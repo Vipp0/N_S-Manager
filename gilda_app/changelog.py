@@ -6,6 +6,13 @@ usa il programma, non i dettagli tecnici del come."""
 
 CHANGELOG: list[dict] = [
     {
+        "version": "2.1.8",
+        "date": "25-09-2026",
+        "notes": [
+            "Dashboard: la prima parola di ogni riga (Oggi, Domani, la data) sta in una colonna allineata, così i testi partono tutti dallo stesso punto e si leggono più facilmente.",
+        ],
+    },
+    {
         "version": "2.1.7",
         "date": "25-09-2026",
         "notes": [
