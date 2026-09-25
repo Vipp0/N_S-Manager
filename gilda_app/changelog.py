@@ -6,73 +6,14 @@ usa il programma, non i dettagli tecnici del come."""
 
 CHANGELOG: list[dict] = [
     {
-        "version": "2.1.9",
+        "version": "2.2",
         "date": "25-09-2026",
         "notes": [
-            "Aggiornamento automatico: quando c'è una nuova versione si può scegliere \"Installa ora\". Il programma fa una copia di sicurezza del database, scarica la versione, si aggiorna e si riavvia da solo, mostrando una schermata con il logo e una barra di avanzamento. Se qualcosa non va, resta la versione precedente.",
-            "Impostazioni: nuovo pulsante \"Controlla aggiornamenti\".",
-        ],
-    },
-    {
-        "version": "2.1.8",
-        "date": "25-09-2026",
-        "notes": [
-            "Dashboard: la prima parola di ogni riga (Oggi, Domani, la data) sta in una colonna allineata, così i testi partono tutti dallo stesso punto e si leggono più facilmente.",
-        ],
-    },
-    {
-        "version": "2.1.7",
-        "date": "25-09-2026",
-        "notes": [
-            "Dashboard: le righe di oggi sono ora in verde scuro invece che in arancio.",
-        ],
-    },
-    {
-        "version": "2.1.6",
-        "date": "25-09-2026",
-        "notes": [
-            "Dashboard: in tutti i riquadri i giorni vicini sono scritti \"Oggi\", \"Domani\" e \"Ieri\" invece della data (calendario, compleanni, anniversari, ultimi ingressi, ultimi movimenti).",
-            "Compleanno: cliccando sul giorno si può scrivere subito, senza cancellare il trattino; il mese si completa mentre si scrive (\"se\" diventa \"settembre\").",
-        ],
-    },
-    {
-        "version": "2.1.5",
-        "date": "25-09-2026",
-        "notes": [
-            "Dashboard: le righe che riguardano oggi (eventi, festività, compleanni, anniversari) sono in grassetto e colorate.",
-            "Ricostruisci storico: si può indicare \"Sconosciuta\" come data di un passaggio, si possono mettere due passaggi consecutivi nella stessa lista (con un avviso, ma senza blocco) e i passaggi si spostano su e giù; nuovo pulsante \"Ordina per data\". L'ordine dello storico segue ora la sequenza dei passaggi.",
-            "Correzione di una voce dello storico: possibile impostare la data come sconosciuta.",
-            "Compleanno: frecce su/giù di nuovo affiancate a destra (quella che scende a sinistra di quella che sale); il giorno cicla passando dal vuoto e un pulsante azzera tutto il campo.",
+            "Aggiornamento automatico: quando c'è una nuova versione si può scegliere \"Installa ora\". Il programma fa una copia di sicurezza del database, scarica la versione, si aggiorna e si riavvia da solo, con una schermata con il logo e una barra di avanzamento. Se qualcosa non va, resta la versione precedente. In Impostazioni c'è il nuovo pulsante \"Controlla aggiornamenti\".",
+            "Compleanni: nuovo campo nella scheda del membro (giorno e mese, anno facoltativo; il mese si scrive con completamento automatico) e nuova card in dashboard con i compleanni di oggi e dei prossimi 14 giorni, con l'età se l'anno è noto.",
+            "Dashboard: le righe di oggi sono in grassetto verde scuro; in tutti i riquadri i giorni vicini sono scritti \"Oggi\", \"Domani\" e \"Ieri\" invece della data, con la prima parola di ogni riga in una colonna allineata.",
+            "Ricostruisci storico: si può indicare \"Sconosciuta\" come data di un passaggio, si possono mettere due passaggi consecutivi nella stessa lista (con un avviso, ma senza blocco) e i passaggi si spostano su e giù; nuovo pulsante \"Ordina per data\". Anche la correzione di una voce dello storico permette la data sconosciuta.",
             "Modifica membro: titoli delle sezioni più in alto e più spazio agli elenchi dello storico movimenti e dello storico nomi.",
-        ],
-    },
-    {
-        "version": "2.1.4",
-        "date": "24-09-2026",
-        "notes": [
-            "Campo Compleanno: il numero del giorno tornava invisibile con le frecce ai lati, ora si legge.",
-        ],
-    },
-    {
-        "version": "2.1.3",
-        "date": "24-09-2026",
-        "notes": [
-            "Campo Compleanno: freccia sinistra per scendere e destra per salire, il giorno riparte da 1 dopo il 31 (e da 31 dopo l'1); il mese si può scegliere dal menù oppure scrivere a mano, con completamento; il segnaposto dell'anno ha più spazio.",
-        ],
-    },
-    {
-        "version": "2.1.2",
-        "date": "24-09-2026",
-        "notes": [
-            "Campo Compleanno: il giorno ha più spazio e i numeri a due cifre si leggono per intero.",
-        ],
-    },
-    {
-        "version": "2.1.1",
-        "date": "24-09-2026",
-        "notes": [
-            "Nuovo campo Compleanno nella scheda del membro (giorno e mese, anno facoltativo).",
-            "Dashboard: nuova card Compleanni con quelli di oggi e dei prossimi 14 giorni (con l'età che compiono, se l'anno è noto).",
         ],
     },
     {

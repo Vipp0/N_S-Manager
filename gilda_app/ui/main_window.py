@@ -536,11 +536,11 @@ class MainWindow(FluentWindow):
         manual = getattr(self, "_update_manual", False)
         if info is None:
             if manual:
-                self._notify(tr("update.available.title"), tr("update.check_failed"), error=True)
+                self._notify(tr("update.check.title"), tr("update.check_failed"), error=True)
             return
         if not is_newer(info.tag, __version__):
             if manual:
-                self._notify(tr("update.available.title"), tr("update.none", version=__version__))
+                self._notify(tr("update.check.title"), tr("update.none", version=__version__))
             return
         if not manual:
             if get_setting(self.conn, UPDATE_NOTIFIED_SETTING) == info.tag:

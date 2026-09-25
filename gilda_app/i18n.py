@@ -224,6 +224,7 @@ STRINGS: dict[str, dict[str, str]] = {
         "it": "la copia di sicurezza del database non è riuscita",
         "en": "the database safety copy failed",
     },
+    "update.check.title": {"it": "Controllo aggiornamenti", "en": "Update check"},
     "settings.check_update": {"it": "Controlla aggiornamenti", "en": "Check for updates"},
     "update.none": {"it": "Il programma è aggiornato (versione {version}).", "en": "The program is up to date (version {version})."},
     "update.check_failed": {
