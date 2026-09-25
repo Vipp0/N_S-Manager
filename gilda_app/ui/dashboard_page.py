@@ -23,7 +23,7 @@ from gilda_app.db import stats
 from gilda_app.db.database import get_members
 from gilda_app.i18n import tr
 from gilda_app.models.member import STATUS_ATTIVO, STATUS_BANNATO, STATUS_EX_MEMBRO, status_label
-from gilda_app.utils.date_format import iso_to_display
+from gilda_app.utils.date_format import iso_to_display, relative_day_label
 from gilda_app.utils.flags import display_nation
 from gilda_app.utils.icons import ban_icon
 from gilda_app.version import __version__
@@ -47,6 +47,12 @@ _VALUE_STYLE = "font-size: 28px; font-weight: 600;"
 # Le righe che riguardano oggi (eventi, festività, compleanni, anniversari): grassetto e
 # un colore caldo, così si distinguono da quelle dei giorni successivi.
 TODAY_COLOR = "#b45309"
+
+
+def day_text(day: date, today: date, fallback: str) -> str:
+    """"Oggi" / "Domani" / "Ieri" per i giorni vicini, altrimenti la data (fallback)."""
+    key = relative_day_label(day, today)
+    return tr(key) if key else fallback
 
 
 class DashboardTile(CardWidget):
@@ -272,7 +278,8 @@ class DashboardPage(QWidget):
 
         movements = queries.recent_transitions(conn)
         lines = [
-            f"{iso_to_display(row['changed_at'])}  {row['family_name']} → {status_label(row['new_status'])}"
+            f"{day_text(date.fromisoformat(row['changed_at'][:10]), date.today(), iso_to_display(row['changed_at']))}"
+            f"  {row['family_name']} → {status_label(row['new_status'])}"
             for row in movements
         ]
         self._tiles[TILE_STATS].set_content("", lines or [tr("dash.no_movements")])
@@ -285,7 +292,7 @@ class DashboardPage(QWidget):
                 tag = f" ({tr('dash.holiday')})" if is_holiday else ""
                 if day == date.today():
                     highlighted.add(len(agenda_lines))
-                agenda_lines.append(f"{day.strftime('%d-%m')}  {title}{tag}")
+                agenda_lines.append(f"{day_text(day, date.today(), day.strftime('%d-%m'))}  {title}{tag}")
             events_count = str(sum(1 for _, _, holiday in agenda if not holiday))
             self._tiles[TILE_CALENDAR].set_content(events_count, agenda_lines, today_lines=frozenset(highlighted))
         else:
@@ -299,7 +306,8 @@ class DashboardPage(QWidget):
         self._info_cards["info_joins"].set_content(
             "",
             [
-                f"{iso_to_display(r['data_inserimento'])}  {r['family_name']}"
+                f"{day_text(date.fromisoformat(r['data_inserimento'][:10]), date.today(), iso_to_display(r['data_inserimento']))}"
+                f"  {r['family_name']}"
                 + (f" ({r['main_name']})" if r["main_name"] else "")
                 for r in joins
             ]
@@ -311,10 +319,11 @@ class DashboardPage(QWidget):
         for day, family, main, age in stats.upcoming_birthdays(conn, today, days=14, limit=6):
             name = family + (f" ({main})" if main else "")
             age_text = tr("dash.birthday_age", age=age) if age else ""
-            key = "dash.birthday_today" if day == today else "dash.birthday_line"
             if day == today:
                 birthday_today.add(len(birthday_lines))
-            birthday_lines.append(tr(key, date=day.strftime("%d-%m"), name=name, age=age_text))
+            birthday_lines.append(
+                tr("dash.birthday_line", date=day_text(day, today, day.strftime("%d-%m")), name=name, age=age_text)
+            )
         self._info_cards["info_birthdays"].set_content(
             "", birthday_lines or [tr("dash.no_birthdays")], today_lines=frozenset(birthday_today)
         )
@@ -325,7 +334,7 @@ class DashboardPage(QWidget):
             [
                 tr(
                     "dash.anniversary_line",
-                    date=day.strftime("%d-%m"),
+                    date=day_text(day, today, day.strftime("%d-%m")),
                     name=family + (f" ({main})" if main else ""),
                     years=years,
                     unit=tr("dash.year_one") if years == 1 else tr("dash.year_many"),

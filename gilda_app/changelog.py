@@ -6,6 +6,14 @@ usa il programma, non i dettagli tecnici del come."""
 
 CHANGELOG: list[dict] = [
     {
+        "version": "2.1.6",
+        "date": "25-09-2026",
+        "notes": [
+            "Dashboard: in tutti i riquadri i giorni vicini sono scritti \"Oggi\", \"Domani\" e \"Ieri\" invece della data (calendario, compleanni, anniversari, ultimi ingressi, ultimi movimenti).",
+            "Compleanno: cliccando sul giorno si può scrivere subito, senza cancellare il trattino; il mese si completa mentre si scrive (\"se\" diventa \"settembre\").",
+        ],
+    },
+    {
         "version": "2.1.5",
         "date": "25-09-2026",
         "notes": [

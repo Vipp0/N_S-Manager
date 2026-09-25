@@ -1,4 +1,4 @@
-from PySide6.QtCore import QLocale, Qt
+from PySide6.QtCore import QEvent, QLocale, Qt, QTimer
 from PySide6.QtWidgets import QCompleter, QHBoxLayout, QWidget
 from qfluentwidgets import EditableComboBox, LineEdit, SpinBox, TransparentToolButton
 from qfluentwidgets import FluentIcon as FIF
@@ -16,11 +16,33 @@ class _DaySpinBox(SpinBox):
         self.setRange(0, 31)
         self.setSpecialValueText("—")  # 0 = non indicato
         self.setWrapping(True)
+        self._just_focused = False
         layout = self.hBoxLayout
         layout.removeWidget(self.upButton)
         layout.removeWidget(self.downButton)
         layout.addWidget(self.downButton, 0, Qt.AlignRight)
         layout.addWidget(self.upButton, 0, Qt.AlignRight)
+        self.lineEdit().installEventFilter(self)
+
+    def focusInEvent(self, event) -> None:
+        super().focusInEvent(event)
+        self._just_focused = True
+        if event.reason() != Qt.MouseFocusReason:  # Tab: si seleziona subito
+            QTimer.singleShot(0, self.lineEdit().selectAll)
+
+    def focusOutEvent(self, event) -> None:
+        super().focusOutEvent(event)
+        self._just_focused = False
+
+    def eventFilter(self, obj, event) -> bool:
+        # Entrando nel campo col click il contenuto si seleziona tutto (al rilascio del
+        # mouse, dopo che il click ha posizionato il cursore): si può scrivere subito il
+        # giorno, senza cancellare prima il trattino del "vuoto". Solo al primo click: dopo,
+        # i click servono a spostare il cursore.
+        if obj is self.lineEdit() and event.type() == QEvent.MouseButtonRelease and self._just_focused:
+            self._just_focused = False
+            QTimer.singleShot(0, self.lineEdit().selectAll)
+        return super().eventFilter(obj, event)
 
 
 class BirthdayEdit(QWidget):
@@ -49,6 +71,11 @@ class BirthdayEdit(QWidget):
         completer.setCompletionMode(QCompleter.PopupCompletion)
         self.month_combo.setCompleter(completer)
         self.month_combo.setMinimumWidth(0)
+        # Completamento "in linea": scrivendo "se" compare "settembre" con "ttembre" selezionato,
+        # e Invio/Tab lo accettano. Non scatta cancellando, altrimenti non si potrebbe correggere.
+        self._deleting = False
+        self.month_combo.installEventFilter(self)
+        self.month_combo.textEdited.connect(self._inline_complete_month)
 
         self.year_edit = LineEdit(self)
         self.year_edit.setPlaceholderText(tr("birthday.year_placeholder"))
@@ -66,6 +93,25 @@ class BirthdayEdit(QWidget):
         layout.addWidget(self.month_combo, 1)
         layout.addWidget(self.year_edit)
         layout.addWidget(self.clear_btn)
+
+    def eventFilter(self, obj, event) -> bool:
+        if (
+            obj is self.month_combo
+            and event.type() == QEvent.KeyPress
+            and event.key() in (Qt.Key_Backspace, Qt.Key_Delete)
+        ):
+            self._deleting = True
+            QTimer.singleShot(0, lambda: setattr(self, "_deleting", False))
+        return super().eventFilter(obj, event)
+
+    def _inline_complete_month(self, text: str) -> None:
+        if self._deleting or not text.strip():
+            return
+        matches = [name for name in self._month_names if name.casefold().startswith(text.casefold())]
+        if matches and matches[0].casefold() != text.casefold():
+            full = matches[0]
+            self.month_combo.setText(text + full[len(text):])
+            self.month_combo.setSelection(len(text), len(full) - len(text))
 
     def _parse_month(self) -> int:
         """Mese scritto o scelto: nome intero, inizio del nome (se univoco) oppure numero

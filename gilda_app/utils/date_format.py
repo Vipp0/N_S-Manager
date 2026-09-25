@@ -18,3 +18,10 @@ def iso_month_to_display(iso_month: str) -> str:
     """'2025-03' -> '03-2025'."""
     year, month = iso_month[:7].split("-")
     return f"{month}-{year}"
+
+
+def relative_day_label(day, today) -> str | None:
+    """"today" / "tomorrow" / "yesterday" per i giorni vicini, None per gli altri (chi
+    chiama mostra allora la data). Restituisce la chiave i18n, non il testo."""
+    delta = (day - today).days
+    return {0: "dash.today", 1: "dash.tomorrow", -1: "dash.yesterday"}.get(delta)

@@ -81,3 +81,13 @@ def test_recent_joins_and_anniversaries(conn):
     # 29 febbraio -> 28 febbraio negli anni non bisestili; il "Nuovo" (0 anni) non compare
     result = upcoming_anniversaries(conn, date(2027, 2, 20), days=30)
     assert result == [(date(2027, 2, 28), "Bisestile", "B", 3)]
+
+
+def test_relative_day_label():
+    from gilda_app.utils.date_format import relative_day_label
+
+    today = date(2026, 9, 25)
+    assert relative_day_label(date(2026, 9, 25), today) == "dash.today"
+    assert relative_day_label(date(2026, 9, 26), today) == "dash.tomorrow"
+    assert relative_day_label(date(2026, 9, 24), today) == "dash.yesterday"
+    assert relative_day_label(date(2026, 9, 28), today) is None
