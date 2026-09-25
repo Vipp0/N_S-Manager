@@ -1,6 +1,6 @@
 from PySide6.QtCore import QDate
 from PySide6.QtWidgets import QLabel
-from qfluentwidgets import MessageBoxBase, PlainTextEdit, SubtitleLabel
+from qfluentwidgets import CheckBox, MessageBoxBase, PlainTextEdit, SubtitleLabel
 
 from gilda_app.i18n import tr
 from gilda_app.ui.fast_calendar_picker import DateEdit
@@ -22,8 +22,13 @@ class HistoryEntryDialog(MessageBoxBase):
 
         self.viewLayout.addWidget(QLabel(tr("label.date"), self))
         self.date_picker = DateEdit(self)
-        self.date_picker.setDate(QDate.fromString(history_row["changed_at"][:10], "yyyy-MM-dd"))
+        changed_at = history_row["changed_at"]
+        self.date_picker.setDate(QDate.fromString(changed_at[:10], "yyyy-MM-dd") if changed_at else QDate.currentDate())
         self.viewLayout.addWidget(self.date_picker)
+        self.unknown_check = CheckBox(tr("label.unknown_date"), self)
+        self.unknown_check.toggled.connect(lambda unknown: self.date_picker.setEnabled(not unknown))
+        self.unknown_check.setChecked(changed_at is None)
+        self.viewLayout.addWidget(self.unknown_check)
 
         self.viewLayout.addWidget(QLabel(tr("label.note"), self))
         self.note_edit = PlainTextEdit(self)
@@ -38,6 +43,6 @@ class HistoryEntryDialog(MessageBoxBase):
 
     def values(self) -> dict:
         return {
-            "date": self.date_picker.getDate().toString("yyyy-MM-dd"),
+            "date": None if self.unknown_check.isChecked() else self.date_picker.getDate().toString("yyyy-MM-dd"),
             "note": self.note_edit.toPlainText().strip() or None,
         }

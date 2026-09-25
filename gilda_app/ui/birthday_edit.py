@@ -1,50 +1,26 @@
 from PySide6.QtCore import QLocale, Qt
 from PySide6.QtWidgets import QCompleter, QHBoxLayout, QWidget
-from qfluentwidgets import EditableComboBox, LineEdit, SpinBox
+from qfluentwidgets import EditableComboBox, LineEdit, SpinBox, TransparentToolButton
 from qfluentwidgets import FluentIcon as FIF
-from qfluentwidgets.components.widgets.spin_box import SpinButton
 
 from gilda_app.i18n import get_language, tr
 from gilda_app.utils.birthday import build_birthday, split_birthday
 
-BUTTON_TEXT_MARGIN = 34
-
-
 class _DaySpinBox(SpinBox):
-    """Giorno 1-31 con freccia sinistra che scende e destra che sale. Le frecce non si
-    fermano agli estremi: da 31 si riparte da 1 e da 1 si torna a 31, senza passare per
-    il valore vuoto (0), che resta raggiungibile solo scrivendolo a mano."""
+    """Giorno con le due frecce a destra, come di consueto, ma con quella che scende a
+    sinistra di quella che sale. Il ciclo passa per il valore vuoto: ... 30, 31, "—", 1, 2 ...
+    così un compleanno già inserito si può anche togliere del tutto."""
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setRange(0, 31)
         self.setSpecialValueText("—")  # 0 = non indicato
-        # Sostituisce le due frecce impilate a destra con una a ciascun lato.
-        self.upButton.hide()
-        self.downButton.hide()
-        self._minus = SpinButton(FIF.CARE_LEFT_SOLID, self)
-        self._plus = SpinButton(FIF.CARE_RIGHT_SOLID, self)
+        self.setWrapping(True)
         layout = self.hBoxLayout
-        layout.setContentsMargins(4, 4, 4, 4)
-        layout.setAlignment(Qt.AlignVCenter)
-        layout.addWidget(self._minus, 0, Qt.AlignLeft)
-        layout.addStretch(1)
-        layout.addWidget(self._plus, 0, Qt.AlignRight)
-        self._minus.clicked.connect(self.stepDown)
-        self._plus.clicked.connect(self.stepUp)
-        # Lo stile predefinito riserva ~66px a destra per le due frecce impilate: qui le
-        # frecce stanno ai lati, quindi il riquadro del testo va centrato tra le due.
-        padding_rule = f"SpinBox {{ padding: 0px {BUTTON_TEXT_MARGIN}px 0px {BUTTON_TEXT_MARGIN}px; }}"
-        self.setStyleSheet(self.styleSheet() + "\n" + padding_rule)
-        self.lineEdit().setAlignment(Qt.AlignCenter)
-
-    def stepBy(self, steps: int) -> None:
-        new = self.value() + steps
-        if new > 31:
-            new = 1
-        elif new < 1:
-            new = 31
-        self.setValue(new)
+        layout.removeWidget(self.upButton)
+        layout.removeWidget(self.downButton)
+        layout.addWidget(self.downButton, 0, Qt.AlignRight)
+        layout.addWidget(self.upButton, 0, Qt.AlignRight)
 
 
 class BirthdayEdit(QWidget):
@@ -58,7 +34,7 @@ class BirthdayEdit(QWidget):
         layout.setSpacing(8)
 
         self.day_spin = _DaySpinBox(self)
-        self.day_spin.setFixedWidth(128)
+        self.day_spin.setFixedWidth(136)
 
         locale = QLocale(QLocale.Italian if get_language() == "it" else QLocale.English)
         self._month_names = [locale.monthName(month) for month in range(1, 13)]
@@ -80,9 +56,16 @@ class BirthdayEdit(QWidget):
         self.year_edit.setMaxLength(4)
         self.year_edit.setFixedWidth(120)
 
+        # Azzera giorno, mese e anno in un colpo: un compleanno inserito si può togliere.
+        self.clear_btn = TransparentToolButton(FIF.CANCEL, self)
+        self.clear_btn.setToolTip(tr("birthday.clear_tooltip"))
+        self.clear_btn.setFixedWidth(32)
+        self.clear_btn.clicked.connect(lambda: self.set_value(None))
+
         layout.addWidget(self.day_spin)
         layout.addWidget(self.month_combo, 1)
         layout.addWidget(self.year_edit)
+        layout.addWidget(self.clear_btn)
 
     def _parse_month(self) -> int:
         """Mese scritto o scelto: nome intero, inizio del nome (se univoco) oppure numero

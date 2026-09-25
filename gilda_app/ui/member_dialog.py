@@ -87,9 +87,12 @@ def _section_card(parent, title: str):
     frame.setObjectName("sectionCard")
     frame.setStyleSheet("#sectionCard { border: 1px solid rgba(0, 0, 0, 45); border-radius: 8px; }")
     box = QVBoxLayout(frame)
-    box.setContentsMargins(12, 10, 12, 12)
-    box.setSpacing(8)
-    box.addWidget(StrongBodyLabel(title, frame))
+    box.setContentsMargins(12, 8, 12, 10)
+    box.setSpacing(6)
+    title_label = StrongBodyLabel(title, frame)
+    # Altezza fissa: lo spazio in più della colonna deve andare alle tabelle, non al titolo.
+    title_label.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
+    box.addWidget(title_label)
     return frame, box
 
 
@@ -247,7 +250,9 @@ class MemberDialog(MessageBoxBase):
 
         if is_edit and conn is not None:
             history_card, history_box = _section_card(self, tr("label.history"))
-            history_col.addWidget(history_card)
+            # In due colonne lo spazio verticale in più va alle tabelle: 3 parti allo storico
+            # movimenti, 2 a quello dei nomi.
+            history_col.addWidget(history_card, 3 if two_column else 0)
             self.history_table = QTableWidget(self)
             self.history_table.setColumnCount(1)
             self.history_table.horizontalHeader().hide()
@@ -263,15 +268,16 @@ class MemberDialog(MessageBoxBase):
             self.history_table.doubleClicked.connect(self._on_history_double_click)
             self.history_table.viewport().installEventFilter(self)
             if two_column:
-                self.history_table.setFixedHeight(140)
+                self.history_table.setMinimumHeight(110)
                 # Larghezza decisa dal layout, non dal testo più lungo: le righe vanno a capo.
                 self.history_table.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Expanding)
-                history_box.addWidget(self.history_table)
+                history_box.addWidget(self.history_table, 1)
             else:
                 self.history_table.setFixedHeight(140)
                 history_box.addWidget(self.history_table)
             history_hint = QLabel(tr("history.hint"), self)
             history_hint.setWordWrap(True)
+            history_hint.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Maximum)
             history_box.addWidget(history_hint)
 
             self.rebuild_history_btn = PushButton(FIF.HISTORY, tr("button.rebuild_history"), self)
@@ -279,7 +285,7 @@ class MemberDialog(MessageBoxBase):
             history_box.addWidget(self.rebuild_history_btn)
 
             name_card, name_box = _section_card(self, tr("label.name_history"))
-            history_col.addWidget(name_card)
+            history_col.addWidget(name_card, 2 if two_column else 0)
             self.name_table = QTableWidget(self)
             self.name_table.setColumnCount(1)
             self.name_table.horizontalHeader().hide()
@@ -288,10 +294,15 @@ class MemberDialog(MessageBoxBase):
             self.name_table.setEditTriggers(QAbstractItemView.NoEditTriggers)
             self.name_table.setSelectionBehavior(QAbstractItemView.SelectRows)
             self.name_table.setSelectionMode(QAbstractItemView.SingleSelection)
-            self.name_table.setFixedHeight(76)
-            self.name_table.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)
             self.name_table.doubleClicked.connect(self._on_name_double_click)
-            name_box.addWidget(self.name_table)
+            if two_column:
+                self.name_table.setMinimumHeight(76)
+                self.name_table.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Expanding)
+                name_box.addWidget(self.name_table, 1)
+            else:
+                self.name_table.setFixedHeight(76)
+                self.name_table.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)
+                name_box.addWidget(self.name_table)
             name_buttons = QHBoxLayout()
             add_name_btn = PushButton(FIF.ADD, tr("name_history.add"), self)
             add_name_btn.clicked.connect(self._on_add_name_change)
@@ -492,8 +503,15 @@ class MemberDialog(MessageBoxBase):
             self._refresh_history()
             if history_row["previous_status"] is None:
                 # la correzione ha aggiornato anche members.data_inserimento: riflettila nel form
-                self.date_check.setChecked(True)
-                self.date_picker.setDate(QDate.fromString(values["date"], "yyyy-MM-dd"))
+                self._show_join_date(values["date"])
+
+    def _show_join_date(self, date: str | None) -> None:
+        """Riflette nel form la data di ingresso appena cambiata nello storico (None = sconosciuta)."""
+        if date:
+            self.date_check.setChecked(True)
+            self.date_picker.setDate(QDate.fromString(date, "yyyy-MM-dd"))
+        else:
+            self.date_check.setChecked(False)
 
     def _on_rebuild_history(self) -> None:
         dialog = RebuildHistoryDialog(self, self.member, self._history_rows)
@@ -502,9 +520,7 @@ class MemberDialog(MessageBoxBase):
             self.history_changed = True
             self._refresh_history()
             # Il primo passaggio ricostruito è il nuovo ingresso in gilda: riflettilo nel form.
-            first_entry = dialog.entries()[0]
-            self.date_check.setChecked(True)
-            self.date_picker.setDate(QDate.fromString(first_entry["date"], "yyyy-MM-dd"))
+            self._show_join_date(dialog.entries()[0]["date"])
 
     def validate(self) -> bool:
         try:

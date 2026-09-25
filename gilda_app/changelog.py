@@ -6,6 +6,17 @@ usa il programma, non i dettagli tecnici del come."""
 
 CHANGELOG: list[dict] = [
     {
+        "version": "2.1.5",
+        "date": "25-09-2026",
+        "notes": [
+            "Dashboard: le righe che riguardano oggi (eventi, festività, compleanni, anniversari) sono in grassetto e colorate.",
+            "Ricostruisci storico: si può indicare \"Sconosciuta\" come data di un passaggio, si possono mettere due passaggi consecutivi nella stessa lista (con un avviso, ma senza blocco) e i passaggi si spostano su e giù; nuovo pulsante \"Ordina per data\". L'ordine dello storico segue ora la sequenza dei passaggi.",
+            "Correzione di una voce dello storico: possibile impostare la data come sconosciuta.",
+            "Compleanno: frecce su/giù di nuovo affiancate a destra (quella che scende a sinistra di quella che sale); il giorno cicla passando dal vuoto e un pulsante azzera tutto il campo.",
+            "Modifica membro: titoli delle sezioni più in alto e più spazio agli elenchi dello storico movimenti e dello storico nomi.",
+        ],
+    },
+    {
         "version": "2.1.4",
         "date": "24-09-2026",
         "notes": [

@@ -262,12 +262,14 @@ def get_members(conn: sqlite3.Connection, status: str) -> list[Member]:
 
 
 def get_status_history(conn: sqlite3.Connection, member_id: int) -> list[sqlite3.Row]:
+    """In ordine di registrazione (id), che coincide con la catena dei passaggi: con le date
+    sconosciute l'ordine cronologico non si può ricavare dalle date."""
     return conn.execute(
-        "SELECT * FROM status_history WHERE member_id = ? ORDER BY changed_at", (member_id,)
+        "SELECT * FROM status_history WHERE member_id = ? ORDER BY id", (member_id,)
     ).fetchall()
 
 
-def update_status_history_entry(conn: sqlite3.Connection, history_id: int, date: str, note: str | None) -> None:
+def update_status_history_entry(conn: sqlite3.Connection, history_id: int, date: str | None, note: str | None) -> None:
     """Corregge data/nota di una voce di storico già registrata (es. per inserire a
     posteriori una data reale al posto di quella automatica). Se la voce corretta è
     quella di ingresso (previous_status NULL), sincronizza anche members.data_inserimento,
@@ -279,7 +281,7 @@ def update_status_history_entry(conn: sqlite3.Connection, history_id: int, date:
         return
     conn.execute(
         "UPDATE status_history SET changed_at = ?, note = ? WHERE id = ?",
-        (f"{date} 00:00:00", note, history_id),
+        (f"{date} 00:00:00" if date else None, note, history_id),
     )
     if row["previous_status"] is None:
         conn.execute("UPDATE members SET data_inserimento = ? WHERE id = ?", (date, row["member_id"]))
@@ -292,7 +294,8 @@ def rebuild_status_history(conn: sqlite3.Connection, member_id: int, entries: li
     di un membro già esistente dopo un import. Aggiorna anche members.status e
     data_inserimento in modo che i comandi normali (sposta, correggi voce) proseguano
     da qui in avanti esattamente come se lo storico fosse stato costruito passo passo.
-    entries: lista di {"status", "date" (yyyy-mm-dd), "note"}, non vuota."""
+    entries: lista di {"status", "date" (yyyy-mm-dd o None se sconosciuta), "note"}, non
+    vuota, nell'ordine in cui i passaggi sono avvenuti."""
     conn.execute("DELETE FROM status_history WHERE member_id = ?", (member_id,))
     previous_status = None
     for entry in entries:
@@ -301,7 +304,13 @@ def rebuild_status_history(conn: sqlite3.Connection, member_id: int, entries: li
             INSERT INTO status_history (member_id, previous_status, new_status, changed_at, note)
             VALUES (?, ?, ?, ?, ?)
             """,
-            (member_id, previous_status, entry["status"], f"{entry['date']} 00:00:00", entry["note"]),
+            (
+                member_id,
+                previous_status,
+                entry["status"],
+                f"{entry['date']} 00:00:00" if entry["date"] else None,
+                entry["note"],
+            ),
         )
         previous_status = entry["status"]
     conn.execute(

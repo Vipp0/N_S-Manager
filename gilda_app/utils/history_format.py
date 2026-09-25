@@ -6,7 +6,7 @@ from gilda_app.utils.date_format import iso_to_display
 
 
 def format_history_line(row) -> str:
-    date = iso_to_display(row["changed_at"])
+    date = iso_to_display(row["changed_at"]) if row["changed_at"] else tr("history.unknown_date")
     if row["previous_status"] is None:
         line = tr("history.joined", date=date, status=status_label(row["new_status"]))
     elif row["previous_status"] == STATUS_EX_MEMBRO and row["new_status"] == STATUS_ATTIVO:

@@ -204,3 +204,60 @@ def test_name_history_manual_crud_and_cascade(conn):
     add_name_change(conn, member_id, "family_name", "X", "Rossi")
     delete_member(conn, member_id)
     assert conn.execute("SELECT COUNT(*) FROM name_history").fetchone()[0] == 0
+
+
+def test_rebuild_history_with_unknown_dates_and_repeated_status(conn):
+    member_id = add_member(conn, "Rossi", "", "", [], STATUS_ATTIVO)
+    rebuild_status_history(
+        conn,
+        member_id,
+        [
+            {"status": STATUS_ATTIVO, "date": "2020-01-10", "note": None},
+            {"status": STATUS_ATTIVO, "date": None, "note": "manca un passaggio"},
+            {"status": STATUS_EX_MEMBRO, "date": None, "note": None},
+            {"status": STATUS_ATTIVO, "date": "2022-02-15", "note": None},
+        ],
+    )
+    history = get_status_history(conn, member_id)
+    assert [h["new_status"] for h in history] == [STATUS_ATTIVO, STATUS_ATTIVO, STATUS_EX_MEMBRO, STATUS_ATTIVO]
+    assert [h["changed_at"] is None for h in history] == [False, True, True, False]
+    assert history[1]["previous_status"] == STATUS_ATTIVO  # catena mantenuta anche con status ripetuto
+    member = get_members(conn, STATUS_ATTIVO)[0]
+    assert member.data_inserimento == "2020-01-10"
+
+
+def test_unknown_first_date_clears_join_date_and_entry_date_can_be_cleared(conn):
+    member_id = add_member(conn, "Rossi", "", "", [], STATUS_ATTIVO, data_inserimento="2021-01-01")
+    rebuild_status_history(conn, member_id, [{"status": STATUS_ATTIVO, "date": None, "note": None}])
+    assert get_members(conn, STATUS_ATTIVO)[0].data_inserimento is None
+
+    entry_id = get_status_history(conn, member_id)[0]["id"]
+    update_status_history_entry(conn, entry_id, "2019-05-05", None)
+    assert get_members(conn, STATUS_ATTIVO)[0].data_inserimento == "2019-05-05"
+    update_status_history_entry(conn, entry_id, None, None)
+    assert get_status_history(conn, member_id)[0]["changed_at"] is None
+    assert get_members(conn, STATUS_ATTIVO)[0].data_inserimento is None
+
+
+def test_migration_8_keeps_existing_history():
+    connection = sqlite3.connect(":memory:")
+    connection.row_factory = sqlite3.Row
+    from gilda_app.db import migrations
+
+    connection.execute("CREATE TABLE schema_version (version INTEGER NOT NULL)")
+    for upgrade in migrations.MIGRATIONS[:7]:
+        upgrade(connection)
+    connection.execute("INSERT INTO schema_version (version) VALUES (7)")
+    connection.execute(
+        "INSERT INTO members (family_name, status) VALUES ('Rossi', 'attivo')"
+    )
+    connection.execute(
+        "INSERT INTO status_history (member_id, previous_status, new_status, changed_at) "
+        "VALUES (1, NULL, 'attivo', '2020-01-01 00:00:00')"
+    )
+    connection.commit()
+    migrate(connection)
+    row = connection.execute("SELECT * FROM status_history").fetchone()
+    assert row["changed_at"] == "2020-01-01 00:00:00" and row["id"] == 1
+    connection.execute("INSERT INTO status_history (member_id, new_status, changed_at) VALUES (1, 'ex_membro', NULL)")
+    connection.close()

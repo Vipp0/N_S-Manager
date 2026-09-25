@@ -29,6 +29,7 @@ STRINGS: dict[str, dict[str, str]] = {
     "label.birthday": {"it": "Compleanno", "en": "Birthday"},
     "birthday.year_placeholder": {"it": "Anno (opz.)", "en": "Year (opt.)"},
     "birthday.year_tooltip": {"it": "Anno di nascita: facoltativo", "en": "Birth year: optional"},
+    "birthday.clear_tooltip": {"it": "Cancella il compleanno", "en": "Clear the birthday"},
     "birthday.month_placeholder": {"it": "Mese", "en": "Month"},
     "error.birthday_invalid": {
         "it": "Compleanno non valido: controlla giorno, mese e anno (o lascia tutto vuoto).",
@@ -132,21 +133,32 @@ STRINGS: dict[str, dict[str, str]] = {
     "name_history.dialog_title": {"it": "Cambio di nome", "en": "Name change"},
     "name_history.error_new_required": {"it": "Il nuovo nome è obbligatorio.", "en": "The new name is required."},
     "search.formerly": {"it": "ex {name}", "en": "formerly {name}"},
+    "rebuild.unknown_short": {"it": "Sconosciuta", "en": "Unknown"},
+    "history.unknown_date": {"it": "data sconosciuta", "en": "unknown date"},
+    "label.unknown_date": {"it": "Data sconosciuta", "en": "Unknown date"},
+    "dialog.rebuild_history.warn_same_status": {
+        "it": "Attenzione: passaggi consecutivi nella stessa lista (righe {rows}), probabilmente ne manca uno. Premi Salva di nuovo per continuare comunque.",
+        "en": "Warning: consecutive steps in the same list (rows {rows}), one is probably missing. Press Save again to continue anyway.",
+    },
+    "dialog.rebuild_history.warn_order": {
+        "it": "Attenzione: le date non sono in ordine cronologico (righe {rows}). Puoi usare \"Ordina per data\". Premi Salva di nuovo per continuare comunque.",
+        "en": "Warning: dates are not in chronological order (rows {rows}). You can use \"Sort by date\". Press Save again to continue anyway.",
+    },
+    "dialog.rebuild_history.sort": {"it": "Ordina per data", "en": "Sort by date"},
+    "dialog.rebuild_history.move_up": {"it": "Sposta su", "en": "Move up"},
+    "dialog.rebuild_history.move_down": {"it": "Sposta giù", "en": "Move down"},
     "button.rebuild_history":{"it": "Ricostruisci storico...", "en": "Rebuild history..."},
     "dialog.rebuild_history.title": {"it": "Ricostruisci storico di {name}", "en": "Rebuild history of {name}"},
     "dialog.rebuild_history.hint": {
-        "it": "Inserisci in ordine tutti i passaggi già avvenuti (es. entrato, uscito, rientrato...), "
-        "ognuno con la sua data: verranno ordinati automaticamente e sostituiranno l'intero storico "
-        "attuale di questo membro. Da qui in avanti si continua a tracciare come sempre.",
-        "en": "Enter every past change (e.g. joined, left, rejoined...) with its date: they'll be "
-        "sorted automatically and will replace this member's entire current history. "
-        "From here on, tracking continues as usual.",
+        "it": "Inserisci tutti i passaggi già avvenuti (entrato, uscito, rientrato...), nell'ordine in cui sono successi: "
+        "restano nell'ordine mostrato, che si cambia con le frecce o con \"Ordina per data\". "
+        "Se una data non si conosce, spunta \"Sconosciuta\". Sostituiranno l'intero storico attuale di questo membro; "
+        "da qui in avanti si continua a tracciare come sempre.",
+        "en": "Enter every past change (joined, left, rejoined...) in the order they happened: they stay in the order shown, "
+        "which you change with the arrows or with \"Sort by date\". If a date is unknown, tick \"Unknown\". "
+        "They will replace this member's entire current history; from here on, tracking continues as usual.",
     },
     "dialog.rebuild_history.add_row": {"it": "Aggiungi passaggio", "en": "Add step"},
-    "dialog.rebuild_history.error_same_status": {
-        "it": "Due passaggi consecutivi non possono avere la stessa lista: correggi le date o le liste scelte.",
-        "en": "Two consecutive steps can't have the same list: fix the dates or the lists chosen.",
-    },
     "error.family_name_required": {"it": "Family Name è obbligatorio.", "en": "Family Name is required."},
     "button.save": {"it": "Salva", "en": "Save"},
     "button.cancel": {"it": "Annulla", "en": "Cancel"},

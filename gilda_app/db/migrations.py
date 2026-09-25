@@ -125,7 +125,39 @@ def _upgrade_7(conn: sqlite3.Connection) -> None:
     conn.executescript("ALTER TABLE members ADD COLUMN birthday TEXT;")
 
 
-MIGRATIONS = [_upgrade_1, _upgrade_2, _upgrade_3, _upgrade_4, _upgrade_5, _upgrade_6, _upgrade_7]
+def _upgrade_8(conn: sqlite3.Connection) -> None:
+    # Un passaggio dello storico può avere "data sconosciuta" (NULL): quando si ricostruisce
+    # uno storico a posteriori non sempre si conosce la data di ogni passaggio. SQLite non
+    # permette di togliere NOT NULL da una colonna, quindi si ricrea la tabella.
+    conn.executescript(
+        """
+        CREATE TABLE status_history_new (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            member_id INTEGER NOT NULL REFERENCES members(id) ON DELETE CASCADE,
+            previous_status TEXT,
+            new_status TEXT NOT NULL,
+            changed_at TEXT DEFAULT (datetime('now')),
+            note TEXT
+        );
+        INSERT INTO status_history_new (id, member_id, previous_status, new_status, changed_at, note)
+            SELECT id, member_id, previous_status, new_status, changed_at, note FROM status_history;
+        DROP TABLE status_history;
+        ALTER TABLE status_history_new RENAME TO status_history;
+        CREATE INDEX idx_status_history_member ON status_history(member_id);
+        """
+    )
+
+
+MIGRATIONS = [
+    _upgrade_1,
+    _upgrade_2,
+    _upgrade_3,
+    _upgrade_4,
+    _upgrade_5,
+    _upgrade_6,
+    _upgrade_7,
+    _upgrade_8,
+]
 
 
 def migrate(conn: sqlite3.Connection) -> None:

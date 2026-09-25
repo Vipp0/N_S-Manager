@@ -17,7 +17,7 @@ def recent_transitions(conn: sqlite3.Connection, limit: int = 4) -> list[sqlite3
         """
         SELECT h.changed_at, h.previous_status, h.new_status, m.family_name
         FROM status_history h JOIN members m ON m.id = h.member_id
-        WHERE h.previous_status IS NOT NULL
+        WHERE h.previous_status IS NOT NULL AND h.changed_at IS NOT NULL
         ORDER BY h.changed_at DESC, h.id DESC LIMIT ?
         """,
         (limit,),

@@ -33,11 +33,13 @@ def nation_distribution(conn: sqlite3.Connection, status: str = STATUS_ATTIVO) -
 def active_members_trend(conn: sqlite3.Connection) -> list[tuple[str, int]]:
     """Andamento mensile cumulativo del numero di membri attivi."""
     rows = conn.execute(
-        "SELECT previous_status, new_status, changed_at FROM status_history ORDER BY changed_at"
+        "SELECT previous_status, new_status, changed_at FROM status_history ORDER BY changed_at, id"
     ).fetchall()
 
     monthly_delta: dict[str, int] = defaultdict(int)
     for row in rows:
+        if row["changed_at"] is None:  # data sconosciuta: non si sa in che mese collocarla
+            continue
         month = row["changed_at"][:7]
         was_active = row["previous_status"] == STATUS_ATTIVO
         is_active = row["new_status"] == STATUS_ATTIVO
@@ -58,13 +60,17 @@ def avg_tenure_days(conn: sqlite3.Connection) -> float | None:
     """Giorni medi di permanenza da 'attivo' prima di uscire (ex membro o bannato)."""
     rows = conn.execute(
         "SELECT member_id, previous_status, new_status, changed_at FROM status_history "
-        "ORDER BY member_id, changed_at"
+        "ORDER BY member_id, id"
     ).fetchall()
 
     entered_at: dict[int, str] = {}
     durations = []
     for row in rows:
         member_id = row["member_id"]
+        if row["changed_at"] is None:
+            # Data sconosciuta: la permanenza che la coinvolge non è calcolabile.
+            entered_at.pop(member_id, None)
+            continue
         if row["new_status"] == STATUS_ATTIVO:
             entered_at[member_id] = row["changed_at"]
         elif row["previous_status"] == STATUS_ATTIVO and member_id in entered_at:

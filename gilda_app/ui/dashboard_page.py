@@ -1,3 +1,4 @@
+import html
 from datetime import date
 from pathlib import Path
 from typing import Callable
@@ -43,6 +44,9 @@ WORDMARK_HEIGHT = 86
 TILE_KEYS_INFO = ("info_joins", "info_anniversaries", "info_nations")
 
 _VALUE_STYLE = "font-size: 28px; font-weight: 600;"
+# Le righe che riguardano oggi (eventi, festività, compleanni, anniversari): grassetto e
+# un colore caldo, così si distinguono da quelle dei giorni successivi.
+TODAY_COLOR = "#b45309"
 
 
 class DashboardTile(CardWidget):
@@ -67,7 +71,7 @@ class DashboardTile(CardWidget):
         layout.addWidget(self._value)
         self._lines = BodyLabel(self)
         self._lines.setWordWrap(True)
-        self._lines.setTextFormat(Qt.PlainText)
+        self._lines.setTextFormat(Qt.RichText)
         layout.addWidget(self._lines)
         layout.addStretch(1)
         self.setCursor(Qt.PointingHandCursor)
@@ -91,11 +95,20 @@ class DashboardTile(CardWidget):
             r = self.borderRadius
             painter.drawRoundedRect(self.rect().adjusted(1, 1, -1, -1), r, r)
 
-    def set_content(self, value: str, lines: list[str], value_color: str | None = None) -> None:
+    def set_content(
+        self, value: str, lines: list[str], value_color: str | None = None, today_lines: frozenset[int] = frozenset()
+    ) -> None:
+        """today_lines: indici delle righe da evidenziare perché riguardano oggi."""
         self._value.setText(value)
         self._value.setVisible(bool(value))
         self._value.setStyleSheet(_VALUE_STYLE + (f" color: {value_color};" if value_color else ""))
-        self._lines.setText("\n".join(lines))
+        rendered = []
+        for index, line in enumerate(lines):
+            text = html.escape(line)
+            if index in today_lines:
+                text = f'<b style="color: {TODAY_COLOR};">{text}</b>'
+            rendered.append(text)
+        self._lines.setText("<br>".join(rendered))
 
 
 class InfoCard(DashboardTile):
@@ -267,11 +280,14 @@ class DashboardPage(QWidget):
         agenda = queries.upcoming_agenda(conn, date.today())
         if agenda:
             agenda_lines = [tr("dash.next_days", n=queries.AGENDA_DAYS)]
+            highlighted = set()
             for day, title, is_holiday in agenda[:4]:
                 tag = f" ({tr('dash.holiday')})" if is_holiday else ""
+                if day == date.today():
+                    highlighted.add(len(agenda_lines))
                 agenda_lines.append(f"{day.strftime('%d-%m')}  {title}{tag}")
             events_count = str(sum(1 for _, _, holiday in agenda if not holiday))
-            self._tiles[TILE_CALENDAR].set_content(events_count, agenda_lines)
+            self._tiles[TILE_CALENDAR].set_content(events_count, agenda_lines, today_lines=frozenset(highlighted))
         else:
             self._tiles[TILE_CALENDAR].set_content("", [tr("dash.no_events")])
 
@@ -291,14 +307,19 @@ class DashboardPage(QWidget):
         )
         today = date.today()
         birthday_lines = []
+        birthday_today = set()
         for day, family, main, age in stats.upcoming_birthdays(conn, today, days=14, limit=6):
             name = family + (f" ({main})" if main else "")
             age_text = tr("dash.birthday_age", age=age) if age else ""
             key = "dash.birthday_today" if day == today else "dash.birthday_line"
+            if day == today:
+                birthday_today.add(len(birthday_lines))
             birthday_lines.append(tr(key, date=day.strftime("%d-%m"), name=name, age=age_text))
-        self._info_cards["info_birthdays"].set_content("", birthday_lines or [tr("dash.no_birthdays")])
+        self._info_cards["info_birthdays"].set_content(
+            "", birthday_lines or [tr("dash.no_birthdays")], today_lines=frozenset(birthday_today)
+        )
 
-        anniversaries = stats.upcoming_anniversaries(conn, date.today(), days=30, limit=5)
+        anniversaries = stats.upcoming_anniversaries(conn, today, days=30, limit=5)
         self._info_cards["info_anniversaries"].set_content(
             "",
             [
@@ -312,6 +333,7 @@ class DashboardPage(QWidget):
                 for day, family, main, years in anniversaries
             ]
             or [tr("dash.no_anniversaries")],
+            today_lines=frozenset(i for i, (day, *_rest) in enumerate(anniversaries) if day == today),
         )
         nations = stats.nation_distribution(conn)[:5]
         self._info_cards["info_nations"].set_content(
