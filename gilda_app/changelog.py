@@ -6,6 +6,13 @@ usa il programma, non i dettagli tecnici del come."""
 
 CHANGELOG: list[dict] = [
     {
+        "version": "2.1.7",
+        "date": "25-09-2026",
+        "notes": [
+            "Dashboard: le righe di oggi sono ora in verde scuro invece che in arancio.",
+        ],
+    },
+    {
         "version": "2.1.6",
         "date": "25-09-2026",
         "notes": [

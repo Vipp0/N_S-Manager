@@ -45,8 +45,8 @@ TILE_KEYS_INFO = ("info_joins", "info_anniversaries", "info_nations")
 
 _VALUE_STYLE = "font-size: 28px; font-weight: 600;"
 # Le righe che riguardano oggi (eventi, festività, compleanni, anniversari): grassetto e
-# un colore caldo, così si distinguono da quelle dei giorni successivi.
-TODAY_COLOR = "#b45309"
+# verde scuro, così si distinguono da quelle dei giorni successivi.
+TODAY_COLOR = "#15803d"
 
 
 def day_text(day: date, today: date, fallback: str) -> str:
