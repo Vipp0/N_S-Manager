@@ -29,6 +29,7 @@ class SettingsPage(QWidget):
     extra_dir_pick_requested = Signal()
     extra_dir_clear_requested = Signal()
     changelog_requested = Signal()
+    check_update_requested = Signal()
     api_key_saved = Signal(str)
     guild_name_saved = Signal(str)
     server_region_changed = Signal(str)
@@ -167,6 +168,9 @@ class SettingsPage(QWidget):
         changelog_btn = PushButton(FIF.HISTORY, tr("settings.changelog_button"), content)
         changelog_btn.clicked.connect(self.changelog_requested)
         layout.addWidget(changelog_btn)
+        update_btn = PushButton(FIF.UPDATE, tr("settings.check_update"), content)
+        update_btn.clicked.connect(self.check_update_requested)
+        layout.addWidget(update_btn)
         layout.addWidget(CaptionLabel(tr("settings.version", version=__version__), content))
 
     def _on_remove_key(self) -> None:

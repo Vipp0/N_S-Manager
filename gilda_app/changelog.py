@@ -6,6 +6,14 @@ usa il programma, non i dettagli tecnici del come."""
 
 CHANGELOG: list[dict] = [
     {
+        "version": "2.1.9",
+        "date": "25-09-2026",
+        "notes": [
+            "Aggiornamento automatico: quando c'è una nuova versione si può scegliere \"Installa ora\". Il programma fa una copia di sicurezza del database, scarica la versione, si aggiorna e si riavvia da solo, mostrando una schermata con il logo e una barra di avanzamento. Se qualcosa non va, resta la versione precedente.",
+            "Impostazioni: nuovo pulsante \"Controlla aggiornamenti\".",
+        ],
+    },
+    {
         "version": "2.1.8",
         "date": "25-09-2026",
         "notes": [

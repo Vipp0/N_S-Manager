@@ -10,7 +10,9 @@ from gilda_app.db.backup import daily_backup_if_needed
 from gilda_app.db.database import connect, get_setting
 from gilda_app.i18n import DEFAULT_LANGUAGE, set_language, tr
 from gilda_app.ui.main_window import MainWindow
-from gilda_app.utils.paths import db_path
+from gilda_app.ui.update_window import run_apply_mode
+from gilda_app.utils.paths import app_dir, db_path
+from gilda_app.utils.updater import APPLY_FLAG, cleanup_leftovers
 
 APP_FONT_FAMILY = "Segoe UI"
 APP_FONT_POINT_SIZE = 11
@@ -62,6 +64,9 @@ def _close_splash() -> None:
 
 
 def main() -> None:
+    if len(sys.argv) >= 3 and sys.argv[1] == APPLY_FLAG:
+        sys.exit(run_apply_mode(sys.argv[2:], _close_splash))
+
     app = QApplication(sys.argv)
     app.setFont(QFont(APP_FONT_FAMILY, APP_FONT_POINT_SIZE))
 
@@ -72,6 +77,9 @@ def main() -> None:
         daily_backup_if_needed(db_file)
     except OSError:
         pass
+    if getattr(sys, "frozen", False):
+        # Se questo avvio segue un aggiornamento, l'installazione è riuscita: via le copie vecchie.
+        cleanup_leftovers(app_dir())
     conn = connect(db_file)
     set_language(get_setting(conn, "language", DEFAULT_LANGUAGE))
 

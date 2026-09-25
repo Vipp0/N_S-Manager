@@ -1,3 +1,4 @@
+import os
 import sqlite3
 import threading
 from datetime import date, datetime, timezone
@@ -31,7 +32,7 @@ from gilda_app.db.database import (
     set_setting,
     update_member,
 )
-from gilda_app.i18n import tr
+from gilda_app.i18n import get_language, tr
 from gilda_app.importer.excel_export import export_workbook
 from gilda_app.importer.excel_import import find_intra_file_duplicates, import_row, parse_workbook
 from gilda_app.models.member import STATUS_ATTIVO, STATUS_BANNATO, STATUS_EX_MEMBRO, Member, status_label
@@ -58,18 +59,20 @@ from gilda_app.ui.reset_dialog import ResetConfirmDialog
 from gilda_app.ui.restore_dialog import RestoreBackupDialog, format_backup_when
 from gilda_app.ui.server_status_footer import ServerStatusFooter, describe_error, describe_region
 from gilda_app.ui.settings_page import SettingsPage
+from gilda_app.ui.update_window import UpdateDownloadWorker, UpdateProgressWindow
 from gilda_app.ui.stats_view import StatsPage
 from gilda_app.utils.discord_format import discord_copy_text
 from gilda_app.version import __version__
 from gilda_app.utils.icons import ban_icon
-from gilda_app.utils.paths import backups_dir
+from gilda_app.utils.paths import app_dir, backups_dir
 from gilda_app.utils.bdo_guild import compare_guild, fetch_guild
 from gilda_app.utils.bdo_news import fetch_news, upcoming_maintenance
 from gilda_app.utils.bdo_timers import fetch_boss_timers, fetch_reset_timers
 from gilda_app.utils.bdoalerts_api import ERROR_NO_KEY, ApiError
 from gilda_app.utils.restart import restart_app
 from gilda_app.utils.server_status import DEFAULT_REGION, fetch_server_status
-from gilda_app.utils.update_check import RELEASES_PAGE_URL, fetch_latest_release_tag, is_newer
+from gilda_app.utils import updater
+from gilda_app.utils.update_check import RELEASES_PAGE_URL, ReleaseInfo, fetch_latest_release, is_newer
 
 STATUS_ORDER = [STATUS_ATTIVO, STATUS_EX_MEMBRO, STATUS_BANNATO]
 APP_ICON_PATH = Path(__file__).resolve().parent.parent / "resources" / "app_icon.png"
@@ -89,7 +92,7 @@ class _HolidayRefreshSignal(QObject):
 
 
 class _UpdateCheckSignal(QObject):
-    finished = Signal(str)
+    finished = Signal(object)  # ReleaseInfo oppure None
 
 
 class _ServerStatusSignal(QObject):
@@ -176,6 +179,7 @@ class MainWindow(FluentWindow):
         self.settings_page.extra_dir_pick_requested.connect(self._on_pick_extra_dir)
         self.settings_page.extra_dir_clear_requested.connect(self._on_clear_extra_dir)
         self.settings_page.changelog_requested.connect(self._on_changelog)
+        self.settings_page.check_update_requested.connect(lambda: self._start_update_check(manual=True))
         self.settings_page.api_key_saved.connect(self._on_api_key_saved)
         self.settings_page.server_region_changed.connect(self._on_server_region_changed)
         self.settings_page.guild_name_saved.connect(self._on_guild_name_saved)
@@ -515,27 +519,84 @@ class MainWindow(FluentWindow):
         ChangelogDialog(self).exec()
 
     # -- Controllo aggiornamenti -------------------------------------------
-    def _start_update_check(self) -> None:
+    def _start_update_check(self, manual: bool = False) -> None:
         """Un controllo veloce ad ogni avvio (una singola richiesta a GitHub, con
         timeout breve): se c'è una versione più recente lo si segnala una volta sola,
-        non ad ogni riapertura del programma per la stessa versione già vista."""
+        non ad ogni riapertura del programma per la stessa versione già vista. Il
+        controllo manuale (Impostazioni) risponde sempre, anche "sei aggiornato"."""
+        self._update_manual = manual
         self._update_check_signal = _UpdateCheckSignal()
         self._update_check_signal.finished.connect(self._on_update_checked)
         threading.Thread(target=self._check_update_worker, daemon=True).start()
 
     def _check_update_worker(self) -> None:
-        tag = fetch_latest_release_tag()
-        self._update_check_signal.finished.emit(tag or "")
+        self._update_check_signal.finished.emit(fetch_latest_release())
 
-    def _on_update_checked(self, tag: str) -> None:
-        if not tag or not is_newer(tag, __version__):
+    def _on_update_checked(self, info: ReleaseInfo | None) -> None:
+        manual = getattr(self, "_update_manual", False)
+        if info is None:
+            if manual:
+                self._notify(tr("update.available.title"), tr("update.check_failed"), error=True)
             return
-        if get_setting(self.conn, UPDATE_NOTIFIED_SETTING) == tag:
+        if not is_newer(info.tag, __version__):
+            if manual:
+                self._notify(tr("update.available.title"), tr("update.none", version=__version__))
             return
-        set_setting(self.conn, UPDATE_NOTIFIED_SETTING, tag)
-        box = MessageBox(tr("update.available.title"), tr("update.available.body", version=tag.lstrip("vV")), self)
-        box.yesButton.setText(tr("update.available.open"))
+        if not manual:
+            if get_setting(self.conn, UPDATE_NOTIFIED_SETTING) == info.tag:
+                return
+            set_setting(self.conn, UPDATE_NOTIFIED_SETTING, info.tag)
+        self._offer_update(info)
+
+    def _offer_update(self, info: ReleaseInfo) -> None:
+        version = info.tag.lstrip("vV")
+        can_install = info.can_install and updater.can_self_update(app_dir())
+        body_key = "update.available.body_install" if can_install else "update.available.body"
+        box = MessageBox(tr("update.available.title"), tr(body_key, version=version), self)
+        box.yesButton.setText(tr("update.available.install" if can_install else "update.available.open"))
         box.cancelButton.setText(tr("button.later"))
+        if not box.exec():
+            return
+        if can_install:
+            self._install_update(info)
+        else:
+            QDesktopServices.openUrl(QUrl(RELEASES_PAGE_URL))
+
+    def _install_update(self, info: ReleaseInfo) -> None:
+        """Copia di sicurezza del database, poi schermata di avanzamento mentre si scarica e
+        si prepara la nuova versione; il resto lo fa la nuova versione (vedi updater.py)."""
+        try:
+            self._backup("pre-update")
+        except OSError:
+            self._update_failed(tr("update.backup_failed"))
+            return
+        self._update_window = UpdateProgressWindow()
+        self._update_window.set_progress(0, "")
+        self._update_window.show()
+        self.hide()
+        self._update_worker = UpdateDownloadWorker(info, app_dir())
+        self._update_worker.progress.connect(lambda percent, text: self._update_window.set_progress(percent, text or None))
+        self._update_worker.finished.connect(self._on_update_prepared)
+        self._update_worker.start()
+
+    def _on_update_prepared(self, error: str) -> None:
+        if not error:
+            try:
+                updater.launch_apply(app_dir(), os.getpid(), get_language())
+            except OSError as exc:
+                error = str(exc)
+        if error:
+            self._update_window.close()
+            self.show()
+            self._update_failed(error)
+            return
+        self.conn.close()
+        QApplication.quit()
+
+    def _update_failed(self, error: str) -> None:
+        box = MessageBox(tr("update.failed.title"), tr("update.failed.body", error=error), self)
+        box.yesButton.setText(tr("update.available.open"))
+        box.cancelButton.setText(tr("button.cancel"))
         if box.exec():
             QDesktopServices.openUrl(QUrl(RELEASES_PAGE_URL))
 
