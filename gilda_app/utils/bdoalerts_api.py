@@ -26,7 +26,7 @@ class ApiError(Exception):
         self.kind = kind
 
 
-def api_get(path: str, api_key: str, params: dict | None = None) -> dict:
+def api_get(path: str, api_key: str, params: dict | None = None, timeout: float = REQUEST_TIMEOUT_SECONDS) -> dict:
     """GET su BASE_URL + path, ritorna il JSON decodificato (un dict). Solleva sempre
     e solo ApiError. La chiave viaggia solo nell'header e non compare mai in messaggi
     di errore o log."""
@@ -39,7 +39,7 @@ def api_get(path: str, api_key: str, params: dict | None = None) -> dict:
         url, headers={"X-API-Key": api_key, "Accept": "application/json", "User-Agent": "Night-Shade-Manager"}
     )
     try:
-        with urllib.request.urlopen(request, timeout=REQUEST_TIMEOUT_SECONDS) as response:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
             data = json.loads(response.read().decode("utf-8"))
     except urllib.error.HTTPError as exc:
         if exc.code in (401, 403):

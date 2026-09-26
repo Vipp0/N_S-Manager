@@ -14,6 +14,11 @@ def api_region(region: str) -> str:
     return region.replace("-", "_")
 
 
+# Un profilo non ancora in cache il servizio lo scarica dal gioco: ~5-6 secondi, oltre il
+# timeout normale delle altre chiamate (che rispondono in frazioni di secondo).
+PLAYER_TIMEOUT_SECONDS = 30
+
+
 def _quote(text: str) -> str:
     return urllib.parse.quote(text, safe="")
 
@@ -146,4 +151,4 @@ def parse_player(payload: dict) -> PlayerProfile:
 
 
 def fetch_player(api_key: str, region: str, family_name: str) -> PlayerProfile:
-    return parse_player(api_get(f"/api/player/{api_region(region)}/{_quote(family_name)}", api_key))
+    return parse_player(api_get(f"/api/player/{api_region(region)}/{_quote(family_name)}", api_key, timeout=PLAYER_TIMEOUT_SECONDS))

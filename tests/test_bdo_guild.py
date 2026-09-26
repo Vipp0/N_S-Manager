@@ -76,3 +76,13 @@ def test_parse_player_missing_fields_and_garbage():
     assert profile.guild is None and profile.max_gear_score is None and profile.main_character() is None
     with pytest.raises(ApiError):
         parse_player({"status": "fresh"})
+
+
+def test_fetch_player_waits_longer_than_default_timeout():
+    from unittest.mock import patch
+
+    from gilda_app.utils import bdo_guild
+
+    with patch.object(bdo_guild, "api_get", return_value={"family_name": "Aeloki"}) as mocked:
+        assert bdo_guild.fetch_player("key", "eu", "Aeloki").family_name == "Aeloki"
+    assert mocked.call_args.kwargs["timeout"] == bdo_guild.PLAYER_TIMEOUT_SECONDS > 6

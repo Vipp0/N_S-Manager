@@ -511,7 +511,10 @@ STRINGS: dict[str, dict[str, str]] = {
     },
     "bdo.profile_button": {"it": "Profilo BDO...", "en": "BDO profile..."},
     "bdo.profile.title": {"it": "Profilo BDO di {name}", "en": "BDO profile of {name}"},
-    "bdo.profile.loading": {"it": "Caricamento...", "en": "Loading..."},
+    "bdo.profile.loading": {
+        "it": "Caricamento... (può richiedere qualche secondo)",
+        "en": "Loading... (this can take a few seconds)",
+    },
     "bdo.profile.guild": {"it": "Gilda", "en": "Guild"},
     "bdo.profile.no_guild": {"it": "Nessuna gilda", "en": "No guild"},
     "bdo.profile.role_master": {"it": "Guild Master", "en": "Guild Master"},

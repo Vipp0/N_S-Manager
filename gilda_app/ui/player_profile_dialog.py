@@ -9,7 +9,7 @@ from qfluentwidgets import MessageBoxBase, SubtitleLabel
 from gilda_app.i18n import tr
 from gilda_app.ui.server_status_footer import describe_error
 from gilda_app.utils.bdo_guild import GuildInfo, PlayerProfile, fetch_player
-from gilda_app.utils.bdoalerts_api import ApiError
+from gilda_app.utils.bdoalerts_api import ERROR_BAD_RESPONSE, ApiError
 from gilda_app.utils.date_format import iso_to_display
 
 CHARACTERS_SHOWN = 12
@@ -58,6 +58,8 @@ class PlayerProfileDialog(MessageBoxBase):
             result = fetch_player(self._context.api_key, self._context.region, self._family_name)
         except ApiError as exc:
             result = exc.kind
+        except Exception:  # risposta inattesa: meglio un messaggio che un "Caricamento..." eterno
+            result = ERROR_BAD_RESPONSE
         self._signal.finished.emit(result)
 
     def _on_loaded(self, result) -> None:

@@ -6,6 +6,13 @@ usa il programma, non i dettagli tecnici del come."""
 
 CHANGELOG: list[dict] = [
     {
+        "version": "2.2.1",
+        "date": "26-09-2026",
+        "notes": [
+            "Profilo BDO: il servizio impiega circa 6 secondi a recuperare un profilo non ancora in memoria e il programma smetteva di aspettare troppo presto, mostrando \"Servizio non raggiungibile\". Ora aspetta fino a 30 secondi, e in caso di risposta inattesa mostra un messaggio invece di restare su \"Caricamento...\".",
+        ],
+    },
+    {
         "version": "2.2",
         "date": "25-09-2026",
         "notes": [
