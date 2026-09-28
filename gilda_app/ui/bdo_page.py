@@ -17,7 +17,7 @@ from gilda_app.utils.bdo_timers import (
     countdown_text,
     upcoming_bosses,
 )
-from gilda_app.utils.server_status import REGIONS, RegionStatus
+from gilda_app.utils.server_status import DEFAULT_REGION, REGIONS, RegionStatus
 
 
 GUILD_NAMES_SHOWN = 15
@@ -122,7 +122,9 @@ class BdoPage(QWidget):
         self._boss_label.setTextFormat(Qt.RichText)
         boss_layout.addWidget(self._boss_label)
         boss_layout.addStretch(1)
-        boss_layout.addWidget(CaptionLabel(tr("bdo.timers_hint"), boss_card))
+        self._timers_hint = CaptionLabel("", boss_card)
+        self.set_region(tr(f"region.{DEFAULT_REGION}"))
+        boss_layout.addWidget(self._timers_hint)
         timers_row.addWidget(reset_card, 1)
         timers_row.addWidget(boss_card, 1)
         layout.addLayout(timers_row)
@@ -154,6 +156,11 @@ class BdoPage(QWidget):
         layout.addStretch(1)
 
         self.show_error("no_key")
+
+    def set_region(self, region_label: str) -> None:
+        """Nome della regione scelta in Impostazioni (quella mostrata nel footer), da
+        indicare accanto ai timer: sono calcolati per quella regione, non per tutte."""
+        self._timers_hint.setText(tr("bdo.timers_hint", region=region_label))
 
     def _set_value(self, region: str, text: str, color: str) -> None:
         label = self._value_labels[region]

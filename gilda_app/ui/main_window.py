@@ -317,7 +317,7 @@ class MainWindow(FluentWindow):
         self._news_signal = _NewsSignal()
         self._news_signal.finished.connect(self._on_news)
         self.server_footer = ServerStatusFooter(self)
-        self.server_footer.clicked.connect(lambda: self.switchTo(self.bdo_page))
+        self.server_footer.clicked.connect(self._on_footer_clicked)
         try:
             self.widgetLayout.removeWidget(self.stackedWidget)
             column = QVBoxLayout()
@@ -493,7 +493,16 @@ class MainWindow(FluentWindow):
         else:
             text, color = describe_region(self._server_statuses.get(region))
             self.server_footer.set_state(label, text, color)
+        self.bdo_page.set_region(label)
         self._update_dashboard_bdo()
+
+    def _on_footer_clicked(self) -> None:
+        # Senza chiave la scheda BDO ripete solo lo stesso messaggio "configura la
+        # chiave": conviene portare direttamente dove si inserisce, in Impostazioni.
+        if get_setting(self.conn, API_KEY_SETTING):
+            self.switchTo(self.bdo_page)
+        else:
+            self.switchTo(self.settings_page)
 
     def _update_dashboard_bdo(self) -> None:
         region = self._server_region()

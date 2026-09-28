@@ -6,6 +6,14 @@ usa il programma, non i dettagli tecnici del come."""
 
 CHANGELOG: list[dict] = [
     {
+        "version": "2.2.3",
+        "date": "28-09-2026",
+        "notes": [
+            "Footer \"Stato server\": senza chiave API il click ora apre direttamente Impostazioni (dove si inserisce la chiave) invece della scheda BDO, che senza chiave ripeteva solo lo stesso avviso.",
+            "Scheda BDO: sotto i timer di reset/boss ora c'è scritto il nome vero della regione usata (es. \"Europa (PC)\"), non più la frase \"quella scelta nel footer\".",
+        ],
+    },
+    {
         "version": "2.2.2",
         "date": "28-09-2026",
         "notes": [

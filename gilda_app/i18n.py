@@ -483,8 +483,8 @@ STRINGS: dict[str, dict[str, str]] = {
     "bdo.boss_in": {"it": "tra {time}", "en": "in {time}"},
     "bdo.boss_previous": {"it": "Ultimo comparso: {names} alle {time}", "en": "Last spawned: {names} at {time}"},
     "bdo.timers_hint": {
-        "it": "Orari nel fuso orario di questo computer. Regione: quella scelta nel footer.",
-        "en": "Times in this computer's time zone. Region: the one chosen in the footer.",
+        "it": "Orari nel fuso orario di questo computer. Regione: {region}.",
+        "en": "Times in this computer's time zone. Region: {region}.",
     },
     "dash.bdo_timers": {"it": "Timer BDO", "en": "BDO timers"},
     "dash.next_boss": {"it": "Prossimo boss: {names} alle {time} (tra {left})", "en": "Next boss: {names} at {time} (in {left})"},
