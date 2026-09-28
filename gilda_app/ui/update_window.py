@@ -128,6 +128,8 @@ def run_apply_mode(args: list[str], close_splash=lambda: None) -> int:
     window = UpdateProgressWindow()
     window.set_progress(PREPARE_END, tr("update.step.wait"))
     window.show()
+    window.raise_()
+    window.activateWindow()
     close_splash()
     app.processEvents()
 

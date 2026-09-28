@@ -6,6 +6,13 @@ usa il programma, non i dettagli tecnici del come."""
 
 CHANGELOG: list[dict] = [
     {
+        "version": "2.3.1",
+        "date": "28-09-2026",
+        "notes": [
+            "Aggiornamento automatico: la schermata con la barra di avanzamento non passa più in secondo piano nel momento del passaggio tra il programma vecchio e quello nuovo.",
+        ],
+    },
+    {
         "version": "2.3",
         "date": "28-09-2026",
         "notes": [

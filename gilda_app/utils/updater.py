@@ -142,7 +142,18 @@ def relaunch(app_dir: Path) -> None:
 def _spawn(exe: Path, args: list[str]) -> None:
     # PYINSTALLER_RESET_ENVIRONMENT: senza, il figlio riusa le librerie temporanee del padre.
     env = dict(os.environ, PYINSTALLER_RESET_ENVIRONMENT="1")
-    subprocess.Popen([str(exe), *args], cwd=str(exe.parent), env=env, close_fds=True)
+    process = subprocess.Popen([str(exe), *args], cwd=str(exe.parent), env=env, close_fds=True)
+    if os.name == "nt":
+        # Senza questo, Windows lascia la finestra del processo appena avviato dietro le
+        # altre (o lampeggiante in barra) invece di portarla in primo piano: solo il
+        # processo che ha già il fuoco può "regalarlo" a un altro, e qui è ancora questo
+        # (il vecchio, prima di chiudersi) a averlo.
+        try:
+            import ctypes
+
+            ctypes.windll.user32.AllowSetForegroundWindow(process.pid)
+        except OSError:
+            pass
 
 
 # -- fase 2: sostituzione ------------------------------------------------------
