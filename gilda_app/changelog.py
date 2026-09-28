@@ -6,56 +6,14 @@ usa il programma, non i dettagli tecnici del come."""
 
 CHANGELOG: list[dict] = [
     {
-        "version": "2.2.7",
+        "version": "2.3",
         "date": "28-09-2026",
         "notes": [
-            "Profilo BDO: tolto lo \"Storico gilda\" appena aggiunto. Il servizio esterno registra da quando ha iniziato a monitorare la gilda (24-09-2026), non da quando un membro è davvero entrato: per chi era già dentro da prima la data risultava sbagliata e fuorviante. Resta solo lo storico inserito a mano nella scheda del membro.",
-        ],
-    },
-    {
-        "version": "2.2.6",
-        "date": "28-09-2026",
-        "notes": [
-            "Profilo BDO: elenco completo dei personaggi (non più troncato a 12), raggruppati per classe e ordinati per livello, con i nomi.",
-            "Profilo BDO: nuove sezioni \"Vite da mestierante\" (raccolta, pesca, lavorazione...) e \"Storico gilda\" (con le date di ingresso e uscita, quando note).",
-            "Profilo BDO: la finestra ora scorre invece di crescere all'infinito quando il profilo ha molti dati.",
-        ],
-    },
-    {
-        "version": "2.2.5",
-        "date": "28-09-2026",
-        "notes": [
-            "Impostazioni: \"Importa\" ed \"Esporta\" ora hanno una sezione propria (\"Scambio dati con Excel\", con una breve spiegazione) spostata più in basso, sotto Backup, essendo una funzione usata di rado.",
-        ],
-    },
-    {
-        "version": "2.2.4",
-        "date": "28-09-2026",
-        "notes": [
-            "Impostazioni: pulsanti \"Importa\" ed \"Esporta\" affiancati nella stessa larghezza normale, invece di due file larghi quanto la finestra; anche \"Azzera database\", \"Storico modifiche\" e \"Controlla aggiornamenti\" sono ora pulsanti di dimensione normale.",
-        ],
-    },
-    {
-        "version": "2.2.3",
-        "date": "28-09-2026",
-        "notes": [
-            "Footer \"Stato server\": senza chiave API il click ora apre direttamente Impostazioni (dove si inserisce la chiave) invece della scheda BDO, che senza chiave ripeteva solo lo stesso avviso.",
-            "Scheda BDO: sotto i timer di reset/boss ora c'è scritto il nome vero della regione usata (es. \"Europa (PC)\"), non più la frase \"quella scelta nel footer\".",
-        ],
-    },
-    {
-        "version": "2.2.2",
-        "date": "28-09-2026",
-        "notes": [
-            "Scheda BDO: la pagina ora scorre, non restano più tagliate le news in fondo quando sono tante.",
+            "Profilo BDO: elenco completo dei personaggi (non più troncato a 12), raggruppati per classe e ordinati per livello, con i nomi; nuova sezione \"Vite da mestierante\" (raccolta, pesca, lavorazione...); la finestra ora scorre invece di crescere all'infinito. L'attesa per un profilo non ancora in memoria arriva fino a 30 secondi (prima si interrompeva dopo pochi secondi mostrando \"Servizio non raggiungibile\").",
+            "Scheda BDO: la pagina ora scorre, non restano più tagliate le news in fondo quando sono tante; sotto i timer di reset/boss c'è scritto il nome vero della regione usata (es. \"Europa (PC)\"), non più \"quella scelta nel footer\".",
+            "Footer \"Stato server\": senza chiave API il click apre direttamente Impostazioni (dove si inserisce la chiave) invece della scheda BDO.",
             "La finestra non si può più restringere al punto da nascondere il pulsante \"Impostazioni\" nel menù laterale.",
-        ],
-    },
-    {
-        "version": "2.2.1",
-        "date": "26-09-2026",
-        "notes": [
-            "Profilo BDO: il servizio impiega circa 6 secondi a recuperare un profilo non ancora in memoria e il programma smetteva di aspettare troppo presto, mostrando \"Servizio non raggiungibile\". Ora aspetta fino a 30 secondi, e in caso di risposta inattesa mostra un messaggio invece di restare su \"Caricamento...\".",
+            "Impostazioni riorganizzate: pulsanti di dimensione normale invece che larghi quanto la finestra (affiancati dove ha senso, es. Importa/Esporta); \"Importa\"/\"Esporta\" hanno ora una sezione propria (\"Scambio dati con Excel\") spostata più in basso, sotto Backup.",
         ],
     },
     {
