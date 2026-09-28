@@ -121,6 +121,10 @@ class MainWindow(FluentWindow):
 
         self.setWindowTitle(f"{tr('window.title')} v{__version__}")
         self.resize(1100, 720)
+        # Sotto questa altezza il pannello di navigazione non fa più stare "Impostazioni"
+        # (in fondo, posizione BOTTOM) dentro la finestra: qfluentwidgets non lo scorre,
+        # resta semplicemente fuori dai bordi. 680 lascia un margine sopra la soglia reale (~650px).
+        self.setMinimumSize(960, 680)
         self._setup_title_bar()
         QShortcut(QKeySequence.Find, self, activated=self._on_global_search)
 

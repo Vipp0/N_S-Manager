@@ -6,6 +6,14 @@ usa il programma, non i dettagli tecnici del come."""
 
 CHANGELOG: list[dict] = [
     {
+        "version": "2.2.2",
+        "date": "28-09-2026",
+        "notes": [
+            "Scheda BDO: la pagina ora scorre, non restano più tagliate le news in fondo quando sono tante.",
+            "La finestra non si può più restringere al punto da nascondere il pulsante \"Impostazioni\" nel menù laterale.",
+        ],
+    },
+    {
         "version": "2.2.1",
         "date": "26-09-2026",
         "notes": [

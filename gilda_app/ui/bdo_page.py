@@ -2,8 +2,8 @@ import html
 from datetime import date, datetime, timezone
 
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtWidgets import QGridLayout, QHBoxLayout, QLabel, QVBoxLayout, QWidget
-from qfluentwidgets import CardWidget, CaptionLabel, FluentIcon as FIF, PushButton, StrongBodyLabel, SubtitleLabel
+from PySide6.QtWidgets import QFrame, QGridLayout, QHBoxLayout, QLabel, QVBoxLayout, QWidget
+from qfluentwidgets import CardWidget, CaptionLabel, FluentIcon as FIF, PushButton, ScrollArea, StrongBodyLabel, SubtitleLabel
 
 from gilda_app.i18n import tr
 from gilda_app.ui.server_status_footer import COLOR_MAINTENANCE, COLOR_UNKNOWN, describe_error, describe_region
@@ -60,7 +60,23 @@ class BdoPage(QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        layout = QVBoxLayout(self)
+        # Contenuto scorrevole: con tutte le card (stato, reset/boss, gilda, news) la
+        # pagina supera facilmente l'altezza della finestra, e senza questo le news in
+        # fondo restavano tagliate invece di essere raggiungibili scorrendo.
+        content = QWidget()
+        content.setObjectName("bdoContent")
+        content.setStyleSheet("#bdoContent { background: transparent; }")
+        scroll = ScrollArea(self)
+        scroll.setWidget(content)
+        scroll.setWidgetResizable(True)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        scroll.enableTransparentBackground()
+        scroll.setFrameShape(QFrame.NoFrame)
+        outer = QVBoxLayout(self)
+        outer.setContentsMargins(0, 0, 0, 0)
+        outer.addWidget(scroll)
+
+        layout = QVBoxLayout(content)
         layout.setContentsMargins(24, 20, 24, 20)
         layout.setSpacing(16)
         layout.addWidget(SubtitleLabel(tr("bdo.title"), self))
