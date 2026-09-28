@@ -6,6 +6,15 @@ usa il programma, non i dettagli tecnici del come."""
 
 CHANGELOG: list[dict] = [
     {
+        "version": "2.2.6",
+        "date": "28-09-2026",
+        "notes": [
+            "Profilo BDO: elenco completo dei personaggi (non più troncato a 12), raggruppati per classe e ordinati per livello, con i nomi.",
+            "Profilo BDO: nuove sezioni \"Vite da mestierante\" (raccolta, pesca, lavorazione...) e \"Storico gilda\" (con le date di ingresso e uscita, quando note).",
+            "Profilo BDO: la finestra ora scorre invece di crescere all'infinito quando il profilo ha molti dati.",
+        ],
+    },
+    {
         "version": "2.2.5",
         "date": "28-09-2026",
         "notes": [

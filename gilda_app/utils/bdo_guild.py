@@ -92,6 +92,21 @@ class Character:
 
 
 @dataclass
+class LifeSkill:
+    name: str
+    rank: str
+    level: int
+    mastery: int
+
+
+@dataclass
+class GuildHistoryEntry:
+    guild_name: str
+    joined_at: str | None  # ISO, es. "2026-09-24T07:27:12": si mostra con iso_to_display
+    left_at: str | None  # None = tuttora in quella gilda
+
+
+@dataclass
 class PlayerProfile:
     family_name: str
     guild: str | None
@@ -101,12 +116,24 @@ class PlayerProfile:
     contribution_points: int | None
     family_created: date | None
     characters: list[Character] = field(default_factory=list)
+    life_skills: list[LifeSkill] = field(default_factory=list)
+    guild_history: list[GuildHistoryEntry] = field(default_factory=list)
 
     def main_character(self) -> Character | None:
         for character in self.characters:
             if character.is_main:
                 return character
         return max(self.characters, key=lambda c: c.level, default=None)
+
+    def characters_by_class(self) -> list[tuple[str, list[Character]]]:
+        """Personaggi raggruppati per classe (ordine alfabetico della classe), con quelli
+        di ogni classe dal livello più alto al più basso."""
+        groups: dict[str, list[Character]] = {}
+        for character in self.characters:
+            groups.setdefault(character.char_class, []).append(character)
+        for members in groups.values():
+            members.sort(key=lambda c: c.level, reverse=True)
+        return sorted(groups.items(), key=lambda item: item[0].casefold())
 
 
 def _int(value) -> int | None:
@@ -137,6 +164,27 @@ def parse_player(payload: dict) -> PlayerProfile:
                     is_main=bool(raw.get("is_main")),
                 )
             )
+    life_skills = []
+    for raw in payload.get("life_skills") or []:
+        if isinstance(raw, dict) and isinstance(raw.get("skill_name"), str):
+            life_skills.append(
+                LifeSkill(
+                    name=raw["skill_name"],
+                    rank=str(raw.get("level_rank") or ""),
+                    level=_int(raw.get("level_num")) or 0,
+                    mastery=_int(raw.get("mastery")) or 0,
+                )
+            )
+    guild_history = []
+    for raw in payload.get("guild_history") or []:
+        if isinstance(raw, dict) and isinstance(raw.get("guild_name"), str):
+            guild_history.append(
+                GuildHistoryEntry(
+                    guild_name=raw["guild_name"],
+                    joined_at=raw.get("joined_at") if isinstance(raw.get("joined_at"), str) else None,
+                    left_at=raw.get("left_at") if isinstance(raw.get("left_at"), str) else None,
+                )
+            )
     guild = payload.get("guild")
     return PlayerProfile(
         family_name=family,
@@ -147,6 +195,8 @@ def parse_player(payload: dict) -> PlayerProfile:
         contribution_points=_int(payload.get("contribution_points")),
         family_created=_parse_created(payload.get("family_created")),
         characters=characters,
+        life_skills=life_skills,
+        guild_history=guild_history,
     )
 
 

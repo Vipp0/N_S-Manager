@@ -2,9 +2,9 @@ import html
 import threading
 from dataclasses import dataclass
 
-from PySide6.QtCore import QObject, Qt, Signal
-from PySide6.QtWidgets import QLabel
-from qfluentwidgets import MessageBoxBase, SubtitleLabel
+from PySide6.QtCore import QObject, QTimer, Qt, Signal
+from PySide6.QtWidgets import QFrame, QLabel, QVBoxLayout, QWidget
+from qfluentwidgets import MessageBoxBase, ScrollArea, SubtitleLabel
 
 from gilda_app.i18n import tr
 from gilda_app.ui.server_status_footer import describe_error
@@ -12,7 +12,7 @@ from gilda_app.utils.bdo_guild import GuildInfo, PlayerProfile, fetch_player
 from gilda_app.utils.bdoalerts_api import ERROR_BAD_RESPONSE, ApiError
 from gilda_app.utils.date_format import iso_to_display
 
-CHARACTERS_SHOWN = 12
+DIALOG_MAX_HEIGHT = 520
 
 
 @dataclass
@@ -39,13 +39,27 @@ class PlayerProfileDialog(MessageBoxBase):
         self._family_name = family_name
 
         self.viewLayout.addWidget(SubtitleLabel(tr("bdo.profile.title", name=family_name), self))
-        self._body = QLabel(tr("bdo.profile.loading"), self)
+
+        # Scorrevole: con classi, vite da mestierante e storico gilda il contenuto supera
+        # facilmente l'altezza di un popup normale, soprattutto per chi ha tanti personaggi.
+        content = QWidget(self)
+        content_layout = QVBoxLayout(content)
+        content_layout.setContentsMargins(0, 0, 0, 0)
+        self._body = QLabel(tr("bdo.profile.loading"), content)
         self._body.setTextFormat(Qt.RichText)
         self._body.setWordWrap(True)
         self._body.setMinimumHeight(120)
-        self.viewLayout.addWidget(self._body)
+        content_layout.addWidget(self._body)
+        self._scroll = ScrollArea(self)
+        self._scroll.setWidget(content)
+        self._scroll.setWidgetResizable(True)
+        self._scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self._scroll.enableTransparentBackground()
+        self._scroll.setFrameShape(QFrame.NoFrame)
+        self._scroll.setFixedHeight(120)  # ridimensionata al testo vero non appena carica (_fit_scroll)
+        self.viewLayout.addWidget(self._scroll)
 
-        self.widget.setMinimumWidth(480)
+        self.widget.setMinimumWidth(560)
         self.yesButton.setText(tr("button.close"))
         self.cancelButton.hide()
 
@@ -65,8 +79,17 @@ class PlayerProfileDialog(MessageBoxBase):
     def _on_loaded(self, result) -> None:
         if isinstance(result, str):
             self._body.setText(html.escape(describe_error(result)[0]))
-            return
-        self._body.setText(self._render(result))
+        else:
+            self._body.setText(self._render(result))
+        # Il testo appena cambiato non ha ancora l'altezza definitiva finché il layout non
+        # gira un'altra volta: si rimanda di un giro di eventi, altrimenti si misura quella
+        # vecchia (quella di "Caricamento...", molto più corta).
+        QTimer.singleShot(0, self._fit_scroll)
+
+    def _fit_scroll(self) -> None:
+        width = self._body.width() or self._scroll.viewport().width()
+        height = self._body.heightForWidth(width) if width > 0 else self._body.sizeHint().height()
+        self._scroll.setFixedHeight(min(max(height, 60) + 12, DIALOG_MAX_HEIGHT))
 
     def _render(self, profile: PlayerProfile) -> str:
         rows: list[tuple[str, str]] = []
@@ -96,12 +119,40 @@ class PlayerProfileDialog(MessageBoxBase):
             f"<tr><td>{html.escape(a)}</td><td>&nbsp;&nbsp;<b>{html.escape(b)}</b></td></tr>" for a, b in rows
         ) + "</table>"
 
-        ordered = sorted(profile.characters, key=lambda c: (not c.is_main, -c.level))
-        shown = [f"{html.escape(c.char_class)} {c.level}" for c in ordered[:CHARACTERS_SHOWN]]
-        if shown:
-            more = len(ordered) - CHARACTERS_SHOWN
-            suffix = f" … +{more}" if more > 0 else ""
-            body += f"<p style='color: #8a8886;'>{', '.join(shown)}{suffix}</p>"
+        if profile.characters:
+            body += f"<p style='margin-bottom:2px;'><b>{html.escape(tr('bdo.profile.characters'))}</b></p>"
+            for char_class, members in profile.characters_by_class():
+                names = ", ".join(f"{html.escape(c.name)} {c.level}" for c in members)
+                body += f"<p style='margin:0 0 2px 0;'><b>{html.escape(char_class)}</b> &nbsp;{names}</p>"
+
+        if profile.life_skills:
+            body += f"<p style='margin:10px 0 2px 0;'><b>{html.escape(tr('bdo.profile.life_skills'))}</b></p>"
+            body += "<table cellspacing='4'>" + "".join(
+                f"<tr><td>{html.escape(skill.name)}</td>"
+                f"<td>&nbsp;&nbsp;{html.escape(tr('bdo.profile.life_skill_value', rank=skill.rank, level=skill.level))}"
+                f" &nbsp;<span style='color: #8a8886;'>"
+                f"({html.escape(tr('bdo.profile.life_skill_mastery', mastery=skill.mastery))})</span></td></tr>"
+                for skill in profile.life_skills
+            ) + "</table>"
+
+        if profile.guild_history:
+            body += f"<p style='margin:10px 0 2px 0;'><b>{html.escape(tr('bdo.profile.guild_history'))}</b></p>"
+            unknown = tr("bdo.profile.unknown_date")
+            lines = []
+            for entry in profile.guild_history:
+                joined = iso_to_display(entry.joined_at) if entry.joined_at else unknown
+                if entry.left_at is None:
+                    text = tr("bdo.profile.guild_history_current", guild=entry.guild_name, joined=joined)
+                else:
+                    text = tr(
+                        "bdo.profile.guild_history_past",
+                        guild=entry.guild_name,
+                        joined=joined,
+                        left=iso_to_display(entry.left_at),
+                    )
+                lines.append(html.escape(text))
+            body += "<br>".join(lines)
+
         if profile.is_private:
-            body += f"<p style='color: #8a8886;'>{html.escape(tr('bdo.profile.private_note'))}</p>"
+            body += f"<p style='color: #8a8886; margin-top:10px;'>{html.escape(tr('bdo.profile.private_note'))}</p>"
         return body
