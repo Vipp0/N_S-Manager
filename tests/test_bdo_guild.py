@@ -78,6 +78,65 @@ def test_parse_player_missing_fields_and_garbage():
         parse_player({"status": "fresh"})
 
 
+def test_parse_player_life_skills_and_guild_history():
+    payload = dict(
+        PLAYER,
+        life_skills=[
+            {"skill_name": "Fishing", "level_rank": "Guru", "level_num": 21, "mastery": 2164},
+            {"skill_name": "Barter", "level_rank": "Professional", "level_num": 1, "mastery": 0},
+        ],
+        guild_history=[
+            {"guild_name": "Vecchia_Gilda", "joined_at": "2020-01-01T00:00:00", "left_at": "2021-06-15T00:00:00"},
+            {"guild_name": "Gilda_Finta", "joined_at": "2026-09-24T07:27:12", "left_at": None},
+        ],
+    )
+    profile = parse_player(payload)
+    assert [s.name for s in profile.life_skills] == ["Fishing", "Barter"]
+    fishing = profile.life_skills[0]
+    assert (fishing.rank, fishing.level, fishing.mastery) == ("Guru", 21, 2164)
+    assert [(h.guild_name, h.joined_at, h.left_at) for h in profile.guild_history] == [
+        ("Vecchia_Gilda", "2020-01-01T00:00:00", "2021-06-15T00:00:00"),
+        ("Gilda_Finta", "2026-09-24T07:27:12", None),
+    ]
+
+
+def test_parse_player_ignores_garbage_life_skills_and_guild_history():
+    payload = dict(
+        PLAYER,
+        life_skills=["not a dict", {"level_rank": "Guru"}, {"skill_name": "Fishing", "level_rank": "Guru"}],
+        guild_history=[123, {"joined_at": "2020-01-01"}, {"guild_name": "X", "joined_at": None, "left_at": None}],
+    )
+    profile = parse_player(payload)
+    assert len(profile.life_skills) == 1 and profile.life_skills[0].name == "Fishing"
+    assert profile.life_skills[0].level == 0 and profile.life_skills[0].mastery == 0
+    assert len(profile.guild_history) == 1 and profile.guild_history[0].guild_name == "X"
+
+
+def test_parse_player_missing_fields_has_empty_life_skills_and_history():
+    profile = parse_player({"family_name": "Solo"})
+    assert profile.life_skills == [] and profile.guild_history == []
+
+
+def test_characters_by_class_groups_alphabetically_and_sorts_by_level_desc():
+    payload = dict(
+        PLAYER,
+        characters=[
+            {"character_name": "Low", "character_class": "Lahn", "level": 10, "is_main": False},
+            {"character_name": "High", "character_class": "Lahn", "level": 66, "is_main": True},
+            {"character_name": "OnlyShai", "character_class": "Shai", "level": 60, "is_main": False},
+        ],
+    )
+    profile = parse_player(payload)
+    groups = profile.characters_by_class()
+    assert [cls for cls, _ in groups] == ["Lahn", "Shai"]
+    lahn_names = [c.name for _, members in groups if members[0].char_class == "Lahn" for c in members]
+    assert lahn_names == ["High", "Low"]  # per livello decrescente, non per ordine d'arrivo
+
+
+def test_characters_by_class_empty_without_characters():
+    assert parse_player({"family_name": "Solo"}).characters_by_class() == []
+
+
 def test_fetch_player_waits_longer_than_default_timeout():
     from unittest.mock import patch
 
