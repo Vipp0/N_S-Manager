@@ -6,6 +6,13 @@ usa il programma, non i dettagli tecnici del come."""
 
 CHANGELOG: list[dict] = [
     {
+        "version": "2.2.4",
+        "date": "28-09-2026",
+        "notes": [
+            "Impostazioni: pulsanti \"Importa\" ed \"Esporta\" affiancati nella stessa larghezza normale, invece di due file larghi quanto la finestra; anche \"Azzera database\", \"Storico modifiche\" e \"Controlla aggiornamenti\" sono ora pulsanti di dimensione normale.",
+        ],
+    },
+    {
         "version": "2.2.3",
         "date": "28-09-2026",
         "notes": [
