@@ -6,6 +6,13 @@ usa il programma, non i dettagli tecnici del come."""
 
 CHANGELOG: list[dict] = [
     {
+        "version": "2.2.5",
+        "date": "28-09-2026",
+        "notes": [
+            "Impostazioni: \"Importa\" ed \"Esporta\" ora hanno una sezione propria (\"Scambio dati con Excel\", con una breve spiegazione) spostata più in basso, sotto Backup, essendo una funzione usata di rado.",
+        ],
+    },
+    {
         "version": "2.2.4",
         "date": "28-09-2026",
         "notes": [

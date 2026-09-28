@@ -231,6 +231,11 @@ STRINGS: dict[str, dict[str, str]] = {
         "it": "Impossibile controllare gli aggiornamenti: nessuna connessione o GitHub non raggiungibile.",
         "en": "Could not check for updates: no connection or GitHub unreachable.",
     },
+    "settings.data_title": {"it": "Scambio dati con Excel", "en": "Excel data exchange"},
+    "settings.data_hint": {
+        "it": "Importa i membri da un file Excel esistente, oppure esporta quelli già nel programma in un nuovo file Excel.",
+        "en": "Import members from an existing Excel file, or export the ones already in the program to a new Excel file.",
+    },
     "settings.import": {"it": "Importa da Excel...", "en": "Import from Excel..."},
     "settings.export": {"it": "Esporta in Excel...", "en": "Export to Excel..."},
     "settings.reset": {"it": "Azzera database", "en": "Reset database"},
