@@ -6,6 +6,13 @@ usa il programma, non i dettagli tecnici del come."""
 
 CHANGELOG: list[dict] = [
     {
+        "version": "2.2.7",
+        "date": "28-09-2026",
+        "notes": [
+            "Profilo BDO: tolto lo \"Storico gilda\" appena aggiunto. Il servizio esterno registra da quando ha iniziato a monitorare la gilda (24-09-2026), non da quando un membro è davvero entrato: per chi era già dentro da prima la data risultava sbagliata e fuorviante. Resta solo lo storico inserito a mano nella scheda del membro.",
+        ],
+    },
+    {
         "version": "2.2.6",
         "date": "28-09-2026",
         "notes": [

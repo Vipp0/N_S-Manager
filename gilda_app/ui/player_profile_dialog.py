@@ -135,24 +135,6 @@ class PlayerProfileDialog(MessageBoxBase):
                 for skill in profile.life_skills
             ) + "</table>"
 
-        if profile.guild_history:
-            body += f"<p style='margin:10px 0 2px 0;'><b>{html.escape(tr('bdo.profile.guild_history'))}</b></p>"
-            unknown = tr("bdo.profile.unknown_date")
-            lines = []
-            for entry in profile.guild_history:
-                joined = iso_to_display(entry.joined_at) if entry.joined_at else unknown
-                if entry.left_at is None:
-                    text = tr("bdo.profile.guild_history_current", guild=entry.guild_name, joined=joined)
-                else:
-                    text = tr(
-                        "bdo.profile.guild_history_past",
-                        guild=entry.guild_name,
-                        joined=joined,
-                        left=iso_to_display(entry.left_at),
-                    )
-                lines.append(html.escape(text))
-            body += "<br>".join(lines)
-
         if profile.is_private:
             body += f"<p style='color: #8a8886; margin-top:10px;'>{html.escape(tr('bdo.profile.private_note'))}</p>"
         return body

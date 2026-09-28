@@ -100,13 +100,6 @@ class LifeSkill:
 
 
 @dataclass
-class GuildHistoryEntry:
-    guild_name: str
-    joined_at: str | None  # ISO, es. "2026-09-24T07:27:12": si mostra con iso_to_display
-    left_at: str | None  # None = tuttora in quella gilda
-
-
-@dataclass
 class PlayerProfile:
     family_name: str
     guild: str | None
@@ -117,7 +110,10 @@ class PlayerProfile:
     family_created: date | None
     characters: list[Character] = field(default_factory=list)
     life_skills: list[LifeSkill] = field(default_factory=list)
-    guild_history: list[GuildHistoryEntry] = field(default_factory=list)
+    # Niente "storico gilda": l'API lo popola solo da quando bdoalerts.net ha iniziato a
+    # seguire la gilda (24-09-2026), non da quando un membro è davvero entrato in game.
+    # Per chi era già dentro da prima, la data risulta quella d'inizio monitoraggio, non
+    # l'ingresso reale: fuorviante, meglio restare solo sullo storico inserito a mano.
 
     def main_character(self) -> Character | None:
         for character in self.characters:
@@ -175,16 +171,6 @@ def parse_player(payload: dict) -> PlayerProfile:
                     mastery=_int(raw.get("mastery")) or 0,
                 )
             )
-    guild_history = []
-    for raw in payload.get("guild_history") or []:
-        if isinstance(raw, dict) and isinstance(raw.get("guild_name"), str):
-            guild_history.append(
-                GuildHistoryEntry(
-                    guild_name=raw["guild_name"],
-                    joined_at=raw.get("joined_at") if isinstance(raw.get("joined_at"), str) else None,
-                    left_at=raw.get("left_at") if isinstance(raw.get("left_at"), str) else None,
-                )
-            )
     guild = payload.get("guild")
     return PlayerProfile(
         family_name=family,
@@ -196,7 +182,6 @@ def parse_player(payload: dict) -> PlayerProfile:
         family_created=_parse_created(payload.get("family_created")),
         characters=characters,
         life_skills=life_skills,
-        guild_history=guild_history,
     )
 
 
