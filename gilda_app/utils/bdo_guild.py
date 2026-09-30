@@ -103,6 +103,7 @@ class LifeSkill:
 class PlayerProfile:
     family_name: str
     guild: str | None
+    guild_private: bool  # gilda nascosta dal giocatore: guild è None ma non è detto che non ne abbia una
     is_private: bool
     max_gear_score: int | None
     energy: int | None
@@ -175,6 +176,7 @@ def parse_player(payload: dict) -> PlayerProfile:
     return PlayerProfile(
         family_name=family,
         guild=guild if isinstance(guild, str) and guild else None,
+        guild_private=bool(payload.get("guild_private")),
         is_private=bool(payload.get("is_private")),
         max_gear_score=_int(payload.get("max_gear_score")),
         energy=_int(payload.get("energy")),

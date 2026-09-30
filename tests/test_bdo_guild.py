@@ -55,6 +55,7 @@ def test_parse_player():
     profile = parse_player(PLAYER)
     assert profile.family_name == "AliceX"
     assert profile.guild == "Gilda_Finta"
+    assert profile.guild_private is False
     assert profile.is_private is True
     assert profile.max_gear_score == 700
     assert profile.family_created == date(2018, 1, 26)
@@ -73,8 +74,18 @@ def test_parse_player_without_main_uses_highest_level():
 def test_parse_player_missing_fields_and_garbage():
     profile = parse_player({"family_name": "Solo"})
     assert profile.guild is None and profile.max_gear_score is None and profile.main_character() is None
+    assert profile.guild_private is False
     with pytest.raises(ApiError):
         parse_player({"status": "fresh"})
+
+
+def test_parse_player_guild_private_distinguished_from_no_guild():
+    # gilda nascosta dal giocatore: non è detto che non ne abbia una, va distinto da "nessuna gilda"
+    hidden = parse_player(dict(PLAYER, guild=None, guild_private=True))
+    assert hidden.guild is None and hidden.guild_private is True
+
+    none_at_all = parse_player(dict(PLAYER, guild=None, guild_private=False))
+    assert none_at_all.guild is None and none_at_all.guild_private is False
 
 
 def test_parse_player_life_skills():

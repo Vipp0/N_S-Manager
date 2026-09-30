@@ -100,6 +100,8 @@ class PlayerProfileDialog(MessageBoxBase):
             if ctx.guild_name and profile.guild.casefold() == ctx.guild_name.casefold():
                 text += " — " + tr("bdo.profile.role_master" if master else "bdo.profile.role_member")
             rows.append((tr("bdo.profile.guild"), text))
+        elif profile.guild_private:
+            rows.append((tr("bdo.profile.guild"), tr("bdo.profile.guild_unknown")))
         else:
             rows.append((tr("bdo.profile.guild"), tr("bdo.profile.no_guild")))
         main = profile.main_character()

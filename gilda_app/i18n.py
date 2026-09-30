@@ -535,6 +535,7 @@ STRINGS: dict[str, dict[str, str]] = {
     },
     "bdo.profile.guild": {"it": "Gilda", "en": "Guild"},
     "bdo.profile.no_guild": {"it": "Nessuna gilda", "en": "No guild"},
+    "bdo.profile.guild_unknown": {"it": "Sconosciuta (profilo privato)", "en": "Unknown (private profile)"},
     "bdo.profile.role_master": {"it": "Guild Master", "en": "Guild Master"},
     "bdo.profile.role_member": {"it": "membro", "en": "member"},
     "bdo.profile.main": {"it": "Personaggio principale", "en": "Main character"},

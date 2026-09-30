@@ -6,6 +6,13 @@ usa il programma, non i dettagli tecnici del come."""
 
 CHANGELOG: list[dict] = [
     {
+        "version": "2.4.1",
+        "date": "30-09-2026",
+        "notes": [
+            "Profilo BDO: se il giocatore ha nascosto la gilda dal proprio profilo, ora compare \"Sconosciuta (profilo privato)\" invece di \"Nessuna gilda\", che avrebbe fatto pensare non ne avesse una.",
+        ],
+    },
+    {
         "version": "2.4",
         "date": "30-09-2026",
         "notes": [
