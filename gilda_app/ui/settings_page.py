@@ -158,6 +158,10 @@ class SettingsPage(QWidget):
 
         reset_card = CardWidget(self)
         reset_layout = QVBoxLayout(reset_card)
+        reset_layout.addWidget(StrongBodyLabel(tr("settings.reset_title"), reset_card))
+        reset_hint = QLabel(tr("settings.reset_hint"), reset_card)
+        reset_hint.setWordWrap(True)
+        reset_layout.addWidget(reset_hint)
         reset_btn = PushButton(FIF.DELETE, tr("settings.reset"), reset_card)
         # Aggiunge il colore al QSS esistente di qfluentwidgets invece di sovrascriverlo:
         # setStyleSheet sostituisce l'intero stylesheet del pulsante (incluso il padding

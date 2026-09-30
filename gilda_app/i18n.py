@@ -239,6 +239,11 @@ STRINGS: dict[str, dict[str, str]] = {
     "settings.import": {"it": "Importa da Excel...", "en": "Import from Excel..."},
     "settings.export": {"it": "Esporta in Excel...", "en": "Export to Excel..."},
     "settings.reset": {"it": "Azzera database", "en": "Reset database"},
+    "settings.reset_title": {"it": "Azzera database", "en": "Reset database"},
+    "settings.reset_hint": {
+        "it": "Cancella tutti i membri e il loro storico (movimenti e cambi di nome). Calendario, note e le altre impostazioni restano invariati. Prima di procedere viene comunque fatta una copia di sicurezza del database.",
+        "en": "Deletes all members and their history (status and name changes). Calendar, notes and the other settings stay unchanged. A safety copy of the database is made first regardless.",
+    },
     "settings.version": {"it": "Night_Shade Manager — versione {version}", "en": "Night_Shade Manager — version {version}"},
     "settings.changelog": {"it": "Changelog", "en": "Changelog"},
     "settings.changelog_button": {"it": "Storico modifiche (changelog)", "en": "Version history (changelog)"},
