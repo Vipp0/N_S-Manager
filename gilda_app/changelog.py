@@ -6,6 +6,13 @@ usa il programma, non i dettagli tecnici del come."""
 
 CHANGELOG: list[dict] = [
     {
+        "version": "2.3.3",
+        "date": "30-09-2026",
+        "notes": [
+            "Dashboard: nuovo avviso rosso in cima quando c'è una manutenzione annunciata (\"Oggi\"/\"Domani\"/la data), cliccabile per aprire la scheda BDO. Sparisce da solo appena lo stato del server segnala che è iniziata, o quando la data è passata.",
+        ],
+    },
+    {
         "version": "2.3.2",
         "date": "30-09-2026",
         "notes": [

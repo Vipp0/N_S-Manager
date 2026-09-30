@@ -45,6 +45,7 @@ from gilda_app.ui.dashboard_page import (
     TILE_SETTINGS,
     TILE_STATS,
     DashboardPage,
+    day_text,
 )
 from gilda_app.ui.changelog_dialog import ChangelogDialog
 from gilda_app.ui.global_search import GlobalSearchDialog
@@ -147,6 +148,7 @@ class MainWindow(FluentWindow):
         self.dashboard_page.add_member_requested.connect(lambda: self._on_add(STATUS_ATTIVO))
         self.dashboard_page.add_event_requested.connect(lambda: self.calendar_page.add_event_today())
         self.dashboard_page.backup_requested.connect(self._on_backup_now)
+        self.dashboard_page.maintenance_clicked.connect(lambda: self.switchTo(self.bdo_page))
         self.addSubInterface(self.dashboard_page, FIF.HOME, tr("nav.dashboard"))
 
         icons = {STATUS_ATTIVO: FIF.PEOPLE, STATUS_EX_MEMBRO: FIF.HISTORY, STATUS_BANNATO: ban_icon()}
@@ -259,6 +261,7 @@ class MainWindow(FluentWindow):
         self._current_day = today
         self.refresh_all()
         self.calendar_page.refresh()
+        self._update_dashboard_bdo()  # "Oggi/Domani" del banner manutenzione segue il nuovo giorno
 
     # -- Festività (aggiornamento in background) --------------------------
     def _start_holiday_refresh(self) -> None:
@@ -312,6 +315,7 @@ class MainWindow(FluentWindow):
         self._server_error: str | None = ERROR_NO_KEY
         self._server_busy = False
         self._upcoming_maintenance: str | None = None
+        self._upcoming_maintenance_date: date | None = None
         self._server_status_signal = _ServerStatusSignal()
         self._server_status_signal.finished.connect(self._on_server_status)
         self._resets = None
@@ -482,9 +486,11 @@ class MainWindow(FluentWindow):
         if isinstance(result, str):
             self.bdo_page.show_news_error(result)
             self._upcoming_maintenance = None
+            self._upcoming_maintenance_date = None
         else:
             self.bdo_page.show_news(result)
             upcoming = upcoming_maintenance(result, date.today())
+            self._upcoming_maintenance_date = upcoming.maintenance_date if upcoming else None
             self._upcoming_maintenance = (
                 tr("bdo.news_upcoming", date=upcoming.maintenance_date.strftime("%d-%m-%Y")) if upcoming else None
             )
@@ -527,12 +533,27 @@ class MainWindow(FluentWindow):
         region = self._server_region()
         if self._server_error:
             self.dashboard_page.set_bdo("", None, [describe_error(self._server_error)[0]])
+            self._update_maintenance_banner(in_maintenance_now=False)
             return
-        text, color = describe_region(self._server_statuses.get(region))
+        region_status = self._server_statuses.get(region)
+        text, color = describe_region(region_status)
         lines = [tr(f"region.{region}")]
         if self._upcoming_maintenance:
             lines.append(self._upcoming_maintenance)
         self.dashboard_page.set_bdo(text, color, lines)
+        self._update_maintenance_banner(in_maintenance_now=bool(region_status and region_status.in_maintenance))
+
+    def _update_maintenance_banner(self, in_maintenance_now: bool) -> None:
+        """Il banner rosso in dashboard avvisa di una manutenzione annunciata ma non
+        ancora iniziata: sparisce da solo appena lo stato live del server (aggiornato ogni
+        5 minuti) segnala che è cominciata, oppure quando la data stessa è passata."""
+        if self._upcoming_maintenance_date is None or in_maintenance_now:
+            self.dashboard_page.set_maintenance_banner(None)
+            return
+        when = day_text(
+            self._upcoming_maintenance_date, date.today(), self._upcoming_maintenance_date.strftime("%d-%m-%Y")
+        )
+        self.dashboard_page.set_maintenance_banner(tr("dash.maintenance_banner", when=when))
 
     def _on_api_key_saved(self, key: str) -> None:
         if key:

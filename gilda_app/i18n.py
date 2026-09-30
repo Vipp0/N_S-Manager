@@ -469,6 +469,10 @@ STRINGS: dict[str, dict[str, str]] = {
     "bdo.server_status": {"it": "Stato dei server", "en": "Server status"},
     "bdo.news_title": {"it": "Avvisi ufficiali (NA/EU)", "en": "Official notices (NA/EU)"},
     "bdo.news_upcoming": {"it": "Manutenzione annunciata per il {date}", "en": "Maintenance announced for {date}"},
+    "dash.maintenance_banner": {
+        "it": "⚠ Manutenzione annunciata: {when}",
+        "en": "⚠ Maintenance announced: {when}",
+    },
     "bdo.news_none_upcoming": {"it": "Nessuna manutenzione annunciata al momento.", "en": "No maintenance announced at the moment."},
     "bdo.news_hint": {
         "it": "Dati dagli avvisi ufficiali. L'orario preciso è nella pagina dell'avviso: clicca sul titolo per aprirla.",

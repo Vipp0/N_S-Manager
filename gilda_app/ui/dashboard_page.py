@@ -55,6 +55,42 @@ def day_text(day: date, today: date, fallback: str) -> str:
     return tr(key) if key else fallback
 
 
+class MaintenanceBanner(CardWidget):
+    """Striscia rossa in cima alla dashboard, visibile solo quando c'è una manutenzione
+    annunciata non ancora iniziata (vedi MainWindow._update_maintenance_banner): niente
+    annuncio, niente striscia, nessuno spazio occupato. Click -> scheda BDO."""
+
+    _COLOR = QColor("#c42b1c")  # stesso rosso di "in manutenzione" nel footer/scheda BDO
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setCursor(Qt.PointingHandCursor)
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(16, 10, 16, 10)
+        self._label = StrongBodyLabel(self)
+        self._label.setStyleSheet(f"color: {self._COLOR.name()};")
+        layout.addWidget(self._label)
+        layout.addStretch(1)
+        self.hide()
+
+    def _tinted(self, alpha: int) -> QColor:
+        return QColor(self._COLOR.red(), self._COLOR.green(), self._COLOR.blue(), alpha)
+
+    def _normalBackgroundColor(self):
+        return self._tinted(30 if isDarkTheme() else 26)
+
+    def _hoverBackgroundColor(self):
+        return self._tinted(45 if isDarkTheme() else 40)
+
+    def _pressedBackgroundColor(self):
+        return self._tinted(55)
+
+    def set_text(self, text: str | None) -> None:
+        self.setVisible(bool(text))
+        if text:
+            self._label.setText(text)
+
+
 class DashboardTile(CardWidget):
     """Riquadro cliccabile: titolo con icona, un valore grande opzionale e qualche riga."""
 
@@ -157,6 +193,7 @@ class DashboardPage(QWidget):
     add_member_requested = Signal()
     add_event_requested = Signal()
     backup_requested = Signal()
+    maintenance_clicked = Signal()
 
     def __init__(
         self,
@@ -197,6 +234,10 @@ class DashboardPage(QWidget):
             header.addWidget(wordmark)
         header.addStretch(1)
         layout.addLayout(header)
+
+        self._maintenance_banner = MaintenanceBanner(self)
+        self._maintenance_banner.clicked.connect(self.maintenance_clicked)
+        layout.addWidget(self._maintenance_banner)
 
         actions = QHBoxLayout()
         add_member = PrimaryPushButton(FIF.ADD, tr("button.add_member"), self)
@@ -378,3 +419,6 @@ class DashboardPage(QWidget):
 
     def set_bdo(self, value: str, color: str | None, lines: list[str]) -> None:
         self._tiles[TILE_BDO].set_content(value, lines, color)
+
+    def set_maintenance_banner(self, text: str | None) -> None:
+        self._maintenance_banner.set_text(text)
