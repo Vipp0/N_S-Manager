@@ -106,7 +106,11 @@ class PlayerProfileDialog(MessageBoxBase):
             rows.append((tr("bdo.profile.guild"), tr("bdo.profile.no_guild")))
         main = profile.main_character()
         if main is not None:
-            rows.append((tr("bdo.profile.main"), tr("bdo.profile.main_value", cls=main.char_class, level=main.level)))
+            if main.level is not None:
+                value = tr("bdo.profile.main_value", cls=main.char_class, level=main.level)
+            else:
+                value = tr("bdo.profile.main_value_unknown_level", cls=main.char_class)
+            rows.append((tr("bdo.profile.main"), value))
         rows.append((tr("bdo.profile.characters"), str(len(profile.characters))))
         if profile.max_gear_score is not None:
             rows.append((tr("bdo.profile.gear_score"), str(profile.max_gear_score)))
@@ -124,8 +128,13 @@ class PlayerProfileDialog(MessageBoxBase):
         if profile.characters:
             body += f"<p style='margin-bottom:2px;'><b>{html.escape(tr('bdo.profile.characters'))}</b></p>"
             for char_class, members in profile.characters_by_class():
-                names = ", ".join(f"{html.escape(c.name)} {c.level}" for c in members)
+                names = ", ".join(
+                    f"{html.escape(c.name)} {c.level}" if c.level is not None else html.escape(c.name)
+                    for c in members
+                )
                 body += f"<p style='margin:0 0 2px 0;'><b>{html.escape(char_class)}</b> &nbsp;{names}</p>"
+            if any(c.level is None for c in profile.characters):
+                body += f"<p style='color: #8a8886; margin:2px 0 0 0;'>{html.escape(tr('bdo.profile.levels_hidden'))}</p>"
 
         if profile.life_skills:
             body += f"<p style='margin:10px 0 2px 0;'><b>{html.escape(tr('bdo.profile.life_skills'))}</b></p>"

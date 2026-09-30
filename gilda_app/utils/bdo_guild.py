@@ -83,11 +83,17 @@ def compare_guild(game_members: list[str], app_names_by_status: dict[str, list[s
 
 
 # -- Giocatore ---------------------------------------------------------------
+def _sort_level(character: "Character") -> int:
+    # Nel gioco il livello minimo è 1: -1 fa restare in fondo chi ha il livello nascosto,
+    # senza fargli un livello 0 come i veri principianti.
+    return character.level if character.level is not None else -1
+
+
 @dataclass
 class Character:
     name: str
     char_class: str
-    level: int
+    level: int | None  # None se nascosto (profilo con gilda privata): mai un vero livello 0
     is_main: bool
 
 
@@ -120,21 +126,30 @@ class PlayerProfile:
         for character in self.characters:
             if character.is_main:
                 return character
-        return max(self.characters, key=lambda c: c.level, default=None)
+        return max(self.characters, key=_sort_level, default=None)
 
     def characters_by_class(self) -> list[tuple[str, list[Character]]]:
         """Personaggi raggruppati per classe (ordine alfabetico della classe), con quelli
-        di ogni classe dal livello più alto al più basso."""
+        di ogni classe dal livello più alto al più basso (quelli col livello nascosto,
+        vedi Character.level, restano in fondo al loro gruppo)."""
         groups: dict[str, list[Character]] = {}
         for character in self.characters:
             groups.setdefault(character.char_class, []).append(character)
         for members in groups.values():
-            members.sort(key=lambda c: c.level, reverse=True)
+            members.sort(key=_sort_level, reverse=True)
         return sorted(groups.items(), key=lambda item: item[0].casefold())
 
 
 def _int(value) -> int | None:
     return value if isinstance(value, int) and not isinstance(value, bool) else None
+
+
+def _character_level(value) -> int | None:
+    # Nel gioco il livello minimo è 1: un livello 0 non è mai un dato vero. L'API lo usa
+    # (in modo incoerente, a volte 0 a volte null per lo stesso personaggio in richieste
+    # diverse) come segnaposto per "non lo so", quindi qui vale come nascosto anche lui.
+    level = _int(value)
+    return level if level else None
 
 
 def _parse_created(text) -> date | None:
@@ -157,7 +172,7 @@ def parse_player(payload: dict) -> PlayerProfile:
                 Character(
                     name=str(raw.get("character_name") or ""),
                     char_class=raw["character_class"],
-                    level=_int(raw.get("level")) or 0,
+                    level=_character_level(raw.get("level")),
                     is_main=bool(raw.get("is_main")),
                 )
             )

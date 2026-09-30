@@ -540,6 +540,14 @@ STRINGS: dict[str, dict[str, str]] = {
     "bdo.profile.role_member": {"it": "membro", "en": "member"},
     "bdo.profile.main": {"it": "Personaggio principale", "en": "Main character"},
     "bdo.profile.main_value": {"it": "{cls}, livello {level}", "en": "{cls}, level {level}"},
+    "bdo.profile.main_value_unknown_level": {
+        "it": "{cls}, livello sconosciuto (profilo privato)",
+        "en": "{cls}, unknown level (private profile)",
+    },
+    "bdo.profile.levels_hidden": {
+        "it": "I livelli dei personaggi non sono visibili: profilo con gilda privata.",
+        "en": "Character levels aren't visible: profile with a private guild.",
+    },
     "bdo.profile.characters": {"it": "Personaggi", "en": "Characters"},
     "bdo.profile.gear_score": {"it": "Gear score massimo", "en": "Max gear score"},
     "bdo.profile.contribution": {"it": "Punti contributo", "en": "Contribution points"},

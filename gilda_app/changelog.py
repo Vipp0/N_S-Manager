@@ -6,6 +6,13 @@ usa il programma, non i dettagli tecnici del come."""
 
 CHANGELOG: list[dict] = [
     {
+        "version": "2.4.2",
+        "date": "30-09-2026",
+        "notes": [
+            "Profilo BDO: quando il livello di un personaggio non è visibile (profilo con gilda privata), non compare più un fuorviante \"livello 0\" (impossibile nel gioco). Il servizio esterno usa in modo incoerente sia 0 sia \"non disponibile\" per lo stesso caso: ora sono trattati allo stesso modo.",
+        ],
+    },
+    {
         "version": "2.4.1",
         "date": "30-09-2026",
         "notes": [

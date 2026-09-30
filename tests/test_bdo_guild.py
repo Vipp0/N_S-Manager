@@ -63,6 +63,36 @@ def test_parse_player():
     assert (main.char_class, main.level) == ("Lahn", 66)
 
 
+def test_parse_player_hidden_level_stays_none_not_zero():
+    # Con la gilda privata l'API restituisce level: null per ogni personaggio: deve
+    # restare sconosciuto, mai un livello 0 (impossibile nel gioco, il minimo è 1).
+    payload = dict(
+        PLAYER,
+        guild=None,
+        guild_private=True,
+        characters=[
+            {"character_name": "a", "character_class": "Lahn", "level": None, "is_main": True},
+            {"character_name": "b", "character_class": "Shai", "level": None, "is_main": False},
+        ],
+    )
+    profile = parse_player(payload)
+    assert all(c.level is None for c in profile.characters)
+    assert profile.main_character().level is None
+    for _cls, members in profile.characters_by_class():
+        assert all(m.level is None for m in members)
+
+
+def test_parse_player_literal_zero_level_treated_as_unknown_too():
+    # L'API a volte manda un vero 0 invece di null per lo stesso "non lo so" (osservato
+    # su richieste diverse per lo stesso personaggio): 0 non è mai un livello reale.
+    payload = dict(
+        PLAYER,
+        characters=[{"character_name": "a", "character_class": "Lahn", "level": 0, "is_main": True}],
+    )
+    profile = parse_player(payload)
+    assert profile.characters[0].level is None
+
+
 def test_parse_player_without_main_uses_highest_level():
     payload = dict(PLAYER, characters=[
         {"character_name": "a", "character_class": "Lahn", "level": 60, "is_main": False},
