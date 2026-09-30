@@ -6,6 +6,13 @@ usa il programma, non i dettagli tecnici del come."""
 
 CHANGELOG: list[dict] = [
     {
+        "version": "2.3.4",
+        "date": "30-09-2026",
+        "notes": [
+            "Avviso rosso di manutenzione in dashboard: quando inizia, il testo diventa \"In manutenzione\" (con il tempo restante) invece di sparire subito, e resta visibile finché il server non torna online da solo.",
+        ],
+    },
+    {
         "version": "2.3.3",
         "date": "30-09-2026",
         "notes": [

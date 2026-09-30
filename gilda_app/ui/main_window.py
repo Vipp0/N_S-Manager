@@ -71,7 +71,7 @@ from gilda_app.utils.bdo_news import fetch_news, upcoming_maintenance
 from gilda_app.utils.bdo_timers import fetch_boss_timers, fetch_reset_timers
 from gilda_app.utils.bdoalerts_api import ERROR_NO_KEY, ApiError
 from gilda_app.utils.restart import restart_app
-from gilda_app.utils.server_status import DEFAULT_REGION, fetch_server_status
+from gilda_app.utils.server_status import DEFAULT_REGION, RegionStatus, fetch_server_status
 from gilda_app.utils import updater
 from gilda_app.utils.update_check import RELEASES_PAGE_URL, ReleaseInfo, fetch_latest_release, is_newer
 
@@ -316,6 +316,8 @@ class MainWindow(FluentWindow):
         self._server_busy = False
         self._upcoming_maintenance: str | None = None
         self._upcoming_maintenance_date: date | None = None
+        self._maintenance_seen_live = False  # vera anche per un attimo: evita che l'avviso
+        # torni "annunciata" appena finisce, lo stesso giorno in cui è cominciata davvero.
         self._server_status_signal = _ServerStatusSignal()
         self._server_status_signal.finished.connect(self._on_server_status)
         self._resets = None
@@ -490,7 +492,10 @@ class MainWindow(FluentWindow):
         else:
             self.bdo_page.show_news(result)
             upcoming = upcoming_maintenance(result, date.today())
-            self._upcoming_maintenance_date = upcoming.maintenance_date if upcoming else None
+            new_date = upcoming.maintenance_date if upcoming else None
+            if new_date != self._upcoming_maintenance_date:
+                self._maintenance_seen_live = False  # è un nuovo annuncio, si riparte da "annunciata"
+            self._upcoming_maintenance_date = new_date
             self._upcoming_maintenance = (
                 tr("bdo.news_upcoming", date=upcoming.maintenance_date.strftime("%d-%m-%Y")) if upcoming else None
             )
@@ -533,7 +538,7 @@ class MainWindow(FluentWindow):
         region = self._server_region()
         if self._server_error:
             self.dashboard_page.set_bdo("", None, [describe_error(self._server_error)[0]])
-            self._update_maintenance_banner(in_maintenance_now=False)
+            self._update_maintenance_banner(None)
             return
         region_status = self._server_statuses.get(region)
         text, color = describe_region(region_status)
@@ -541,19 +546,25 @@ class MainWindow(FluentWindow):
         if self._upcoming_maintenance:
             lines.append(self._upcoming_maintenance)
         self.dashboard_page.set_bdo(text, color, lines)
-        self._update_maintenance_banner(in_maintenance_now=bool(region_status and region_status.in_maintenance))
+        self._update_maintenance_banner(region_status)
 
-    def _update_maintenance_banner(self, in_maintenance_now: bool) -> None:
-        """Il banner rosso in dashboard avvisa di una manutenzione annunciata ma non
-        ancora iniziata: sparisce da solo appena lo stato live del server (aggiornato ogni
-        5 minuti) segnala che è cominciata, oppure quando la data stessa è passata."""
-        if self._upcoming_maintenance_date is None or in_maintenance_now:
-            self.dashboard_page.set_maintenance_banner(None)
+    def _update_maintenance_banner(self, region_status: RegionStatus | None) -> None:
+        """Il banner rosso in dashboard: "annunciata" prima che inizi, poi "in corso" (col
+        tempo restante, come nel footer) finché il server non torna online da solo. Una
+        volta vista partire, non deve ripresentarsi come "annunciata" lo stesso giorno se
+        lo stato torna online per un attimo tra due controlli (ogni 5 minuti)."""
+        if region_status is not None and region_status.in_maintenance:
+            self._maintenance_seen_live = True
+            status_text, _ = describe_region(region_status)
+            self.dashboard_page.set_maintenance_banner(tr("dash.maintenance_banner_ongoing", status=status_text))
             return
-        when = day_text(
-            self._upcoming_maintenance_date, date.today(), self._upcoming_maintenance_date.strftime("%d-%m-%Y")
-        )
-        self.dashboard_page.set_maintenance_banner(tr("dash.maintenance_banner", when=when))
+        if self._upcoming_maintenance_date is not None and not self._maintenance_seen_live:
+            when = day_text(
+                self._upcoming_maintenance_date, date.today(), self._upcoming_maintenance_date.strftime("%d-%m-%Y")
+            )
+            self.dashboard_page.set_maintenance_banner(tr("dash.maintenance_banner", when=when))
+            return
+        self.dashboard_page.set_maintenance_banner(None)
 
     def _on_api_key_saved(self, key: str) -> None:
         if key:

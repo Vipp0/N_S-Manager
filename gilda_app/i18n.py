@@ -473,6 +473,10 @@ STRINGS: dict[str, dict[str, str]] = {
         "it": "⚠ Manutenzione annunciata: {when}",
         "en": "⚠ Maintenance announced: {when}",
     },
+    "dash.maintenance_banner_ongoing": {
+        "it": "⚠ {status}",
+        "en": "⚠ {status}",
+    },
     "bdo.news_none_upcoming": {"it": "Nessuna manutenzione annunciata al momento.", "en": "No maintenance announced at the moment."},
     "bdo.news_hint": {
         "it": "Dati dagli avvisi ufficiali. L'orario preciso è nella pagina dell'avviso: clicca sul titolo per aprirla.",
