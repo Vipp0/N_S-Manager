@@ -316,7 +316,10 @@ class MemberDialog(MessageBoxBase):
             self._refresh_history()
             self._refresh_name_history()
 
-        if is_edit and bdo is not None and bdo.api_key:
+        if bdo is not None and bdo.api_key:
+            # Anche per un membro non ancora salvato: serve a guardare le caratteristiche
+            # di un giocatore (gear score, personaggi...) prima ancora di deciderne
+            # l'ingresso, scrivendo solo il suo Family Name nel campo qui sopra.
             self.bdo_profile_btn = PushButton(FIF.GLOBE, tr("bdo.profile_button"), self)
             self.bdo_profile_btn.clicked.connect(self._on_bdo_profile)
             form.addWidget(self.bdo_profile_btn, 0, Qt.AlignLeft)
@@ -407,7 +410,13 @@ class MemberDialog(MessageBoxBase):
         self._fit_history_rows()
 
     def _on_bdo_profile(self) -> None:
-        name = self.family_edit.text().strip() or self.member.family_name
+        name = self.family_edit.text().strip() or (self.member.family_name if self.member else "")
+        if not name:
+            self.error_label.setText(tr("error.family_name_required"))
+            self.error_label.show()
+            self._fit_scroll_height()
+            self._scroll.ensureWidgetVisible(self.error_label)
+            return
         PlayerProfileDialog(self, name, self._bdo).exec()
 
     def _refresh_name_history(self) -> None:

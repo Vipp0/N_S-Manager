@@ -30,18 +30,31 @@ class EventCalendarWidget(QCalendarWidget):
 
     Sovrappone anche, su ogni cella: un rettangolo sottile attorno alla riga della
     settimana corrente e un bordo/riempimento per il giorno di oggi. "Oggi"/la settimana
-    corrente sono calcolati una sola volta alla creazione: un'apertura del programma a
-    cavallo di mezzanotte non li aggiorna, caso limite accettabile per un programma che
-    si riapre spesso."""
+    corrente si ricalcolano con refresh_today(), chiamato da CalendarPage a ogni giro
+    di eventi e quando MainWindow si accorge che è scoccata la mezzanotte: il programma
+    resta spesso aperto per giorni, quindi non bastava calcolarli una sola volta."""
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self._day_events: dict[date, list[tuple[str, str]]] = {}
         self._today = date.today()
+        self._week_start, self._week_end = self._week_bounds(self._today)
+
+    @staticmethod
+    def _week_bounds(today: date) -> tuple[date, date]:
         # setFirstDayOfWeek(Qt.Monday) è impostato da CalendarPage: qui si assume lo
         # stesso lunedì-domenica invece di reinterpretare Qt.DayOfWeek.
-        self._week_start = self._today - timedelta(days=self._today.weekday())
-        self._week_end = self._week_start + timedelta(days=6)
+        start = today - timedelta(days=today.weekday())
+        return start, start + timedelta(days=6)
+
+    def refresh_today(self) -> None:
+        """Aggiorna "oggi" e la settimana evidenziata al giorno vero, e ridisegna."""
+        today = date.today()
+        if today == self._today:
+            return
+        self._today = today
+        self._week_start, self._week_end = self._week_bounds(today)
+        self.updateCells()
 
     def set_day_events(self, day_events: dict[date, list[tuple[str, str]]]) -> None:
         """day_events: per ogni giorno, (titolo, colore esadecimale) di ogni evento, in ordine."""

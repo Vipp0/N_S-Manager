@@ -6,6 +6,14 @@ usa il programma, non i dettagli tecnici del come."""
 
 CHANGELOG: list[dict] = [
     {
+        "version": "2.3.2",
+        "date": "30-09-2026",
+        "notes": [
+            "Calendario e dashboard: se il programma resta aperto per più giorni, \"oggi\" ora avanza da solo (il programma controlla ogni minuto), invece di restare fermo al giorno in cui era stato aperto.",
+            "Nuovo membro: anche nel form di aggiunta c'è ora il pulsante \"Profilo BDO...\", per vedere le caratteristiche di un giocatore (scrivendone il Family Name) prima ancora di deciderne l'ingresso in gilda, senza doverlo salvare prima.",
+        ],
+    },
+    {
         "version": "2.3.1",
         "date": "28-09-2026",
         "notes": [

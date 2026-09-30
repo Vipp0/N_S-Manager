@@ -82,6 +82,7 @@ SERVER_REGION_SETTING = "server_status_region"
 GUILD_NAME_SETTING = "bdo_guild_name"
 SERVER_STATUS_INTERVAL_MS = 5 * 60 * 1000
 TIMERS_TICK_MS = 30 * 1000
+DAY_CHANGE_TICK_MS = 60 * 1000
 
 
 class _HolidayRefreshSignal(QObject):
@@ -251,6 +252,14 @@ class MainWindow(FluentWindow):
         if getattr(self, "_guild", None) is not None:
             self._update_guild_comparison()
 
+    def _check_day_change(self) -> None:
+        today = date.today()
+        if today == self._current_day:
+            return
+        self._current_day = today
+        self.refresh_all()
+        self.calendar_page.refresh()
+
     # -- Festività (aggiornamento in background) --------------------------
     def _start_holiday_refresh(self) -> None:
         """Il download è opzionale e non deve mai rallentare l'avvio: gira in un thread
@@ -337,6 +346,16 @@ class MainWindow(FluentWindow):
         self._timers_tick.timeout.connect(self._render_timers)
         self._timers_tick.start(TIMERS_TICK_MS)
         self._refresh_server_status()
+
+        # Il programma resta spesso aperto per giorni: senza questo controllo, "oggi" nel
+        # calendario e nella dashboard (evidenze, "Oggi/Domani", compleanni, anniversari...)
+        # restava congelato al giorno in cui l'app era stata aperta. Un controllo al minuto
+        # è economico (solo un confronto di date) e si accorge del cambio anche dopo una
+        # sospensione del PC, senza doverne inseguire l'orario esatto della mezzanotte.
+        self._current_day = date.today()
+        self._day_tick = QTimer(self)
+        self._day_tick.timeout.connect(self._check_day_change)
+        self._day_tick.start(DAY_CHANGE_TICK_MS)
 
     def _server_region(self) -> str:
         return get_setting(self.conn, SERVER_REGION_SETTING, DEFAULT_REGION) or DEFAULT_REGION
@@ -643,7 +662,7 @@ class MainWindow(FluentWindow):
 
     # -- CRUD ----------------------------------------------------------
     def _on_add(self, status: str) -> None:
-        dialog = MemberDialog(self, member=None, status=status)
+        dialog = MemberDialog(self, member=None, status=status, bdo=self._bdo_context())
         if dialog.exec():
             values = dialog.values()
             # La lista si può cambiare nel form: quella scelta là vince su quella della

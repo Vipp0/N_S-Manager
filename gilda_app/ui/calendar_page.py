@@ -97,6 +97,7 @@ class CalendarPage(QWidget):
 
     # -- dati -----------------------------------------------------------
     def refresh(self) -> None:
+        self.calendar.refresh_today()
         self._refresh_month_formats()
         self._refresh_day_panel()
 
@@ -132,6 +133,7 @@ class CalendarPage(QWidget):
         )
 
     def _go_to_today(self) -> None:
+        self.calendar.refresh_today()
         today = QDate.currentDate()
         self.calendar.setSelectedDate(today)
         self.calendar.setCurrentPage(today.year(), today.month())
