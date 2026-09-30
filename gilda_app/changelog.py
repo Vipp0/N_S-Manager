@@ -6,31 +6,13 @@ usa il programma, non i dettagli tecnici del come."""
 
 CHANGELOG: list[dict] = [
     {
-        "version": "2.3.4",
-        "date": "30-09-2026",
-        "notes": [
-            "Avviso rosso di manutenzione in dashboard: quando inizia, il testo diventa \"In manutenzione\" (con il tempo restante) invece di sparire subito, e resta visibile finché il server non torna online da solo.",
-        ],
-    },
-    {
-        "version": "2.3.3",
-        "date": "30-09-2026",
-        "notes": [
-            "Dashboard: nuovo avviso rosso in cima quando c'è una manutenzione annunciata (\"Oggi\"/\"Domani\"/la data), cliccabile per aprire la scheda BDO. Sparisce da solo appena lo stato del server segnala che è iniziata, o quando la data è passata.",
-        ],
-    },
-    {
-        "version": "2.3.2",
+        "version": "2.4",
         "date": "30-09-2026",
         "notes": [
             "Calendario e dashboard: se il programma resta aperto per più giorni, \"oggi\" ora avanza da solo (il programma controlla ogni minuto), invece di restare fermo al giorno in cui era stato aperto.",
+            "Dashboard: nuovo avviso rosso in cima quando c'è una manutenzione annunciata (\"Oggi\"/\"Domani\"/la data), cliccabile per aprire la scheda BDO. Quando inizia, il testo diventa \"In manutenzione\" (con il tempo restante) invece di sparire subito, e resta visibile finché il server non torna online da solo.",
             "Nuovo membro: anche nel form di aggiunta c'è ora il pulsante \"Profilo BDO...\", per vedere le caratteristiche di un giocatore (scrivendone il Family Name) prima ancora di deciderne l'ingresso in gilda, senza doverlo salvare prima.",
-        ],
-    },
-    {
-        "version": "2.3.1",
-        "date": "28-09-2026",
-        "notes": [
+            "Impostazioni: aggiunti titolo e descrizione alla sezione \"Azzera database\", coerenti con le altre sezioni.",
             "Aggiornamento automatico: la schermata con la barra di avanzamento non passa più in secondo piano nel momento del passaggio tra il programma vecchio e quello nuovo.",
         ],
     },
