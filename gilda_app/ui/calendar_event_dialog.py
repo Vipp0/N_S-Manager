@@ -18,6 +18,7 @@ from gilda_app.db.calendar_events import (
 )
 from gilda_app.i18n import tr
 from gilda_app.ui.color_swatch_picker import ColorSwatchPicker
+from gilda_app.ui.dialog_drag import make_draggable
 from gilda_app.ui.fast_calendar_picker import DateEdit
 # Etichetta dell'unità nel campo "ogni N ...", per ciascuna ricorrenza.
 _UNIT_LABEL_KEYS = {
@@ -116,6 +117,7 @@ class CalendarEventDialog(MessageBoxBase):
         self.widget.setMinimumWidth(580)
         self.yesButton.setText(tr("button.save"))
         self.cancelButton.setText(tr("button.cancel"))
+        make_draggable(self, self.titleLabel)
 
     def _recurrence_unit(self) -> str:
         return self.recurrence_combo.currentData()

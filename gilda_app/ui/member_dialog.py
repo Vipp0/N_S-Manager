@@ -40,6 +40,7 @@ from gilda_app.db.database import (
 from gilda_app.i18n import tr
 from gilda_app.models.member import STATUS_ATTIVO, STATUS_BANNATO, STATUS_EX_MEMBRO, Member, status_label
 from gilda_app.ui.birthday_edit import BirthdayEdit
+from gilda_app.ui.dialog_drag import make_draggable
 from gilda_app.ui.fast_calendar_picker import DateEdit
 from gilda_app.ui.history_entry_dialog import HistoryEntryDialog
 from gilda_app.ui.name_change_dialog import NameChangeDialog
@@ -359,6 +360,7 @@ class MemberDialog(MessageBoxBase):
 
         self.yesButton.setText(tr("button.save"))
         self.cancelButton.setText(tr("button.cancel"))
+        make_draggable(self, self.titleLabel)
 
     # Spazio della finestra non occupato dal form: titolo, bottoni, margini del riquadro.
     _NON_SCROLL_RESERVE = 205

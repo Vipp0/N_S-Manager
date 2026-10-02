@@ -6,6 +6,13 @@ usa il programma, non i dettagli tecnici del come."""
 
 CHANGELOG: list[dict] = [
     {
+        "version": "2.4.3",
+        "date": "02-10-2026",
+        "notes": [
+            "Finestre di aggiunta/modifica membro e di evento del calendario: ora si possono spostare trascinandole dal titolo (o da un punto vuoto del riquadro), per leggere quello che c'è sotto. Non restano mai fuori dalla finestra e, alla riapertura, tornano sempre al centro.",
+        ],
+    },
+    {
         "version": "2.4.2",
         "date": "30-09-2026",
         "notes": [
