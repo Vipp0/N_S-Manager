@@ -6,6 +6,13 @@ usa il programma, non i dettagli tecnici del come."""
 
 CHANGELOG: list[dict] = [
     {
+        "version": "2.4.7",
+        "date": "05-10-2026",
+        "notes": [
+            "Una sola copia del programma alla volta: se lo si apre mentre è già aperto, la finestra già esistente torna in primo piano invece di aprirne una seconda sullo stesso database (che avrebbe mostrato dati non aggiornati).",
+        ],
+    },
+    {
         "version": "2.4.6",
         "date": "05-10-2026",
         "notes": [

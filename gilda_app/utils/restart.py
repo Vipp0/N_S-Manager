@@ -4,6 +4,8 @@ import sys
 
 from PySide6.QtWidgets import QApplication
 
+from gilda_app.utils.single_instance import release_current
+
 
 def restart_app() -> None:
     """Nasconde le finestre, avvia una nuova istanza e chiude quella corrente.
@@ -12,6 +14,7 @@ def restart_app() -> None:
     qualche secondo accanto al nuovo. Qui la finestra sparisce subito e resta solo lo
     splash della nuova istanza."""
     app = QApplication.instance()
+    release_current()  # altrimenti la nuova copia crederebbe che il programma sia ancora aperto
     for widget in app.topLevelWidgets():
         widget.hide()
     args = [sys.executable] + (sys.argv[1:] if getattr(sys, "frozen", False) else sys.argv)

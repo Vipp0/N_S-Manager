@@ -12,6 +12,7 @@ from gilda_app.i18n import DEFAULT_LANGUAGE, set_language, tr
 from gilda_app.ui.main_window import MainWindow
 from gilda_app.ui.update_window import run_apply_mode
 from gilda_app.utils.paths import app_dir, db_path
+from gilda_app.utils.single_instance import SingleInstance
 from gilda_app.utils.updater import APPLY_FLAG, cleanup_leftovers
 
 APP_FONT_FAMILY = "Segoe UI"
@@ -63,6 +64,17 @@ def _close_splash() -> None:
     pyi_splash.close()
 
 
+def _bring_to_front(window: MainWindow) -> None:
+    """Una seconda copia è stata lanciata: la finestra già aperta torna in primo piano. Se è
+    nascosta (aggiornamento in corso) non la si tocca."""
+    if not window.isVisible():
+        return
+    if window.isMinimized():
+        window.showNormal()
+    window.raise_()
+    window.activateWindow()
+
+
 def main() -> None:
     if len(sys.argv) >= 3 and sys.argv[1] == APPLY_FLAG:
         sys.exit(run_apply_mode(sys.argv[2:], _close_splash))
@@ -71,6 +83,12 @@ def main() -> None:
     app.setFont(QFont(APP_FONT_FAMILY, APP_FONT_POINT_SIZE))
 
     db_file = db_path()
+    # Prima di toccare il database: se il programma è già aperto, lo si porta in primo
+    # piano e questa copia si chiude, senza backup né migrazioni.
+    instance = SingleInstance(db_file)
+    if not instance.acquire():
+        _close_splash()
+        sys.exit(0)
     # Prima di connect(): così la copia del giorno precede anche un'eventuale migrazione
     # dello schema fatta da una versione nuova del programma.
     try:
@@ -84,6 +102,7 @@ def main() -> None:
     set_language(get_setting(conn, "language", DEFAULT_LANGUAGE))
 
     window = MainWindow(conn, db_file)
+    instance.activation_requested.connect(lambda: _bring_to_front(window))
     window.refresh_all()
     _animate_splash_dots()
     # Finestra mostrata prima di chiudere lo splash: altrimenti Windows non ha una
