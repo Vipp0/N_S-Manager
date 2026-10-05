@@ -116,3 +116,23 @@ def test_refresh_holidays_if_needed_survives_network_failure(db, monkeypatch):
     monkeypatch.setattr(hol, "fetch_holidays", boom)
     updated = hol.refresh_holidays_if_needed(path)
     assert updated is False
+
+
+def test_refresh_holidays_keeps_saved_dates_when_feed_is_empty(db, monkeypatch):
+    # Una risposta vuota (pagina d'errore, formato cambiato) non deve cancellare le date
+    # già salvate né rimandare il prossimo tentativo di 300 giorni.
+    path, conn = db
+    hol.store_holidays(conn, [(date(2026, 1, 1), "Saved")])
+    monkeypatch.setattr(hol, "fetch_holidays", lambda: [])
+    assert hol.refresh_holidays_if_needed(path) is False
+    check = connect(path)
+    assert hol.get_holidays_in_range(check, date(2026, 1, 1), date(2026, 1, 1)) == {date(2026, 1, 1): ["Saved"]}
+    assert get_setting(check, hol.LAST_REFRESH_SETTING) is None
+
+
+def test_parse_ics_holidays_skips_impossible_date_but_keeps_the_rest():
+    text = (
+        "BEGIN:VEVENT\nDTSTART;VALUE=DATE:20261399\nSUMMARY:Broken\nEND:VEVENT\n"
+        "BEGIN:VEVENT\nDTSTART;VALUE=DATE:20260101\nSUMMARY:Fine\nEND:VEVENT\n"
+    )
+    assert hol.parse_ics_holidays(text) == [(date(2026, 1, 1), "Fine")]

@@ -16,6 +16,9 @@ SHEET_SPECS = [
 ]
 
 
+_FAMILY_HEADER = "family name"
+
+
 @dataclass
 class ImportRow:
     family_name: str
@@ -81,13 +84,28 @@ def split_nations(raw: str | None) -> list[str]:
     return parts[:2]
 
 
+def _detect_layout(first_row, has_header: bool, skip_first_col: bool) -> tuple[bool, bool]:
+    """Il file originale ha un impianto diverso per foglio (Members con intestazione e
+    colonna "N.", gli altri senza intestazione), mentre il file prodotto da "Esporta"
+    ha l'intestazione "Family Name" in testa a tutti e tre i fogli e nessuna colonna "N.".
+    Se la prima riga è un'intestazione si legge quella; altrimenti vale l'impianto atteso."""
+    cells = [str(cell).strip().lower() if cell is not None else "" for cell in (first_row or ())[:2]]
+    if cells and cells[0] == _FAMILY_HEADER:
+        return True, False
+    if len(cells) > 1 and cells[1] == _FAMILY_HEADER:
+        return True, True
+    return has_header, skip_first_col
+
+
 def _parse_sheet(ws, has_header: bool, skip_first_col: bool, sheet_name: str) -> tuple[list[ImportRow], int]:
     rows: list[ImportRow] = []
     skipped = 0
+    sheet_rows = list(ws.iter_rows(values_only=True))
+    has_header, skip_first_col = _detect_layout(sheet_rows[0] if sheet_rows else None, has_header, skip_first_col)
     min_row = 2 if has_header else 1
     offset = 1 if skip_first_col else 0
 
-    for row_number, values in enumerate(ws.iter_rows(min_row=min_row, values_only=True), start=min_row):
+    for row_number, values in enumerate(sheet_rows[min_row - 1:], start=min_row):
         family = values[offset] if len(values) > offset else None
         main = values[offset + 1] if len(values) > offset + 1 else None
         nation_raw = values[offset + 2] if len(values) > offset + 2 else None

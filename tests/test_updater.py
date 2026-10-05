@@ -151,6 +151,27 @@ def test_apply_replaces_program_and_keeps_user_files(tmp_path):
     assert seen[-1][0] == 1.0 and seen[0][1] == "update.step.backup"
 
 
+def test_apply_never_overwrites_user_data_even_if_zip_contains_it(tmp_path):
+    # Un gilda.db o una cartella backups finiti per sbaglio nello zip della release non
+    # devono sostituire quelli veri dell'utente.
+    target, stage = _app(tmp_path)
+    (stage / "gilda.db").write_text("DATABASE FROM THE ZIP")
+    (stage / "backups").mkdir()
+    (stage / "backups" / "b.db").write_text("backup from the zip")
+    up.apply_staged_update(stage, target)
+    assert (target / "gilda.db").read_text() == "DATABASE"
+    assert (target / "backups" / "b.db").read_text() == "backup"
+    assert not (target / "gilda.db.old").exists() and not (target / "backups.old").exists()
+    assert (target / up.EXE_NAME).read_text() == "new exe"
+
+
+def test_cleanup_keeps_user_files_named_like_old_copies(tmp_path):
+    target, stage = _app(tmp_path)
+    (target / "gilda.db.old").write_text("a copy the user made by hand")
+    up.cleanup_leftovers(target)
+    assert (target / "gilda.db.old").exists()
+
+
 def test_apply_failure_restores_old_version(tmp_path):
     target, stage = _app(tmp_path)
     real_copy = up.shutil.copy2

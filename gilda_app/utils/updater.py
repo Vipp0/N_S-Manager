@@ -27,6 +27,10 @@ UPDATE_DIR_NAME = "_update"
 STAGE_DIR_NAME = "new"
 OLD_SUFFIX = ".old"
 EXE_NAME = "Night_Shade Manager.exe"
+# Dati dell'utente accanto all'eseguibile: l'aggiornamento non li tocca mai.
+USER_DATA_NAMES = frozenset(
+    {"gilda.db", "gilda.db-journal", "gilda.db-wal", "gilda.db-shm", "guild.json", "backups", UPDATE_DIR_NAME}
+)
 DOWNLOAD_TIMEOUT_SECONDS = 30
 _CHUNK = 256 * 1024
 
@@ -193,7 +197,9 @@ def apply_staged_update(stage: Path, target: Path, progress: Progress = _noop) -
     """Sostituisce i file dell'app in `target` con quelli di `stage`. I vecchi si
     conservano come "<nome>.old"; se qualcosa va storto si ripristinano e si solleva
     UpdateError, lasciando l'app com'era."""
-    entries = sorted(stage.iterdir())
+    # Un file dell'utente finito per sbaglio nello zip (es. gilda.db di chi ha preparato la
+    # release) non deve mai sostituire quello vero: si ignora.
+    entries = sorted(e for e in stage.iterdir() if e.name not in USER_DATA_NAMES)
     total = max(1, sum(_count_files(e) for e in entries))
     backed_up: list[str] = []
     started: list[str] = []
@@ -253,7 +259,8 @@ def cleanup_leftovers(app_dir: Path) -> None:
     except OSError:
         return
     for path in entries:
-        if path.name.endswith(OLD_SUFFIX) and (app_dir / path.name[: -len(OLD_SUFFIX)]).exists():
+        base_name = path.name[: -len(OLD_SUFFIX)]
+        if path.name.endswith(OLD_SUFFIX) and base_name not in USER_DATA_NAMES and (app_dir / base_name).exists():
             try:
                 _remove(path)
             except OSError:

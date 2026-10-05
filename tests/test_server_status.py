@@ -1,3 +1,4 @@
+import http.client
 import io
 import json
 import urllib.error
@@ -88,6 +89,7 @@ def test_api_get_without_key_makes_no_request(monkeypatch):
         (urllib.error.HTTPError("u", 429, "slow", {}, None), "rate_limit"),
         (urllib.error.HTTPError("u", 500, "boom", {}, None), "bad_response"),
         (urllib.error.URLError("offline"), "network"),
+        (http.client.IncompleteRead(b"par"), "network"),  # connessione caduta a metà risposta
     ],
 )
 def test_api_get_errors(monkeypatch, error, kind):

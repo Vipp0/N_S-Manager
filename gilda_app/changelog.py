@@ -6,6 +6,16 @@ usa il programma, non i dettagli tecnici del come."""
 
 CHANGELOG: list[dict] = [
     {
+        "version": "2.4.4",
+        "date": "05-10-2026",
+        "notes": [
+            "Importa da Excel: un file creato con \"Esporta in Excel\" ora si può reimportare correttamente (prima la scheda Membri attuali scambiava le colonne e le intestazioni venivano scambiate per persone). Un errore di lettura del file ora viene sempre segnalato.",
+            "Aggiornamento automatico: i dati dell'utente (database, copie di sicurezza) non vengono mai sostituiti, nemmeno se finiscono per errore nel pacchetto di una release.",
+            "Stato dei server e avvisi BDO: se la connessione cade a metà di una risposta, i controlli successivi ripartono regolarmente invece di fermarsi fino al riavvio.",
+            "Festività: una risposta vuota o non valida dalla fonte online non cancella più le date già salvate.",
+        ],
+    },
+    {
         "version": "2.4.3",
         "date": "02-10-2026",
         "notes": [

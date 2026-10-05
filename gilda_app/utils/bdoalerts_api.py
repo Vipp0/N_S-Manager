@@ -4,6 +4,7 @@ Ogni funzione che usa l'API (stato server, in futuro boss, reset, coupon...) pas
 api_get: un solo punto dove vivono l'header con la chiave, il timeout e la traduzione
 degli errori in ApiError con un "kind" fisso, così la UI mostra un messaggio sensato
 senza mai dover interpretare eccezioni di rete. Solo libreria standard."""
+import http.client
 import json
 import urllib.error
 import urllib.parse
@@ -49,7 +50,8 @@ def api_get(path: str, api_key: str, params: dict | None = None, timeout: float 
         if exc.code == 404:
             raise ApiError(ERROR_NOT_FOUND) from None
         raise ApiError(ERROR_BAD_RESPONSE) from None
-    except (urllib.error.URLError, OSError):
+    except (urllib.error.URLError, OSError, http.client.HTTPException):
+        # HTTPException: connessione interrotta a metà risposta (IncompleteRead e simili).
         raise ApiError(ERROR_NETWORK) from None
     except ValueError:
         raise ApiError(ERROR_BAD_RESPONSE) from None

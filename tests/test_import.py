@@ -59,3 +59,34 @@ def test_double_nation_split(conn):
         ).fetchall()
     ]
     assert nations == ["Algeria", "Dubai"]
+
+
+def test_exported_file_can_be_imported_back(conn, tmp_path):
+    # "Esporta" scrive l'intestazione in tutti e tre i fogli e nessuna colonna "N.":
+    # reimportarlo deve ridare gli stessi membri, senza righe d'intestazione scambiate per
+    # persone e senza spostare le colonne (il Main Name finiva nel Family Name).
+    from gilda_app.db.database import add_member
+    from gilda_app.importer.excel_export import export_workbook
+
+    add_member(conn, "AliceFam", "AliceMain", "alice#1", ["Italy", "Spain"], STATUS_ATTIVO)
+    add_member(conn, "BobFam", "BobMain", "bob#2", ["Spain"], STATUS_EX_MEMBRO)
+    add_member(conn, "CarlFam", "CarlMain", "carl#3", [], STATUS_BANNATO)
+    path = tmp_path / "export.xlsx"
+    export_workbook(conn, path)
+
+    preview = parse_workbook(path)
+    got = [(r.status, r.family_name, r.main_name, r.nations, r.discord_name) for r in preview.rows]
+    assert got == [
+        (STATUS_ATTIVO, "AliceFam", "AliceMain", ["Italy", "Spain"], "alice#1"),
+        (STATUS_EX_MEMBRO, "BobFam", "BobMain", ["Spain"], "bob#2"),
+        (STATUS_BANNATO, "CarlFam", "CarlMain", [], "carl#3"),
+    ]
+    assert [(r.sheet_name, r.row_number) for r in preview.rows] == [("Members", 2), ("Old Members", 2), ("No Rejoin", 2)]
+
+
+def test_original_layout_still_read_after_header_detection():
+    preview = parse_workbook(XLSX_PATH)
+    first_member = preview.rows[0]
+    assert (first_member.sheet_name, first_member.family_name, first_member.row_number) == ("Members", "AE_Zekken", 2)
+    old = next(r for r in preview.rows if r.sheet_name == "Old Members")
+    assert (old.family_name, old.row_number) == ("Wolfie", 1)

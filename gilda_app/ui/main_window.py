@@ -69,7 +69,7 @@ from gilda_app.utils.paths import app_dir, backups_dir
 from gilda_app.utils.bdo_guild import compare_guild, fetch_guild
 from gilda_app.utils.bdo_news import fetch_news, upcoming_maintenance
 from gilda_app.utils.bdo_timers import fetch_boss_timers, fetch_reset_timers
-from gilda_app.utils.bdoalerts_api import ERROR_NO_KEY, ApiError
+from gilda_app.utils.bdoalerts_api import ERROR_BAD_RESPONSE, ERROR_NO_KEY, ApiError
 from gilda_app.utils.restart import restart_app
 from gilda_app.utils.server_status import DEFAULT_REGION, RegionStatus, fetch_server_status
 from gilda_app.utils import updater
@@ -383,35 +383,29 @@ class MainWindow(FluentWindow):
             target=self._server_status_worker, args=(api_key, self._server_region(), guild_name), daemon=True
         ).start()
 
+    @staticmethod
+    def _fetch_or_kind(fetch, *args):
+        """Il risultato di fetch(*args), oppure il "kind" dell'errore. Anche un imprevisto
+        non previsto diventa un errore da mostrare: se il thread morisse in silenzio,
+        _server_busy resterebbe vero e i controlli successivi non partirebbero più."""
+        try:
+            return fetch(*args)
+        except ApiError as exc:
+            return exc.kind
+        except Exception:
+            return ERROR_BAD_RESPONSE
+
     def _server_status_worker(self, api_key: str, region: str, guild_name: str) -> None:
-        try:
-            result = fetch_server_status(api_key)
-        except ApiError as exc:
-            result = exc.kind
-        self._server_status_signal.finished.emit(result)
+        self._server_status_signal.finished.emit(self._fetch_or_kind(fetch_server_status, api_key))
         # Gli avvisi sono secondari: se falliscono lo stato dei server resta com'è.
-        try:
-            news = fetch_news(api_key)
-        except ApiError as exc:
-            news = exc.kind
-        self._news_signal.finished.emit(news)
+        self._news_signal.finished.emit(self._fetch_or_kind(fetch_news, api_key))
         # Reset e boss: l'API accetta il nome della regione con il trattino basso.
         api_region = region.replace("-", "_")
-        try:
-            resets = fetch_reset_timers(api_key, api_region)
-        except ApiError as exc:
-            resets = exc.kind
-        try:
-            bosses = fetch_boss_timers(api_key, api_region)
-        except ApiError as exc:
-            bosses = exc.kind
+        resets = self._fetch_or_kind(fetch_reset_timers, api_key, api_region)
+        bosses = self._fetch_or_kind(fetch_boss_timers, api_key, api_region)
         self._timers_signal.finished.emit((resets, bosses))
         if guild_name:
-            try:
-                guild = fetch_guild(api_key, region, guild_name)
-            except ApiError as exc:
-                guild = exc.kind
-            self._guild_signal.finished.emit(guild)
+            self._guild_signal.finished.emit(self._fetch_or_kind(fetch_guild, api_key, region, guild_name))
         else:
             self._guild_signal.finished.emit("no_guild_name")
 
@@ -877,7 +871,7 @@ class MainWindow(FluentWindow):
         di scartarli silenziosamente con la policy 'salta' di default."""
         try:
             preview = parse_workbook(path)
-        except (KeyError, OSError) as exc:
+        except Exception as exc:  # foglio mancante, file non Excel, danneggiato, aperto altrove...
             self._notify(tr("notify.import_failed.title"), tr("notify.import_failed.body", error=exc), error=True)
             return
 

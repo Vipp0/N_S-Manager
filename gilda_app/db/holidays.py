@@ -43,7 +43,10 @@ def parse_ics_holidays(text: str) -> list[tuple[date, str]]:
         elif line.startswith("DTSTART"):
             digits = line.split(":", 1)[-1].strip()[:8]
             if len(digits) == 8 and digits.isdigit():
-                current_date = date(int(digits[:4]), int(digits[4:6]), int(digits[6:8]))
+                try:
+                    current_date = date(int(digits[:4]), int(digits[4:6]), int(digits[6:8]))
+                except ValueError:  # una data impossibile nel feed non deve far cadere tutto il resto
+                    current_date = None
         elif line.startswith("SUMMARY:"):
             current_summary = line.split(":", 1)[-1].strip()
         elif line == "END:VEVENT" and current_date is not None and current_summary:
@@ -104,6 +107,10 @@ def refresh_holidays_if_needed(db_path) -> bool:
         if not _should_refresh(conn):
             return False
         holidays = fetch_holidays()
+        if not holidays:
+            # Risposta vuota o non nel formato atteso (pagina d'errore, servizio cambiato):
+            # si tengono le date già salvate e si riprova al prossimo avvio.
+            return False
         store_holidays(conn, holidays)
         set_setting(conn, LAST_REFRESH_SETTING, date.today().isoformat())
         return True
