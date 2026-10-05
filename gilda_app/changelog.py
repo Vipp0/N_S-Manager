@@ -6,63 +6,20 @@ usa il programma, non i dettagli tecnici del come."""
 
 CHANGELOG: list[dict] = [
     {
-        "version": "2.4.9",
+        "version": "2.5",
         "date": "05-10-2026",
         "notes": [
+            "Avviso doppioni: aggiungendo un membro (o cambiando il Family Name di uno esistente), se quel nome c'è già in una qualunque lista (attuali, ex membri, bannati) compare un avviso con le persone trovate. Da lì si può aprire direttamente la scheda del membro già presente, andare avanti comunque o tornare al modulo. Anche il controllo dei doppioni dell'import da Excel non distingue più tra maiuscole e minuscole.",
             "Dashboard → Compleanni: ora compaiono anche quelli degli ex membri, con \"(ex membro)\" accanto al nome; il giorno del compleanno la riga diventa ambra (verde per i membri attuali). I bannati restano esclusi. Il riquadro mostra fino a 8 compleanni invece di 6, con precedenza ai membri attuali a parità di data.",
             "Calendario: tasto destro su un evento nella colonna di destra per copiare la nota (\"Copia nota\"), copiare titolo e nota insieme, modificare, eliminare o duplicare l'evento. \"Duplica evento\" apre il form già compilato con titolo, nota, colore e ricorrenza dell'originale: di solito basta cambiare la data.",
-        ],
-    },
-    {
-        "version": "2.4.8",
-        "date": "05-10-2026",
-        "notes": [
-            "Registro degli errori: se il programma incontra un errore imprevisto (o si chiude all'improvviso) lo annota nel file \"errori.log\", accanto al programma, con data e versione. Se qualcosa non funziona basta mandare quel file per capire cos'è successo. Il file resta piccolo da solo e non viene toccato dagli aggiornamenti.",
-        ],
-    },
-    {
-        "version": "2.4.7",
-        "date": "05-10-2026",
-        "notes": [
-            "Una sola copia del programma alla volta: se lo si apre mentre è già aperto, la finestra già esistente torna in primo piano invece di aprirne una seconda sullo stesso database (che avrebbe mostrato dati non aggiornati).",
-        ],
-    },
-    {
-        "version": "2.4.6",
-        "date": "05-10-2026",
-        "notes": [
-            "Ricostruisci storico: prima di sostituire lo storico di un membro il programma fa ora una copia di sicurezza del database (recuperabile da Impostazioni → Ripristina), come già avviene per spostamenti, import e azzeramento. Se la copia non riesce, lo storico non viene toccato.",
-        ],
-    },
-    {
-        "version": "2.4.4",
-        "date": "05-10-2026",
-        "notes": [
-            "Importa da Excel: un file creato con \"Esporta in Excel\" ora si può reimportare correttamente (prima la scheda Membri attuali scambiava le colonne e le intestazioni venivano scambiate per persone). Un errore di lettura del file ora viene sempre segnalato.",
-            "Aggiornamento automatico: i dati dell'utente (database, copie di sicurezza) non vengono mai sostituiti, nemmeno se finiscono per errore nel pacchetto di una release.",
-            "Stato dei server e avvisi BDO: se la connessione cade a metà di una risposta, i controlli successivi ripartono regolarmente invece di fermarsi fino al riavvio.",
-            "Festività: una risposta vuota o non valida dalla fonte online non cancella più le date già salvate.",
-        ],
-    },
-    {
-        "version": "2.4.3",
-        "date": "02-10-2026",
-        "notes": [
             "Finestre di aggiunta/modifica membro e di evento del calendario: ora si possono spostare trascinandole dal titolo (o da un punto vuoto del riquadro), per leggere quello che c'è sotto. Non restano mai fuori dalla finestra e, alla riapertura, tornano sempre al centro.",
-        ],
-    },
-    {
-        "version": "2.4.2",
-        "date": "30-09-2026",
-        "notes": [
-            "Profilo BDO: quando il livello di un personaggio non è visibile (profilo con gilda privata), non compare più un fuorviante \"livello 0\" (impossibile nel gioco). Il servizio esterno usa in modo incoerente sia 0 sia \"non disponibile\" per lo stesso caso: ora sono trattati allo stesso modo.",
-        ],
-    },
-    {
-        "version": "2.4.1",
-        "date": "30-09-2026",
-        "notes": [
-            "Profilo BDO: se il giocatore ha nascosto la gilda dal proprio profilo, ora compare \"Sconosciuta (profilo privato)\" invece di \"Nessuna gilda\", che avrebbe fatto pensare non ne avesse una.",
+            "Una sola copia del programma alla volta: se lo si apre mentre è già aperto, la finestra già esistente torna in primo piano invece di aprirne una seconda sullo stesso database (che avrebbe mostrato dati non aggiornati).",
+            "Registro degli errori: se il programma incontra un errore imprevisto (o si chiude all'improvviso) lo annota nel file \"errori.log\", accanto al programma, con data e versione. Se qualcosa non funziona basta mandare quel file per capire cos'è successo (un file vuoto significa nessun errore).",
+            "Ricostruisci storico: prima di sostituire lo storico di un membro il programma fa ora una copia di sicurezza del database (recuperabile da Impostazioni → Ripristina), come già avviene per spostamenti, import e azzeramento. Se la copia non riesce, lo storico non viene toccato.",
+            "Importa da Excel: un file creato con \"Esporta in Excel\" ora si può reimportare correttamente (prima la scheda Membri attuali scambiava le colonne e le intestazioni venivano scambiate per persone). Un errore di lettura del file ora viene sempre segnalato.",
+            "Aggiornamento automatico: i dati dell'utente (database, copie di sicurezza, registro errori) non vengono mai sostituiti, nemmeno se finiscono per errore nel pacchetto di una release.",
+            "Profilo BDO: se il giocatore ha nascosto la gilda dal proprio profilo compare \"Sconosciuta (profilo privato)\" invece di \"Nessuna gilda\"; quando il livello di un personaggio non è visibile non compare più un fuorviante \"livello 0\".",
+            "Stato dei server e avvisi BDO: se la connessione cade a metà di una risposta, i controlli successivi ripartono regolarmente invece di fermarsi fino al riavvio. Festività: una risposta vuota o non valida dalla fonte online non cancella più le date già salvate.",
         ],
     },
     {
