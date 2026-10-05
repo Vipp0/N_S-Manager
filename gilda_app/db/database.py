@@ -19,10 +19,23 @@ def connect(path: Path) -> sqlite3.Connection:
 
 
 def find_duplicate(conn: sqlite3.Connection, family_name: str, main_name: str) -> sqlite3.Row | None:
+    """Maiuscole e minuscole non contano: nel gioco "Aeloki" e "aeloki" sono lo stesso nome."""
     return conn.execute(
-        "SELECT * FROM members WHERE family_name = ? AND IFNULL(main_name, '') = ?",
+        "SELECT * FROM members WHERE family_name = ? COLLATE NOCASE AND IFNULL(main_name, '') = ? COLLATE NOCASE",
         (family_name, main_name or ""),
     ).fetchone()
+
+
+def find_by_family_name(
+    conn: sqlite3.Connection, family_name: str, exclude_id: int | None = None
+) -> list[sqlite3.Row]:
+    """Membri di qualunque lista (attuali, ex, bannati) con questo Family Name, senza
+    distinguere maiuscole/minuscole. exclude_id serve in modifica, per non trovare se stessi."""
+    return conn.execute(
+        "SELECT id, family_name, main_name, status FROM members "
+        "WHERE family_name = ? COLLATE NOCASE AND id != ? ORDER BY id",
+        (family_name.strip(), -1 if exclude_id is None else exclude_id),
+    ).fetchall()
 
 
 def add_member(

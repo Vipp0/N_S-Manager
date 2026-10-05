@@ -41,6 +41,7 @@ from gilda_app.i18n import tr
 from gilda_app.models.member import STATUS_ATTIVO, STATUS_BANNATO, STATUS_EX_MEMBRO, Member, status_label
 from gilda_app.ui.birthday_edit import BirthdayEdit
 from gilda_app.ui.dialog_drag import make_draggable
+from gilda_app.ui.duplicate_member_dialog import DuplicateMemberDialog
 from gilda_app.ui.fast_calendar_picker import DateEdit
 from gilda_app.ui.history_entry_dialog import HistoryEntryDialog
 from gilda_app.ui.name_change_dialog import NameChangeDialog
@@ -130,11 +131,18 @@ class MemberDialog(MessageBoxBase):
         conn=None,
         status: str | None = None,
         bdo: BdoContext | None = None,
+        find_duplicates=None,
     ):
+        """find_duplicates(family_name, exclude_id) -> righe dei membri già presenti con quel
+        nome in qualunque lista; se manca, il controllo dei doppioni non si fa."""
         super().__init__(parent)
         self.member = member
         self._bdo = bdo
         self.conn = conn
+        self._find_duplicates = find_duplicates
+        self._duplicate_ok_for: str | None = None  # nome per cui si è già scelto "comunque"
+        # Se non None, al posto del salvataggio si è scelto di aprire la scheda di quel membro.
+        self.open_existing_id: int | None = None
         self._history_rows: list = []
         # Ricostruire lo storico scrive subito sul database (come la correzione di una
         # singola voce): se poi questo dialog viene chiuso con Annulla, chi lo apre deve
@@ -548,7 +556,29 @@ class MemberDialog(MessageBoxBase):
             self._fit_scroll_height()
             self._scroll.ensureWidgetVisible(self.error_label)
             return False
-        return True
+        return self._confirm_no_duplicate()
+
+    def _confirm_no_duplicate(self) -> bool:
+        """Se il Family Name c'è già (in qualunque lista) chiede cosa fare: in modifica solo
+        quando il nome è stato cambiato, altrimenti un doppione già esistente avviserebbe
+        a ogni salvataggio."""
+        name = self.family_edit.text().strip()
+        key = name.lower()
+        if self._find_duplicates is None or key == self._duplicate_ok_for:
+            return True
+        if self.member is not None and key == self.member.family_name.strip().lower():
+            return True
+        matches = self._find_duplicates(name, self.member.id if self.member is not None else None)
+        if not matches:
+            return True
+        dialog = DuplicateMemberDialog(self, name, matches, is_edit=self.member is not None)
+        if dialog.exec():
+            self._duplicate_ok_for = key
+            return True
+        if dialog.open_member_id is not None:
+            self.open_existing_id = dialog.open_member_id
+            self.reject()
+        return False
 
     def values(self) -> dict:
         nations = [

@@ -22,6 +22,7 @@ from gilda_app.db.database import (
     add_member,
     connect,
     delete_member,
+    find_by_family_name,
     find_duplicate,
     get_members,
     delete_setting,
@@ -687,47 +688,69 @@ class MainWindow(FluentWindow):
         page.search_box.setText(nation_display_name)
 
     # -- CRUD ----------------------------------------------------------
-    def _on_add(self, status: str) -> None:
-        dialog = MemberDialog(self, member=None, status=status, bdo=self._bdo_context())
-        if dialog.exec():
-            values = dialog.values()
-            # La lista si può cambiare nel form: quella scelta là vince su quella della
-            # scheda da cui si è premuto "Aggiungi", che ne è solo la preselezione.
-            status = values["status"] or status
-            still_on_discord = bool(values["still_on_discord"])
-            member_id = add_member(
-                self.conn,
-                family_name=values["family_name"],
-                main_name=values["main_name"],
-                discord_name=values["discord_name"],
-                nations=values["nations"],
-                status=status,
-                note=values["note"],
-                data_inserimento=values["data_inserimento"],
-                still_on_discord=still_on_discord,
-                birthday=values["birthday"],
-            )
-            self.refresh_all()
+    def _find_duplicates(self, family_name: str, exclude_id: int | None):
+        return find_by_family_name(self.conn, family_name, exclude_id)
 
-            new_member = Member(
-                id=member_id,
-                family_name=values["family_name"],
-                main_name=values["main_name"],
-                discord_name=values["discord_name"],
-                status=status,
-                data_inserimento=values["data_inserimento"],
-                note=values["note"],
-                nations=values["nations"],
-                still_on_discord=still_on_discord,
-            )
-            QGuiApplication.clipboard().setText(discord_copy_text(new_member))
-            self._notify(
-                tr("notify.member_added.title"),
-                tr("notify.member_added.body_clipboard", name=values["family_name"], status=status_label(status)),
-            )
+    def _open_existing_member(self, member_id: int) -> None:
+        """Dall'avviso doppioni: porta alla lista del membro già presente e ne apre la scheda."""
+        row = self.conn.execute("SELECT status FROM members WHERE id = ?", (member_id,)).fetchone()
+        if row is None:
+            return
+        member = next((m for m in get_members(self.conn, row["status"]) if m.id == member_id), None)
+        if member is None:
+            return
+        self.switchTo(self.pages[row["status"]])
+        self.pages[row["status"]].select_member_by_id(member_id)
+        self._on_edit(member)
+
+    def _on_add(self, status: str) -> None:
+        dialog = MemberDialog(
+            self, member=None, status=status, bdo=self._bdo_context(), find_duplicates=self._find_duplicates
+        )
+        if not dialog.exec():
+            if dialog.open_existing_id is not None:
+                self._open_existing_member(dialog.open_existing_id)
+            return
+        values = dialog.values()
+        # La lista si può cambiare nel form: quella scelta là vince su quella della
+        # scheda da cui si è premuto "Aggiungi", che ne è solo la preselezione.
+        status = values["status"] or status
+        still_on_discord = bool(values["still_on_discord"])
+        member_id = add_member(
+            self.conn,
+            family_name=values["family_name"],
+            main_name=values["main_name"],
+            discord_name=values["discord_name"],
+            nations=values["nations"],
+            status=status,
+            note=values["note"],
+            data_inserimento=values["data_inserimento"],
+            still_on_discord=still_on_discord,
+            birthday=values["birthday"],
+        )
+        self.refresh_all()
+
+        new_member = Member(
+            id=member_id,
+            family_name=values["family_name"],
+            main_name=values["main_name"],
+            discord_name=values["discord_name"],
+            status=status,
+            data_inserimento=values["data_inserimento"],
+            note=values["note"],
+            nations=values["nations"],
+            still_on_discord=still_on_discord,
+        )
+        QGuiApplication.clipboard().setText(discord_copy_text(new_member))
+        self._notify(
+            tr("notify.member_added.title"),
+            tr("notify.member_added.body_clipboard", name=values["family_name"], status=status_label(status)),
+        )
 
     def _on_edit(self, member: Member) -> None:
-        dialog = MemberDialog(self, member=member, conn=self.conn, bdo=self._bdo_context())
+        dialog = MemberDialog(
+            self, member=member, conn=self.conn, bdo=self._bdo_context(), find_duplicates=self._find_duplicates
+        )
         if dialog.exec():
             values = dialog.values()
             update_member(
@@ -750,10 +773,13 @@ class MainWindow(FluentWindow):
                 tr("notify.member_updated.title"),
                 tr("notify.member_updated.body", name=values["family_name"]),
             )
-        elif dialog.history_changed:
-            # Una ricostruzione dello storico scrive subito sul database anche se poi
-            # il form viene chiuso con Annulla: la lista del membro può essere cambiata.
-            self.refresh_all()
+        else:
+            if dialog.history_changed:
+                # Una ricostruzione dello storico scrive subito sul database anche se poi
+                # il form viene chiuso con Annulla: la lista del membro può essere cambiata.
+                self.refresh_all()
+            if dialog.open_existing_id is not None:
+                self._open_existing_member(dialog.open_existing_id)
 
     def _on_delete(self, member: Member) -> None:
         box = MessageBox(

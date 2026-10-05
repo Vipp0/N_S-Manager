@@ -163,6 +163,23 @@ STRINGS: dict[str, dict[str, str]] = {
     "error.family_name_required": {"it": "Family Name è obbligatorio.", "en": "Family Name is required."},
     "button.save": {"it": "Salva", "en": "Save"},
     "button.cancel": {"it": "Annulla", "en": "Cancel"},
+    "duplicate.title": {"it": "Nome già presente", "en": "Name already exists"},
+    "duplicate.body_new": {
+        "it": "Esiste già un membro con il Family Name «{name}»:",
+        "en": "A member with the Family Name \"{name}\" already exists:",
+    },
+    "duplicate.body_edit": {
+        "it": "Un altro membro ha già il Family Name «{name}»:",
+        "en": "Another member already has the Family Name \"{name}\":",
+    },
+    "duplicate.hint": {
+        "it": "Se è la stessa persona, apri la sua scheda (da lì puoi anche spostarla di lista) invece di crearne un doppione.",
+        "en": "If it is the same person, open their record (you can also move them to another list from there) instead of creating a duplicate.",
+    },
+    "duplicate.open": {"it": "Apri la scheda di {name} ({status})", "en": "Open {name}'s record ({status})"},
+    "duplicate.add_anyway": {"it": "Aggiungi comunque", "en": "Add anyway"},
+    "duplicate.save_anyway": {"it": "Salva comunque", "en": "Save anyway"},
+    "duplicate.back": {"it": "Torna al modulo", "en": "Back to the form"},
     "button.close": {"it": "Chiudi", "en": "Close"},
 
     # -- Spostamento tra liste --------------------------------------------

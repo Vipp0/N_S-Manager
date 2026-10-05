@@ -261,3 +261,24 @@ def test_migration_8_keeps_existing_history():
     assert row["changed_at"] == "2020-01-01 00:00:00" and row["id"] == 1
     connection.execute("INSERT INTO status_history (member_id, new_status, changed_at) VALUES (1, 'ex_membro', NULL)")
     connection.close()
+
+
+def test_find_by_family_name_ignores_case_and_searches_every_list(conn):
+    from gilda_app.db.database import find_by_family_name
+
+    a = add_member(conn, "Aeloki", "Main1", None, [], STATUS_ATTIVO)
+    b = add_member(conn, "aeloki", "Main2", None, [], STATUS_EX_MEMBRO)
+    add_member(conn, "Other", None, None, [], STATUS_BANNATO)
+
+    assert [r["id"] for r in find_by_family_name(conn, "AELOKI")] == [a, b]
+    assert [r["status"] for r in find_by_family_name(conn, "  aeloki ")] == [STATUS_ATTIVO, STATUS_EX_MEMBRO]
+    assert [r["id"] for r in find_by_family_name(conn, "Aeloki", exclude_id=a)] == [b]  # in modifica: non se stesso
+    assert find_by_family_name(conn, "Nobody") == []
+
+
+def test_find_duplicate_ignores_case(conn):
+    from gilda_app.db.database import find_duplicate
+
+    add_member(conn, "Aeloki", "IMBACK", None, [], STATUS_ATTIVO)
+    assert find_duplicate(conn, "aELOKI", "imback") is not None
+    assert find_duplicate(conn, "Aeloki", "Other") is None
