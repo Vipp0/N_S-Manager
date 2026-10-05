@@ -749,7 +749,12 @@ class MainWindow(FluentWindow):
 
     def _on_edit(self, member: Member) -> None:
         dialog = MemberDialog(
-            self, member=member, conn=self.conn, bdo=self._bdo_context(), find_duplicates=self._find_duplicates
+            self,
+            member=member,
+            conn=self.conn,
+            bdo=self._bdo_context(),
+            find_duplicates=self._find_duplicates,
+            backup_before_history_rewrite=lambda: self._backup("history"),
         )
         if dialog.exec():
             values = dialog.values()

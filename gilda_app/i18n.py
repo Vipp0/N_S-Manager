@@ -287,6 +287,12 @@ STRINGS: dict[str, dict[str, str]] = {
     "backup.reason.import": {"it": "prima di un import", "en": "before an import"},
     "backup.reason.reset": {"it": "prima di un azzeramento", "en": "before a reset"},
     "backup.reason.pre-restore": {"it": "prima di un ripristino", "en": "before a restore"},
+    "backup.reason.pre-update": {"it": "prima di un aggiornamento", "en": "before an update"},
+    "backup.reason.history": {"it": "prima di ricostruire uno storico", "en": "before rebuilding a history"},
+    "error.history_backup_failed": {
+        "it": "Storico non modificato: non è stato possibile fare la copia di sicurezza ({error}).",
+        "en": "History not changed: the safety backup could not be made ({error}).",
+    },
     "backup.notify.created.title": {"it": "Backup creato", "en": "Backup created"},
     "backup.notify.created.body": {"it": "Salvato come {name}", "en": "Saved as {name}"},
     "backup.notify.extra_failed.title": {"it": "Seconda copia non riuscita", "en": "Second copy failed"},

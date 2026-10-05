@@ -6,6 +6,13 @@ usa il programma, non i dettagli tecnici del come."""
 
 CHANGELOG: list[dict] = [
     {
+        "version": "2.4.6",
+        "date": "05-10-2026",
+        "notes": [
+            "Ricostruisci storico: prima di sostituire lo storico di un membro il programma fa ora una copia di sicurezza del database (recuperabile da Impostazioni → Ripristina), come già avviene per spostamenti, import e azzeramento. Se la copia non riesce, lo storico non viene toccato.",
+        ],
+    },
+    {
         "version": "2.4.4",
         "date": "05-10-2026",
         "notes": [

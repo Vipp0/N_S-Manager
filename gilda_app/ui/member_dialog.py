@@ -132,6 +132,7 @@ class MemberDialog(MessageBoxBase):
         status: str | None = None,
         bdo: BdoContext | None = None,
         find_duplicates=None,
+        backup_before_history_rewrite=None,
     ):
         """find_duplicates(family_name, exclude_id) -> righe dei membri già presenti con quel
         nome in qualunque lista; se manca, il controllo dei doppioni non si fa."""
@@ -140,6 +141,10 @@ class MemberDialog(MessageBoxBase):
         self._bdo = bdo
         self.conn = conn
         self._find_duplicates = find_duplicates
+        # Chiamata prima di ricostruire lo storico, che sostituisce per intero quello
+        # esistente: una copia di sicurezza permette di tornare indietro. Se solleva
+        # OSError la ricostruzione non avviene.
+        self._backup_before_history_rewrite = backup_before_history_rewrite
         self._duplicate_ok_for: str | None = None  # nome per cui si è già scelto "comunque"
         # Se non None, al posto del salvataggio si è scelto di aprire la scheda di quel membro.
         self.open_existing_id: int | None = None
@@ -535,6 +540,15 @@ class MemberDialog(MessageBoxBase):
     def _on_rebuild_history(self) -> None:
         dialog = RebuildHistoryDialog(self, self.member, self._history_rows)
         if dialog.exec():
+            if self._backup_before_history_rewrite is not None:
+                try:
+                    self._backup_before_history_rewrite()
+                except OSError as exc:
+                    self.error_label.setText(tr("error.history_backup_failed", error=exc))
+                    self.error_label.show()
+                    self._fit_scroll_height()
+                    self._scroll.ensureWidgetVisible(self.error_label)
+                    return
             rebuild_status_history(self.conn, self.member.id, dialog.entries())
             self.history_changed = True
             self._refresh_history()

@@ -5,7 +5,7 @@ from qfluentwidgets import ListWidget, MessageBoxBase, SubtitleLabel
 from gilda_app.db.backup import BackupInfo
 from gilda_app.i18n import tr
 
-_KNOWN_REASONS = {"auto", "manual", "move", "import", "reset", "pre-restore"}
+_KNOWN_REASONS = {"auto", "manual", "move", "import", "reset", "pre-restore", "pre-update", "history"}
 
 
 def reason_label(reason: str) -> str:
