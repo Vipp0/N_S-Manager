@@ -11,9 +11,11 @@ from gilda_app.db.database import connect, get_setting
 from gilda_app.i18n import DEFAULT_LANGUAGE, set_language, tr
 from gilda_app.ui.main_window import MainWindow
 from gilda_app.ui.update_window import run_apply_mode
+from gilda_app.utils.error_log import LOG_NAME, install as install_error_log
 from gilda_app.utils.paths import app_dir, db_path
 from gilda_app.utils.single_instance import SingleInstance
 from gilda_app.utils.updater import APPLY_FLAG, cleanup_leftovers
+from gilda_app.version import __version__
 
 APP_FONT_FAMILY = "Segoe UI"
 APP_FONT_POINT_SIZE = 11
@@ -79,6 +81,7 @@ def main() -> None:
     if len(sys.argv) >= 3 and sys.argv[1] == APPLY_FLAG:
         sys.exit(run_apply_mode(sys.argv[2:], _close_splash))
 
+    install_error_log(app_dir() / LOG_NAME, __version__)
     app = QApplication(sys.argv)
     app.setFont(QFont(APP_FONT_FAMILY, APP_FONT_POINT_SIZE))
 

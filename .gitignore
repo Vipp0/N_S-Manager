@@ -8,3 +8,4 @@ dist/
 releases/
 .pytest_cache/
 *.xlsx
+errori.log

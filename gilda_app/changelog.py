@@ -6,6 +6,13 @@ usa il programma, non i dettagli tecnici del come."""
 
 CHANGELOG: list[dict] = [
     {
+        "version": "2.4.8",
+        "date": "05-10-2026",
+        "notes": [
+            "Registro degli errori: se il programma incontra un errore imprevisto (o si chiude all'improvviso) lo annota nel file \"errori.log\", accanto al programma, con data e versione. Se qualcosa non funziona basta mandare quel file per capire cos'è successo. Il file resta piccolo da solo e non viene toccato dagli aggiornamenti.",
+        ],
+    },
+    {
         "version": "2.4.7",
         "date": "05-10-2026",
         "notes": [

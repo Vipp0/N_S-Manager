@@ -29,7 +29,7 @@ OLD_SUFFIX = ".old"
 EXE_NAME = "Night_Shade Manager.exe"
 # Dati dell'utente accanto all'eseguibile: l'aggiornamento non li tocca mai.
 USER_DATA_NAMES = frozenset(
-    {"gilda.db", "gilda.db-journal", "gilda.db-wal", "gilda.db-shm", "guild.json", "backups", UPDATE_DIR_NAME}
+    {"gilda.db", "gilda.db-journal", "gilda.db-wal", "gilda.db-shm", "guild.json", "errori.log", "backups", UPDATE_DIR_NAME}
 )
 DOWNLOAD_TIMEOUT_SECONDS = 30
 _CHUNK = 256 * 1024
