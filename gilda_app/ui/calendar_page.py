@@ -1,7 +1,9 @@
 from datetime import date, timedelta
 
 from PySide6.QtCore import QDate, QLocale, Qt
+from PySide6.QtGui import QGuiApplication
 from PySide6.QtWidgets import QCalendarWidget, QFrame, QHBoxLayout, QLabel, QScrollArea, QVBoxLayout, QWidget
+from qfluentwidgets import Action, InfoBar, InfoBarPosition, RoundMenu
 from qfluentwidgets import FluentIcon as FIF
 from qfluentwidgets import MessageBox, PrimaryPushButton, PushButton, StrongBodyLabel, SubtitleLabel, TransparentToolButton
 
@@ -168,6 +170,11 @@ class CalendarPage(QWidget):
     def _event_row(self, row) -> QWidget:
         frame = QFrame(self.events_container)
         frame.setFrameShape(QFrame.StyledPanel)
+        if not self._is_holiday(row):
+            frame.setContextMenuPolicy(Qt.CustomContextMenu)
+            frame.customContextMenuRequested.connect(
+                lambda pos, r=row, f=frame: self._show_event_menu(r, f.mapToGlobal(pos))
+            )
         outer = QHBoxLayout(frame)
         outer.setContentsMargins(10, 8, 8, 8)
 
@@ -204,7 +211,40 @@ class CalendarPage(QWidget):
             outer.addWidget(delete_btn, 0, Qt.AlignTop)
         return frame
 
+    def _show_event_menu(self, row, global_pos) -> None:
+        menu = RoundMenu(parent=self)
+        if row["note"]:
+            menu.addAction(Action(FIF.COPY, tr("calendar.menu.copy_note"), triggered=lambda: self._copy(row["note"])))
+            menu.addAction(
+                Action(
+                    FIF.COPY,
+                    tr("calendar.menu.copy_title_note"),
+                    triggered=lambda: self._copy(f"{row['title']}\n{row['note']}"),
+                )
+            )
+            menu.addSeparator()
+        menu.addAction(Action(FIF.EDIT, tr("menu.edit"), triggered=lambda: self._on_edit(row)))
+        menu.addAction(Action(FIF.ADD, tr("calendar.menu.duplicate"), triggered=lambda: self._on_duplicate(row)))
+        menu.addSeparator()
+        menu.addAction(Action(FIF.DELETE, tr("menu.delete"), triggered=lambda: self._on_delete(row)))
+        menu.exec(global_pos)
+
+    def _copy(self, text: str) -> None:
+        QGuiApplication.clipboard().setText(text)
+        InfoBar.success(
+            title="", content=tr("calendar.copied"), isClosable=True, position=InfoBarPosition.TOP, duration=1500,
+            parent=self.window(),
+        )
+
     # -- azioni -----------------------------------------------------------
+    def _on_duplicate(self, row) -> None:
+        """Nuovo evento con i dati di quello scelto, sul giorno selezionato: di solito si
+        cambia solo la data."""
+        dialog = CalendarEventDialog(self.window(), start_date=self.calendar.selectedDate(), duplicate_of=row)
+        if dialog.exec():
+            add_event(self.get_conn(), **dialog.values())
+            self.refresh()
+
     def add_event_today(self) -> None:
         """Da fuori (dashboard): nuovo evento con la data di oggi preselezionata."""
         self._go_to_today()

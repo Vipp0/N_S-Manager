@@ -6,6 +6,14 @@ usa il programma, non i dettagli tecnici del come."""
 
 CHANGELOG: list[dict] = [
     {
+        "version": "2.4.9",
+        "date": "05-10-2026",
+        "notes": [
+            "Dashboard → Compleanni: ora compaiono anche quelli degli ex membri, con \"(ex membro)\" accanto al nome; il giorno del compleanno la riga diventa ambra (verde per i membri attuali). I bannati restano esclusi. Il riquadro mostra fino a 8 compleanni invece di 6, con precedenza ai membri attuali a parità di data.",
+            "Calendario: tasto destro su un evento nella colonna di destra per copiare la nota (\"Copia nota\"), copiare titolo e nota insieme, modificare, eliminare o duplicare l'evento. \"Duplica evento\" apre il form già compilato con titolo, nota, colore e ricorrenza dell'originale: di solito basta cambiare la data.",
+        ],
+    },
+    {
         "version": "2.4.8",
         "date": "05-10-2026",
         "notes": [

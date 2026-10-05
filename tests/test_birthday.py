@@ -54,4 +54,22 @@ def test_upcoming_birthdays(conn):
     add_member(conn, "Ex", "E", "", [], "ex_membro", birthday="09-25")
     add_member(conn, "Senza", "S", "", [], "attivo")
     result = upcoming_birthdays(conn, date(2026, 9, 24), days=14)
-    assert result == [(date(2026, 9, 24), "Oggi", "O", None), (date(2026, 9, 30), "Presto", "P", 31)]
+    assert result == [
+        (date(2026, 9, 24), "Oggi", "O", None, "attivo"),
+        (date(2026, 9, 30), "Presto", "P", 31, "attivo"),
+    ]
+
+
+def test_upcoming_birthdays_can_include_former_members_but_never_banned(conn):
+    add_member(conn, "Attivo", "A", "", [], "attivo", birthday="09-25")
+    add_member(conn, "ExPrima", "E", "", [], "ex_membro", birthday="09-25")
+    add_member(conn, "ExOggi", "E2", "", [], "ex_membro", birthday="1990-09-24")
+    add_member(conn, "Bannato", "B", "", [], "bannato", birthday="09-24")
+    today = date(2026, 9, 24)
+    assert [r[1] for r in upcoming_birthdays(conn, today, days=14)] == ["Attivo"]
+    result = upcoming_birthdays(conn, today, days=14, include_former=True)
+    # ordine: per data; a parità di data prima il membro attuale
+    assert [(r[1], r[4]) for r in result] == [("ExOggi", "ex_membro"), ("Attivo", "attivo"), ("ExPrima", "ex_membro")]
+    assert result[0][3] == 36  # l'età si calcola anche per gli ex membri
+    # col limite stretto, a parità di data non si scarta l'attuale a favore dell'ex
+    assert [r[1] for r in upcoming_birthdays(conn, today, days=14, limit=2, include_former=True)] == ["ExOggi", "Attivo"]

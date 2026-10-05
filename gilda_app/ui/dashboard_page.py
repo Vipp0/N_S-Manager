@@ -47,6 +47,9 @@ _VALUE_STYLE = "font-size: 28px; font-weight: 600;"
 # Le righe che riguardano oggi (eventi, festività, compleanni, anniversari): grassetto e
 # verde scuro, così si distinguono da quelle dei giorni successivi.
 TODAY_COLOR = "#15803d"
+# Come TODAY_COLOR, ma per chi non è più un membro attuale (compleanno degli ex membri).
+FORMER_TODAY_COLOR = "#b45309"
+BIRTHDAY_ROWS = 8
 
 
 def day_text(day: date, today: date, fallback: str) -> str:
@@ -143,16 +146,19 @@ class DashboardTile(CardWidget):
         lines: list,
         value_color: str | None = None,
         today_lines: frozenset[int] = frozenset(),
+        today_colors: dict[int, str] | None = None,
     ) -> None:
         """lines: stringhe semplici oppure coppie (etichetta, testo): le etichette (Oggi,
         Domani, una data) stanno in una colonna allineata, così i testi partono tutti dallo
-        stesso punto. today_lines: indici delle righe da evidenziare perché riguardano oggi."""
+        stesso punto. today_lines: indici delle righe da evidenziare perché riguardano oggi;
+        today_colors: colore diverso da TODAY_COLOR per alcune di quelle righe."""
         self._value.setText(value)
         self._value.setVisible(bool(value))
         self._value.setStyleSheet(_VALUE_STYLE + (f" color: {value_color};" if value_color else ""))
         def fmt(index: int, text: str) -> str:
             text = html.escape(text)
-            return f'<b style="color: {TODAY_COLOR};">{text}</b>' if index in today_lines else text
+            color = (today_colors or {}).get(index, TODAY_COLOR)
+            return f'<b style="color: {color};">{text}</b>' if index in today_lines else text
 
         if any(isinstance(line, tuple) for line in lines):
             rows = []
@@ -376,14 +382,24 @@ class DashboardPage(QWidget):
         today = date.today()
         birthday_lines = []
         birthday_today = set()
-        for day, family, main, age in stats.upcoming_birthdays(conn, today, days=14, limit=6):
+        birthday_colors: dict[int, str] = {}
+        for day, family, main, age, status in stats.upcoming_birthdays(
+            conn, today, days=14, limit=BIRTHDAY_ROWS, include_former=True
+        ):
             name = family + (f" ({main})" if main else "")
+            if status == STATUS_EX_MEMBRO:
+                name += tr("dash.birthday_former")
             age_text = tr("dash.birthday_age", age=age) if age else ""
             if day == today:
                 birthday_today.add(len(birthday_lines))
+                if status == STATUS_EX_MEMBRO:
+                    birthday_colors[len(birthday_lines)] = FORMER_TODAY_COLOR
             birthday_lines.append((day_text(day, today, day.strftime("%d-%m")), f"{name}{age_text}"))
         self._info_cards["info_birthdays"].set_content(
-            "", birthday_lines or [tr("dash.no_birthdays")], today_lines=frozenset(birthday_today)
+            "",
+            birthday_lines or [tr("dash.no_birthdays")],
+            today_lines=frozenset(birthday_today),
+            today_colors=birthday_colors,
         )
 
         anniversaries = stats.upcoming_anniversaries(conn, today, days=30, limit=5)

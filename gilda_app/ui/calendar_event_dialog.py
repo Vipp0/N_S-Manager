@@ -31,11 +31,18 @@ _UNIT_LABEL_KEYS = {
 class CalendarEventDialog(MessageBoxBase):
     """Form per aggiungere o modificare un evento del calendario (anche ricorrente)."""
 
-    def __init__(self, parent, event=None, start_date: QDate | None = None):
+    def __init__(self, parent, event=None, start_date: QDate | None = None, duplicate_of=None):
+        """event: evento da modificare. duplicate_of: evento da cui partire per crearne uno
+        nuovo (titolo, nota, colore e ricorrenza già compilati, data a scelta)."""
         super().__init__(parent)
         is_edit = event is not None
+        source = event if is_edit else duplicate_of
 
-        self.titleLabel = SubtitleLabel(tr("calendar.dialog.edit") if is_edit else tr("calendar.dialog.new"), self)
+        if is_edit:
+            title_key = "calendar.dialog.edit"
+        else:
+            title_key = "calendar.dialog.duplicate" if duplicate_of is not None else "calendar.dialog.new"
+        self.titleLabel = SubtitleLabel(tr(title_key), self)
         self.viewLayout.addWidget(self.titleLabel)
 
         self.title_edit = LineEdit(self)
@@ -99,17 +106,18 @@ class CalendarEventDialog(MessageBoxBase):
 
         self.recurrence_combo.currentIndexChanged.connect(self._update_recurrence_widgets)
 
-        if is_edit:
-            self.title_edit.setText(event["title"])
-            self.date_picker.setDate(QDate.fromString(event["start_date"], "yyyy-MM-dd"))
-            self.color_picker.setColor(event["color"])
-            if event["note"]:
-                self.note_edit.setPlainText(event["note"])
-            self.recurrence_combo.setCurrentIndex(self.recurrence_combo.findData(event["recurrence_unit"]))
-            self.interval_spin.setValue(event["recurrence_interval"])
-            if event["recurrence_end_date"]:
+        if source is not None:
+            self.title_edit.setText(source["title"])
+            if is_edit:  # in duplicazione la data resta quella scelta (start_date): è ciò che si cambia
+                self.date_picker.setDate(QDate.fromString(source["start_date"], "yyyy-MM-dd"))
+            self.color_picker.setColor(source["color"])
+            if source["note"]:
+                self.note_edit.setPlainText(source["note"])
+            self.recurrence_combo.setCurrentIndex(self.recurrence_combo.findData(source["recurrence_unit"]))
+            self.interval_spin.setValue(source["recurrence_interval"])
+            if source["recurrence_end_date"]:
                 self.end_check.setChecked(True)
-                self.end_picker.setDate(QDate.fromString(event["recurrence_end_date"], "yyyy-MM-dd"))
+                self.end_picker.setDate(QDate.fromString(source["recurrence_end_date"], "yyyy-MM-dd"))
         self._update_recurrence_widgets()
 
         # 580 invece di 500: con 15 colori (invece dei precedenti 11) la fila di pallini
