@@ -15,6 +15,8 @@ DEFAULT_REGION = "eu"
 class RegionStatus:
     in_maintenance: bool
     ends_at: datetime | None = None
+    # Vero se lo stato non viene dall'API ma da una stima (vedi maintenance_estimate.py).
+    estimated: bool = False
 
 
 def _parse_datetime(value) -> datetime | None:

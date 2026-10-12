@@ -57,6 +57,8 @@ class BdoPage(QWidget):
     come nuove card sotto senza toccare le altre."""
 
     refresh_requested = Signal()
+    estimate_extend_requested = Signal()
+    estimate_finished_requested = Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -98,6 +100,24 @@ class BdoPage(QWidget):
         self._message = CaptionLabel("", status_card)
         self._message.setWordWrap(True)
         card_layout.addWidget(self._message)
+        # Visibile solo durante (e poco dopo) la manutenzione stimata: vedi MainWindow._update_estimate_controls.
+        self._estimate_box = QWidget(status_card)
+        estimate_layout = QVBoxLayout(self._estimate_box)
+        estimate_layout.setContentsMargins(0, 0, 0, 0)
+        self._estimate_label = QLabel(self._estimate_box)
+        self._estimate_label.setWordWrap(True)
+        estimate_layout.addWidget(self._estimate_label)
+        estimate_buttons = QHBoxLayout()
+        self._extend_btn = PushButton(FIF.ADD, tr("bdo.estimate.extend"), self._estimate_box)
+        self._extend_btn.clicked.connect(self.estimate_extend_requested)
+        self._finished_btn = PushButton(FIF.ACCEPT, tr("bdo.estimate.finished"), self._estimate_box)
+        self._finished_btn.clicked.connect(self.estimate_finished_requested)
+        estimate_buttons.addWidget(self._extend_btn)
+        estimate_buttons.addWidget(self._finished_btn)
+        estimate_buttons.addStretch(1)
+        estimate_layout.addLayout(estimate_buttons)
+        self._estimate_box.hide()
+        card_layout.addWidget(self._estimate_box)
         refresh_btn = PushButton(FIF.SYNC, tr("bdo.refresh"), status_card)
         refresh_btn.clicked.connect(self.refresh_requested)
         card_layout.addWidget(refresh_btn, 0, Qt.AlignLeft)
@@ -172,6 +192,13 @@ class BdoPage(QWidget):
         for region in REGIONS:
             text, color = describe_region(statuses.get(region))
             self._set_value(region, text, color)
+
+    def set_estimate_controls(self, text: str | None, can_finish: bool) -> None:
+        """Riga sotto lo stato dei server con "+1 ora" / "È già finita"; text None la nasconde."""
+        self._estimate_box.setVisible(bool(text))
+        if text:
+            self._estimate_label.setText(text)
+            self._finished_btn.setVisible(can_finish)
 
     def show_error(self, kind: str) -> None:
         """Errore (o chiave mancante): le regioni tornano "n/d" e sotto compare il motivo."""

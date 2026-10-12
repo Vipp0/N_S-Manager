@@ -1,7 +1,7 @@
 import os
 import sqlite3
 import threading
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 from PySide6.QtCore import QObject, Qt, QTimer, QUrl, Signal
@@ -71,6 +71,16 @@ from gilda_app.utils.bdo_guild import compare_guild, fetch_guild
 from gilda_app.utils.bdo_news import fetch_news, upcoming_maintenance
 from gilda_app.utils.bdo_timers import fetch_boss_timers, fetch_reset_timers
 from gilda_app.utils.bdoalerts_api import ERROR_BAD_RESPONSE, ERROR_NO_KEY, ApiError
+from gilda_app.utils.maintenance_estimate import (
+    ACTIVE,
+    ESTIMATED_REGIONS,
+    OVER,
+    Estimate,
+    adjustable,
+    apply_estimate,
+    estimate_for,
+    parse_config,
+)
 from gilda_app.utils.restart import restart_app
 from gilda_app.utils.server_status import DEFAULT_REGION, RegionStatus, fetch_server_status
 from gilda_app.utils import updater
@@ -82,6 +92,8 @@ UPDATE_NOTIFIED_SETTING = "update_notified_version"
 API_KEY_SETTING = "bdoalerts_api_key"
 SERVER_REGION_SETTING = "server_status_region"
 GUILD_NAME_SETTING = "bdo_guild_name"
+MAINT_START_SETTING = "maintenance_start_utc"
+MAINT_HOURS_SETTING = "maintenance_hours"
 SERVER_STATUS_INTERVAL_MS = 5 * 60 * 1000
 TIMERS_TICK_MS = 30 * 1000
 DAY_CHANGE_TICK_MS = 60 * 1000
@@ -169,6 +181,8 @@ class MainWindow(FluentWindow):
         self.bdo_page = BdoPage(self)
         self.bdo_page.setObjectName("page_bdo")
         self.bdo_page.refresh_requested.connect(self._refresh_server_status)
+        self.bdo_page.estimate_extend_requested.connect(self._extend_estimate)
+        self.bdo_page.estimate_finished_requested.connect(self._finish_estimate)
         self.addSubInterface(self.bdo_page, FIF.GLOBE, tr("nav.bdo"))
 
         self.stats_page = StatsPage(lambda: self.conn, self._open_nation_in_current, self)
@@ -191,11 +205,13 @@ class MainWindow(FluentWindow):
         self.settings_page.api_key_saved.connect(self._on_api_key_saved)
         self.settings_page.server_region_changed.connect(self._on_server_region_changed)
         self.settings_page.guild_name_saved.connect(self._on_guild_name_saved)
+        self.settings_page.maintenance_window_changed.connect(self._on_maintenance_window_changed)
         self.settings_page.set_extra_backup_dir(get_setting(self.conn, EXTRA_DIR_SETTING))
         self.settings_page.set_bdo_settings(
             get_setting(self.conn, API_KEY_SETTING),
             get_setting(self.conn, SERVER_REGION_SETTING, DEFAULT_REGION),
             get_setting(self.conn, GUILD_NAME_SETTING),
+            *parse_config(get_setting(self.conn, MAINT_START_SETTING), get_setting(self.conn, MAINT_HOURS_SETTING)),
         )
         self.addSubInterface(self.settings_page, FIF.SETTING, tr("nav.settings"), NavigationItemPosition.BOTTOM)
 
@@ -317,6 +333,8 @@ class MainWindow(FluentWindow):
         self._server_busy = False
         self._upcoming_maintenance: str | None = None
         self._upcoming_maintenance_date: date | None = None
+        # Proroga (+1 ora) e "già finita" segnalate a mano, per data di manutenzione: restano solo in memoria.
+        self._estimate_adjust: dict[date, tuple[timedelta, bool]] = {}
         self._maintenance_seen_live = False  # vera anche per un attimo: evita che l'avviso
         # torni "annunciata" appena finisce, lo stesso giorno in cui è cominciata davvero.
         self._server_status_signal = _ServerStatusSignal()
@@ -351,6 +369,8 @@ class MainWindow(FluentWindow):
         # I conti alla rovescia si ricalcolano ogni mezzo minuto dagli orari già scaricati.
         self._timers_tick = QTimer(self)
         self._timers_tick.timeout.connect(self._render_timers)
+        # Anche lo stato stimato dipende dall'ora: va ricontrollato senza aspettare l'API.
+        self._timers_tick.timeout.connect(self._update_server_footer)
         self._timers_tick.start(TIMERS_TICK_MS)
         self._refresh_server_status()
 
@@ -506,19 +526,76 @@ class MainWindow(FluentWindow):
         else:
             self._server_error = None
             self._server_statuses = result
-            self.bdo_page.show_status(result)
+        self._update_server_footer()
+
+    # -- Stima della manutenzione (quando l'API dice "online" a server spenti) ----
+    def _estimate_config(self) -> tuple[int, int]:
+        return parse_config(get_setting(self.conn, MAINT_START_SETTING), get_setting(self.conn, MAINT_HOURS_SETTING))
+
+    def _current_estimate(self, now: datetime | None = None) -> Estimate | None:
+        day = self._upcoming_maintenance_date
+        extra, ended_early = self._estimate_adjust.get(day, (timedelta(0), False)) if day else (timedelta(0), False)
+        return estimate_for(day, now or datetime.now(timezone.utc), *self._estimate_config(), extra, ended_early)
+
+    def _effective_statuses(self) -> dict:
+        """Gli stati dell'API, con la stima al posto di "online" mentre dura la finestra."""
+        return apply_estimate(self._server_statuses, self._current_estimate())
+
+    def _update_estimate_controls(self) -> None:
+        now = datetime.now(timezone.utc)
+        estimate = self._current_estimate(now)
+        day = self._upcoming_maintenance_date
+        ended_early = bool(day and self._estimate_adjust.get(day, (None, False))[1])
+        api_confirms = any(
+            self._server_statuses.get(region) is not None and self._server_statuses[region].in_maintenance
+            for region in ESTIMATED_REGIONS
+        )
+        if self._server_error or ended_early or api_confirms or not adjustable(estimate, now):
+            self.bdo_page.set_estimate_controls(None, False)
+            return
+        start = estimate.start.astimezone().strftime("%H:%M")
+        end = estimate.end.astimezone().strftime("%H:%M")
+        key = "bdo.estimate.running" if estimate.phase == ACTIVE else "bdo.estimate.over"
+        self.bdo_page.set_estimate_controls(tr(key, start=start, end=end), estimate.phase == ACTIVE)
+
+    def _extend_estimate(self) -> None:
+        day = self._upcoming_maintenance_date
+        if day is None:
+            return
+        extra, _ = self._estimate_adjust.get(day, (timedelta(0), False))
+        now = datetime.now(timezone.utc)
+        end = estimate_for(day, now, *self._estimate_config(), extra).end
+        if end < now:  # la manutenzione stimata era già finita: la proroga riparte da adesso
+            extra += now - end
+        self._estimate_adjust[day] = (extra + timedelta(hours=1), False)
+        self._update_server_footer()
+
+    def _finish_estimate(self) -> None:
+        day = self._upcoming_maintenance_date
+        if day is not None:
+            extra, _ = self._estimate_adjust.get(day, (timedelta(0), False))
+            self._estimate_adjust[day] = (extra, True)
+            self._update_server_footer()
+
+    def _on_maintenance_window_changed(self, start_hour: int, hours: int) -> None:
+        set_setting(self.conn, MAINT_START_SETTING, str(start_hour))
+        set_setting(self.conn, MAINT_HOURS_SETTING, str(hours))
         self._update_server_footer()
 
     def _update_server_footer(self) -> None:
         region = self._server_region()
         label = tr(f"region.{region}")
+        effective = self._effective_statuses()
         if self._server_error:
             text, color = describe_error(self._server_error)
             self.server_footer.set_state("", text, color)
         else:
-            text, color = describe_region(self._server_statuses.get(region))
+            text, color = describe_region(effective.get(region))
             self.server_footer.set_state(label, text, color)
+            if effective:
+                self.bdo_page.show_status(effective)
         self.bdo_page.set_region(label)
+        self._update_estimate_controls()
         self._update_dashboard_bdo()
 
     def _on_footer_clicked(self) -> None:
@@ -535,15 +612,15 @@ class MainWindow(FluentWindow):
             self.dashboard_page.set_bdo("", None, [describe_error(self._server_error)[0]])
             self._update_maintenance_banner(None)
             return
-        region_status = self._server_statuses.get(region)
+        region_status = self._effective_statuses().get(region)
         text, color = describe_region(region_status)
         lines = [tr(f"region.{region}")]
         if self._upcoming_maintenance:
             lines.append(self._upcoming_maintenance)
         self.dashboard_page.set_bdo(text, color, lines)
-        self._update_maintenance_banner(region_status)
+        self._update_maintenance_banner(region_status, region)
 
-    def _update_maintenance_banner(self, region_status: RegionStatus | None) -> None:
+    def _update_maintenance_banner(self, region_status: RegionStatus | None, region: str | None = None) -> None:
         """Il banner rosso in dashboard: "annunciata" prima che inizi, poi "in corso" (col
         tempo restante, come nel footer) finché il server non torna online da solo. Una
         volta vista partire, non deve ripresentarsi come "annunciata" lo stesso giorno se
@@ -554,9 +631,22 @@ class MainWindow(FluentWindow):
             self.dashboard_page.set_maintenance_banner(tr("dash.maintenance_banner_ongoing", status=status_text))
             return
         if self._upcoming_maintenance_date is not None and not self._maintenance_seen_live:
+            # Per NA/EU l'orario è noto (stimato): finita la finestra l'avviso sparisce, invece
+            # di restare "annunciata" fino a mezzanotte a server già tornati online.
+            estimate = self._current_estimate() if region in ESTIMATED_REGIONS else None
+            if estimate is not None and estimate.phase == OVER:
+                self.dashboard_page.set_maintenance_banner(None)
+                return
             when = day_text(
                 self._upcoming_maintenance_date, date.today(), self._upcoming_maintenance_date.strftime("%d-%m-%Y")
             )
+            if estimate is not None:
+                start = estimate.start.astimezone().strftime("%H:%M")
+                end = estimate.end.astimezone().strftime("%H:%M")
+                self.dashboard_page.set_maintenance_banner(
+                    tr("dash.maintenance_banner_window", when=when, start=start, end=end)
+                )
+                return
             self.dashboard_page.set_maintenance_banner(tr("dash.maintenance_banner", when=when))
             return
         self.dashboard_page.set_maintenance_banner(None)

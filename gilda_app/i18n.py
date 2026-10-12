@@ -594,6 +594,37 @@ STRINGS: dict[str, dict[str, str]] = {
     "server.online": {"it": "Online", "en": "Online"},
     "server.maintenance": {"it": "In manutenzione", "en": "Under maintenance"},
     "server.maintenance_remaining": {"it": "In manutenzione (fine tra {time})", "en": "Under maintenance ({time} left)"},
+    "server.maintenance_estimated": {"it": "In manutenzione (stimata)", "en": "Under maintenance (estimated)"},
+    "server.maintenance_estimated_remaining": {
+        "it": "In manutenzione, stimata (fine tra {time})",
+        "en": "Under maintenance, estimated ({time} left)",
+    },
+    "dash.maintenance_banner_window": {
+        "it": "⚠ Manutenzione annunciata: {when}, dalle {start} alle {end} (orario stimato)",
+        "en": "⚠ Maintenance announced: {when}, from {start} to {end} (estimated times)",
+    },
+    "bdo.estimate.running": {
+        "it": "Manutenzione stimata dalle {start} alle {end} (ora del tuo PC): il servizio esterno non la segnala, "
+        "quindi lo stato dei server qui sopra è una stima.",
+        "en": "Maintenance estimated from {start} to {end} (your PC's time): the external service does not report it, "
+        "so the server status above is an estimate.",
+    },
+    "bdo.estimate.over": {
+        "it": "L'orario stimato è finito alle {end} (ora del tuo PC). I server sono ancora fuori servizio?",
+        "en": "The estimated time ended at {end} (your PC's time). Are the servers still down?",
+    },
+    "bdo.estimate.extend": {"it": "+1 ora", "en": "+1 hour"},
+    "bdo.estimate.finished": {"it": "È già finita", "en": "It is already over"},
+    "settings.bdo_maint_label": {
+        "it": "Orario della manutenzione, usato solo se il servizio esterno dice \"online\" durante una manutenzione annunciata (NA/EU)",
+        "en": "Maintenance time, used only if the external service says \"online\" during an announced maintenance (NA/EU)",
+    },
+    "settings.bdo_maint_start": {"it": "Inizio (ora UTC)", "en": "Start (UTC time)"},
+    "settings.bdo_maint_hours": {"it": "Durata (ore)", "en": "Duration (hours)"},
+    "settings.bdo_maint_preview": {
+        "it": "Oggi corrisponde alle {start}–{end} sul tuo PC (cambia da sola con l'ora legale).",
+        "en": "Today that is {start}–{end} on your PC (it follows daylight saving by itself).",
+    },
     "server.unknown": {"it": "n/d", "en": "n/a"},
     "server.error.no_key": {
         "it": "Chiave API non configurata (Impostazioni → Server BDO)",

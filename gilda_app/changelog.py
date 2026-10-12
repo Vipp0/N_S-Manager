@@ -6,6 +6,16 @@ usa il programma, non i dettagli tecnici del come."""
 
 CHANGELOG: list[dict] = [
     {
+        "version": "2.5.1",
+        "date": "12-10-2026",
+        "notes": [
+            "Stato dei server durante la manutenzione: il servizio esterno spesso continua a dire \"online\" a server spenti. Nel giorno di una manutenzione annunciata, dentro l'orario previsto (di default 08:00-12:00 UTC, cioè 10-14 in Italia con l'ora legale, 9-13 con l'ora solare), il programma ora mostra \"In manutenzione (stimata)\" con il tempo rimasto, nel footer, nella scheda BDO e in dashboard. Se il servizio esterno segnala davvero la manutenzione, vale quello che dice lui. Finita la finestra si torna allo stato dato dal servizio. Vale per Europa e Nord America (PC).",
+            "Dashboard: l'avviso rosso di manutenzione ora riporta l'orario stimato (\"dalle 10:00 alle 14:00\") e sparisce quando la manutenzione finisce, invece di restare fino a mezzanotte.",
+            "Scheda BDO: durante la manutenzione stimata compaiono \"+1 ora\" (se si allunga, come capita fino alle 15) e \"È già finita\".",
+            "Impostazioni → Server BDO: orario di inizio (UTC) e durata della manutenzione modificabili, con l'equivalente sul tuo PC.",
+        ],
+    },
+    {
         "version": "2.5",
         "date": "05-10-2026",
         "notes": [

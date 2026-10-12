@@ -9,11 +9,21 @@ from qfluentwidgets import (
     PrimaryPushButton,
     PushButton,
     ScrollArea,
+    SpinBox,
     StrongBodyLabel,
     SubtitleLabel,
 )
 
+from datetime import datetime, timezone
+
 from gilda_app.i18n import LANGUAGES, get_language, tr
+from gilda_app.utils.maintenance_estimate import (
+    DEFAULT_DURATION_HOURS,
+    DEFAULT_START_HOUR_UTC,
+    MAX_DURATION_HOURS,
+    MIN_DURATION_HOURS,
+    window_for,
+)
 from gilda_app.utils.server_status import REGIONS
 from gilda_app.version import __version__
 
@@ -33,6 +43,7 @@ class SettingsPage(QWidget):
     api_key_saved = Signal(str)
     guild_name_saved = Signal(str)
     server_region_changed = Signal(str)
+    maintenance_window_changed = Signal(int, int)  # ora di inizio (UTC), durata in ore
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -103,6 +114,28 @@ class SettingsPage(QWidget):
             lambda: self.server_region_changed.emit(self.region_combo.currentData())
         )
         bdo_layout.addWidget(self.region_combo)
+
+        maint_label = QLabel(tr("settings.bdo_maint_label"), bdo_card)
+        maint_label.setWordWrap(True)
+        bdo_layout.addWidget(maint_label)
+        maint_row = QHBoxLayout()
+        self.maint_start_spin = SpinBox(bdo_card)
+        self.maint_start_spin.setRange(0, 23)
+        self.maint_start_spin.setSuffix(":00 UTC")
+        self.maint_hours_spin = SpinBox(bdo_card)
+        self.maint_hours_spin.setRange(MIN_DURATION_HOURS, MAX_DURATION_HOURS)
+        maint_row.addWidget(QLabel(tr("settings.bdo_maint_start"), bdo_card))
+        maint_row.addWidget(self.maint_start_spin)
+        maint_row.addSpacing(16)
+        maint_row.addWidget(QLabel(tr("settings.bdo_maint_hours"), bdo_card))
+        maint_row.addWidget(self.maint_hours_spin)
+        maint_row.addStretch(1)
+        bdo_layout.addLayout(maint_row)
+        self._maint_preview = CaptionLabel("", bdo_card)
+        bdo_layout.addWidget(self._maint_preview)
+        self.maint_start_spin.valueChanged.connect(self._on_maintenance_changed)
+        self.maint_hours_spin.valueChanged.connect(self._on_maintenance_changed)
+        self._update_maint_preview()
         layout.addWidget(bdo_card)
 
         backup_card = CardWidget(self)
@@ -187,9 +220,38 @@ class SettingsPage(QWidget):
         self.api_key_edit.clear()
         self.api_key_saved.emit("")
 
-    def set_bdo_settings(self, api_key: str | None, region: str, guild_name: str | None = None) -> None:
+    def _update_maint_preview(self) -> None:
+        """L'orario in UTC tradotto nell'ora del PC (di oggi): è quello che si vede in dashboard."""
+        start, end = window_for(
+            datetime.now(timezone.utc).date(), self.maint_start_spin.value(), self.maint_hours_spin.value()
+        )
+        self._maint_preview.setText(
+            tr(
+                "settings.bdo_maint_preview",
+                start=start.astimezone().strftime("%H:%M"),
+                end=end.astimezone().strftime("%H:%M"),
+            )
+        )
+
+    def _on_maintenance_changed(self, _value: int) -> None:
+        self._update_maint_preview()
+        self.maintenance_window_changed.emit(self.maint_start_spin.value(), self.maint_hours_spin.value())
+
+    def set_bdo_settings(
+        self,
+        api_key: str | None,
+        region: str,
+        guild_name: str | None = None,
+        maint_start_hour: int = DEFAULT_START_HOUR_UTC,
+        maint_hours: int = DEFAULT_DURATION_HOURS,
+    ) -> None:
         self.api_key_edit.setText(api_key or "")
         self.guild_name_edit.setText(guild_name or "")
+        for spin, value in ((self.maint_start_spin, maint_start_hour), (self.maint_hours_spin, maint_hours)):
+            spin.blockSignals(True)
+            spin.setValue(value)
+            spin.blockSignals(False)
+        self._update_maint_preview()
         # Senza segnali: è il caricamento del valore salvato, non una scelta dell'utente.
         self.region_combo.blockSignals(True)
         self.region_combo.setCurrentIndex(max(0, self.region_combo.findData(region)))

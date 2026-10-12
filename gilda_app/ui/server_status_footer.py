@@ -16,9 +16,11 @@ def describe_region(status: RegionStatus | None) -> tuple[str, str]:
     if not status.in_maintenance:
         return tr("server.online"), COLOR_ONLINE
     remaining = remaining_text(status)
+    prefix = "server.maintenance_estimated" if status.estimated else "server.maintenance"
     if remaining:
-        return tr("server.maintenance_remaining", time=remaining), COLOR_MAINTENANCE
-    return tr("server.maintenance"), COLOR_MAINTENANCE
+        key = "server.maintenance_estimated_remaining" if status.estimated else "server.maintenance_remaining"
+        return tr(key, time=remaining), COLOR_MAINTENANCE
+    return tr(prefix), COLOR_MAINTENANCE
 
 
 def describe_error(kind: str) -> tuple[str, str]:
