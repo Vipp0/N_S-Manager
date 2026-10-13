@@ -36,6 +36,12 @@ WHATS_NEW: dict[str, list[Highlight]] = {
             "singolo\", \"Incolla serie\" (con la ripetizione) o \"Incolla e modifica\" per cambiare titolo o note. "
             "Dal menu di un giorno c'è anche \"Nuovo evento qui\".",
         ),
+        Highlight(
+            "SAVE",
+            "Copia di sicurezza ogni notte",
+            "Se lasci il programma aperto per giorni, alle 2 di notte ne fa da solo una copia di sicurezza, "
+            "oltre a quella dell'avvio. Si tengono le ultime 30 e si ripristinano da Impostazioni → Backup.",
+        ),
     ],
 }
 

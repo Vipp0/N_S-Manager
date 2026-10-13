@@ -3,7 +3,7 @@ import re
 import shutil
 import sqlite3
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 from gilda_app.utils.paths import backups_dir
@@ -11,6 +11,9 @@ from gilda_app.utils.paths import backups_dir
 EXTRA_DIR_SETTING = "extra_backup_dir"
 AUTO_REASON = "auto"
 AUTO_BACKUPS_TO_KEEP = 30
+# Con il programma aperto per giorni (e il PC sempre acceso) la copia dell'avvio non basta: ogni
+# notte, a quest'ora locale, se non c'è ancora una copia automatica più recente se ne fa una.
+NIGHTLY_BACKUP_HOUR = 2
 
 _NAME_RE = re.compile(r"^gilda_(\d{8})_(\d{6})_(.+)\.db$")
 
@@ -39,12 +42,24 @@ def _copy_to_extra(src: Path, extra_dir: Path) -> str | None:
     return None
 
 
-def backup_database(db_path: Path, reason: str, extra_dir: Path | None = None) -> BackupResult:
+def backup_database(
+    db_path: Path, reason: str, extra_dir: Path | None = None, conn: sqlite3.Connection | None = None
+) -> BackupResult:
+    """conn: connessione aperta al database. Con la connessione si usa la copia "online" di
+    SQLite, che dà un'istantanea coerente anche se un altro thread sta scrivendo; senza,
+    si copia il file (come all'avvio, quando il database non è ancora aperto)."""
     if not db_path.exists():
         return BackupResult(None)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     dest = backups_dir() / f"gilda_{timestamp}_{reason}.db"
-    shutil.copy2(db_path, dest)
+    if conn is not None:
+        target = sqlite3.connect(str(dest))
+        try:
+            conn.backup(target)
+        finally:
+            target.close()
+    else:
+        shutil.copy2(db_path, dest)
     error = _copy_to_extra(dest, extra_dir) if extra_dir is not None else None
     return BackupResult(dest, error)
 
@@ -116,6 +131,22 @@ def daily_backup_if_needed(db_path: Path) -> BackupResult | None:
     if extra_dir is not None:
         prune_auto_backups(extra_dir)
     return result
+
+
+def latest_auto_backup_time(*directories: Path) -> datetime | None:
+    """Quando è stata fatta l'ultima copia automatica (nelle cartelle indicate)."""
+    autos = [b.created for b in list_backups(*directories) if b.reason == AUTO_REASON]
+    return max(autos) if autos else None
+
+
+def nightly_backup_due(now: datetime, latest_auto: datetime | None, hour: int = NIGHTLY_BACKUP_HOUR) -> bool:
+    """Se è ora di una copia notturna: c'è stato un passaggio dell'orario `hour` dopo l'ultima
+    copia automatica. Vale anche a ritardo (PC in sospensione alle 2, programma riaperto dopo):
+    la copia si fa appena possibile invece di saltare la notte."""
+    boundary = now.replace(hour=hour, minute=0, second=0, microsecond=0)
+    if now < boundary:
+        boundary -= timedelta(days=1)
+    return latest_auto is None or latest_auto < boundary
 
 
 def is_valid_backup(path: Path) -> bool:

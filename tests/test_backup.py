@@ -107,3 +107,53 @@ def test_invalid_backup_is_rejected(tmp_path):
     bad = tmp_path / "gilda_20260101_000000_manual.db"
     bad.write_bytes(b"not a database")
     assert not bk.is_valid_backup(bad)
+
+
+def test_backup_with_connection_uses_online_copy_and_includes_uncommitted_free_state(env):
+    env["conn"].execute("INSERT INTO members (family_name, main_name, discord_name, status) VALUES ('B','b','d','attivo')")
+    env["conn"].commit()
+    result = bk.backup_database(env["db"], "auto", conn=env["conn"])
+    assert result.path.name.endswith("_auto.db") and bk.is_valid_backup(result.path)
+    copy = sqlite3.connect(str(result.path))
+    try:
+        assert copy.execute("SELECT COUNT(*) FROM members").fetchone()[0] == 2
+    finally:
+        copy.close()
+
+
+def test_nightly_backup_due_after_the_2am_boundary_only_once_per_night():
+    at = lambda d, h, m=0: datetime(2026, 10, d, h, m)
+    # ultima copia ieri alle 9: alle 01:59 non è ancora ora, alle 02:00 sì
+    assert not bk.nightly_backup_due(at(14, 1, 59), at(13, 9))
+    assert bk.nightly_backup_due(at(14, 2, 0), at(13, 9))
+    # fatta alle 02:05, non si rifà per tutto il giorno e la sera
+    assert not bk.nightly_backup_due(at(14, 2, 6), at(14, 2, 5))
+    assert not bk.nightly_backup_due(at(14, 23, 0), at(14, 2, 5))
+    # la notte dopo tocca di nuovo
+    assert bk.nightly_backup_due(at(15, 2, 0), at(14, 2, 5))
+
+
+def test_nightly_backup_is_skipped_when_the_startup_backup_is_recent_enough():
+    at = lambda d, h, m=0: datetime(2026, 10, d, h, m)
+    # PC acceso lunedì alle 9 (copia dell'avvio): la notte di martedì serve, quella di lunedì no
+    assert not bk.nightly_backup_due(at(12, 15), at(12, 9))
+    assert bk.nightly_backup_due(at(13, 2, 0), at(12, 9))
+
+
+def test_nightly_backup_catches_up_after_a_late_wakeup():
+    at = lambda d, h, m=0: datetime(2026, 10, d, h, m)
+    # PC in sospensione alle 02:00, di nuovo attivo alle 07:30: la copia si fa subito
+    assert bk.nightly_backup_due(at(14, 7, 30), at(13, 9))
+
+
+def test_nightly_backup_due_without_any_previous_auto_backup():
+    assert bk.nightly_backup_due(datetime(2026, 10, 14, 15, 0), None)
+
+
+def test_latest_auto_backup_time_ignores_other_kinds(env):
+    now = datetime(2026, 10, 14, 12, 0, 0)
+    _fake_backup(env["backups"], now - timedelta(days=3), "auto")
+    _fake_backup(env["backups"], now - timedelta(days=1), "auto")
+    _fake_backup(env["backups"], now, "move")
+    assert bk.latest_auto_backup_time(env["backups"]) == now - timedelta(days=1)
+    assert bk.latest_auto_backup_time(env["tmp"] / "empty") is None

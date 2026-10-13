@@ -14,6 +14,7 @@ CHANGELOG: list[dict] = [
             "Scheda BDO: durante la manutenzione stimata compaiono \"+1 ora\" (se si allunga, come capita fino alle 15) e \"È già finita\". In Impostazioni → Server BDO si possono cambiare l'orario di inizio (UTC) e la durata, con l'equivalente sul proprio PC.",
             "Calendario: \"Copia evento\" nel menu del tasto destro di un evento; poi, con il tasto destro su un giorno qualsiasi, \"Incolla evento singolo\" (una sola occorrenza), \"Incolla serie (con ripetizione)\" (mantiene la ricorrenza; se la serie aveva una fine, si sposta con l'inizio) oppure \"Incolla e modifica...\" (form già compilato). La voce della serie compare solo se l'evento copiato si ripete. L'evento copiato resta disponibile finché non si chiude il programma.",
             "Calendario: tasto destro su un giorno → \"Nuovo evento qui\" (prima serviva il doppio clic).",
+            "Copia di sicurezza notturna: se il programma resta aperto per giorni (PC sempre acceso), alle 02:00 ne fa una copia automatica, oltre a quella dell'avvio. Se il PC era in sospensione, la copia si fa appena torna attivo. Si tengono le ultime 30 copie automatiche e se ne può ripristinare una da Impostazioni → Backup. Se la copia non riesce, compare un avviso e viene annotato in errori.log.",
             "Novità dopo un aggiornamento: al primo avvio dopo l'aggiornamento compare una finestra con le novità della versione, una volta sola (se si salta una versione, anche quelle saltate). Si può rivedere da Impostazioni → \"Novità di questa versione\".",
         ],
     },

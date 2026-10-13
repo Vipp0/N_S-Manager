@@ -11,10 +11,14 @@ from qfluentwidgets import FluentIcon as FIF
 from qfluentwidgets import FluentWindow, InfoBar, InfoBarPosition, MessageBox, NavigationItemPosition, TransparentToolButton
 
 from gilda_app.db.backup import (
+    AUTO_REASON,
     EXTRA_DIR_SETTING,
     backup_database,
     is_valid_backup,
+    latest_auto_backup_time,
     list_backups,
+    nightly_backup_due,
+    prune_auto_backups,
     restore_backup,
 )
 from gilda_app.db.holidays import refresh_holidays_if_needed
@@ -83,6 +87,7 @@ from gilda_app.utils.maintenance_estimate import (
     estimate_for,
     parse_config,
 )
+from gilda_app.utils.error_log import LOG_NAME, write_entry
 from gilda_app.utils.restart import restart_app
 from gilda_app.utils.server_status import DEFAULT_REGION, RegionStatus, fetch_server_status
 from gilda_app.utils import updater
@@ -100,6 +105,7 @@ MAINT_HOURS_SETTING = "maintenance_hours"
 SERVER_STATUS_INTERVAL_MS = 5 * 60 * 1000
 TIMERS_TICK_MS = 30 * 1000
 DAY_CHANGE_TICK_MS = 60 * 1000
+NIGHTLY_BACKUP_CHECK_MS = 5 * 60 * 1000
 
 
 class _HolidayRefreshSignal(QObject):
@@ -387,6 +393,12 @@ class MainWindow(FluentWindow):
         self._day_tick = QTimer(self)
         self._day_tick.timeout.connect(self._check_day_change)
         self._day_tick.start(DAY_CHANGE_TICK_MS)
+
+        # Il programma resta aperto per giorni: la copia automatica dell'avvio non basta, quindi
+        # ogni notte se ne fa un'altra (vedi db/backup.py). Il controllo costa quasi niente.
+        self._backup_tick = QTimer(self)
+        self._backup_tick.timeout.connect(self._nightly_backup_check)
+        self._backup_tick.start(NIGHTLY_BACKUP_CHECK_MS)
 
     def _server_region(self) -> str:
         return get_setting(self.conn, SERVER_REGION_SETTING, DEFAULT_REGION) or DEFAULT_REGION
@@ -932,6 +944,30 @@ class MainWindow(FluentWindow):
 
     def _backup(self, reason: str):
         return backup_database(self.db_path, reason, self._extra_backup_dir())
+
+    def _nightly_backup_check(self) -> None:
+        extra = self._extra_backup_dir()
+        directories = [backups_dir()] + ([extra] if extra else [])
+        if not nightly_backup_due(datetime.now(), latest_auto_backup_time(*directories)):
+            return
+        try:
+            self.notes_page.save()  # le note si salvano con un ritardo: meglio che stiano nella copia
+            result = backup_database(self.db_path, AUTO_REASON, extra, conn=self.conn)
+            prune_auto_backups(backups_dir())
+            if extra is not None:
+                prune_auto_backups(extra)
+        except (OSError, sqlite3.Error) as exc:
+            write_entry(app_dir() / LOG_NAME, __version__, "copia automatica notturna non riuscita", str(exc))
+            self._notify(tr("backup.notify.failed.title"), tr("backup.notify.failed.body", error=exc), error=True)
+            return
+        self.dashboard_page.refresh()  # "ultimo backup"
+        if result.extra_error:
+            write_entry(app_dir() / LOG_NAME, __version__, "copia notturna nella seconda posizione non riuscita", result.extra_error)
+            self._notify(
+                tr("backup.notify.extra_failed.title"),
+                tr("backup.notify.extra_failed.body", error=result.extra_error),
+                error=True,
+            )
 
     def _on_backup_now(self) -> None:
         result = self._backup("manual")

@@ -292,6 +292,11 @@ STRINGS: dict[str, dict[str, str]] = {
     "backup.extra_choose": {"it": "Scegli cartella...", "en": "Choose folder..."},
     "backup.extra_remove": {"it": "Rimuovi", "en": "Remove"},
     "backup.pick_extra_dir": {"it": "Scegli la cartella per la seconda copia dei backup", "en": "Choose the folder for the second copy of backups"},
+    "backup.notify.failed.title": {"it": "Copia automatica non riuscita", "en": "Automatic backup failed"},
+    "backup.notify.failed.body": {
+        "it": "La copia di sicurezza notturna non è stata fatta: {error}",
+        "en": "The nightly safety backup could not be made: {error}",
+    },
     "backup.reason.auto": {"it": "automatico", "en": "automatic"},
     "backup.reason.manual": {"it": "manuale", "en": "manual"},
     "backup.reason.move": {"it": "prima di uno spostamento", "en": "before a move"},
