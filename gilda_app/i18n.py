@@ -264,6 +264,16 @@ STRINGS: dict[str, dict[str, str]] = {
     },
     "settings.version": {"it": "Night_Shade Manager — versione {version}", "en": "Night_Shade Manager — version {version}"},
     "settings.changelog": {"it": "Changelog", "en": "Changelog"},
+    "settings.whatsnew_button": {"it": "Novità di questa versione", "en": "What's new in this version"},
+    "whatsnew.title": {"it": "Novità della versione {version}", "en": "What's new in version {version}"},
+    "whatsnew.subtitle": {
+        "it": "Ecco cosa c'è di nuovo rispetto alla versione che usavi prima.",
+        "en": "Here is what is new compared with the version you used before.",
+    },
+    "whatsnew.version_header": {"it": "Versione {version}", "en": "Version {version}"},
+    "whatsnew.close": {"it": "Ho capito", "en": "Got it"},
+    "whatsnew.changelog": {"it": "Vedi il changelog completo", "en": "See the full changelog"},
+    "whatsnew.none": {"it": "Nessuna novità da mostrare per questa versione.", "en": "No news to show for this version."},
     "settings.changelog_button": {"it": "Storico modifiche (changelog)", "en": "Version history (changelog)"},
 
     # -- Backup --------------------------------------------------------------

@@ -62,6 +62,8 @@ from gilda_app.ui.restore_dialog import RestoreBackupDialog, format_backup_when
 from gilda_app.ui.server_status_footer import ServerStatusFooter, describe_error, describe_region
 from gilda_app.ui.settings_page import SettingsPage
 from gilda_app.ui.update_window import UpdateDownloadWorker, UpdateProgressWindow
+from gilda_app.ui.whats_new_dialog import WhatsNewDialog
+from gilda_app.whats_new import latest_release, releases_to_show
 from gilda_app.ui.stats_view import StatsPage
 from gilda_app.utils.discord_format import discord_copy_text
 from gilda_app.version import __version__
@@ -93,6 +95,7 @@ API_KEY_SETTING = "bdoalerts_api_key"
 SERVER_REGION_SETTING = "server_status_region"
 GUILD_NAME_SETTING = "bdo_guild_name"
 MAINT_START_SETTING = "maintenance_start_utc"
+WHATS_NEW_SEEN_SETTING = "whats_new_seen_version"
 MAINT_HOURS_SETTING = "maintenance_hours"
 SERVER_STATUS_INTERVAL_MS = 5 * 60 * 1000
 TIMERS_TICK_MS = 30 * 1000
@@ -201,6 +204,7 @@ class MainWindow(FluentWindow):
         self.settings_page.extra_dir_pick_requested.connect(self._on_pick_extra_dir)
         self.settings_page.extra_dir_clear_requested.connect(self._on_clear_extra_dir)
         self.settings_page.changelog_requested.connect(self._on_changelog)
+        self.settings_page.whats_new_requested.connect(self._show_whats_new_manually)
         self.settings_page.check_update_requested.connect(lambda: self._start_update_check(manual=True))
         self.settings_page.api_key_saved.connect(self._on_api_key_saved)
         self.settings_page.server_region_changed.connect(self._on_server_region_changed)
@@ -666,6 +670,27 @@ class MainWindow(FluentWindow):
 
     def _on_changelog(self) -> None:
         ChangelogDialog(self).exec()
+
+    # -- Novità dopo un aggiornamento --------------------------------------------
+    def maybe_show_whats_new(self) -> None:
+        """Al primo avvio dopo un aggiornamento: popup con le novità, una volta sola. La
+        versione vista si salva prima di mostrarlo, così non ricompare nemmeno se il
+        programma viene chiuso mentre è aperto. Mai per un ritorno a una versione più vecchia
+        (la memoria non scende) né per un'installazione nuova, ancora senza dati."""
+        last_seen = get_setting(self.conn, WHATS_NEW_SEEN_SETTING)
+        has_data = self.conn.execute("SELECT COUNT(*) FROM members").fetchone()[0] > 0
+        releases = releases_to_show(last_seen, __version__, has_data)
+        if last_seen is None or is_newer(__version__, last_seen):
+            set_setting(self.conn, WHATS_NEW_SEEN_SETTING, __version__)
+        if releases:
+            WhatsNewDialog(self, releases).exec()
+
+    def _show_whats_new_manually(self) -> None:
+        release = latest_release(__version__)
+        if release is None:
+            self._notify(tr("settings.whatsnew_button"), tr("whatsnew.none"))
+            return
+        WhatsNewDialog(self, [release]).exec()
 
     # -- Controllo aggiornamenti -------------------------------------------
     def _start_update_check(self, manual: bool = False) -> None:

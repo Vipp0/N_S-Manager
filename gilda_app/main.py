@@ -2,6 +2,7 @@ import sys
 import time
 from pathlib import Path
 
+from PySide6.QtCore import QTimer
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QApplication
 from qfluentwidgets import MessageBox
@@ -116,6 +117,8 @@ def main() -> None:
     window.activateWindow()
     _maybe_run_initial_import(conn, db_file, window)
     window.refresh_all()
+    # Dopo che la finestra è comparsa, senza trattenere l'avvio.
+    QTimer.singleShot(500, window.maybe_show_whats_new)
 
     sys.exit(app.exec())
 

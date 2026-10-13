@@ -6,35 +6,15 @@ usa il programma, non i dettagli tecnici del come."""
 
 CHANGELOG: list[dict] = [
     {
-        "version": "2.5.4",
+        "version": "2.6",
         "date": "13-10-2026",
-        "notes": [
-            "Calendario: corretto il tasto destro su un giorno, che non faceva comparire il menu (Incolla evento, Nuovo evento qui).",
-        ],
-    },
-    {
-        "version": "2.5.3",
-        "date": "13-10-2026",
-        "notes": [
-            "Calendario: tasto destro su un giorno → ora ci sono due incolla veloci: \"Incolla evento singolo\" (una sola occorrenza) e \"Incolla serie (con ripetizione)\", che mantiene la ricorrenza dell'evento copiato a partire dal giorno scelto (se la serie aveva una data di fine, si sposta con l'inizio, così dura quanto l'originale). La voce della serie compare solo se l'evento copiato si ripete.",
-        ],
-    },
-    {
-        "version": "2.5.2",
-        "date": "13-10-2026",
-        "notes": [
-            "Calendario: nuova voce \"Copia evento\" nel menu del tasto destro di un evento. Poi, con il tasto destro su un giorno qualsiasi del calendario, \"Incolla evento qui\" crea subito una copia (stesso titolo, nota e colore) in quel giorno, come evento singolo senza ripetizione; \"Incolla e modifica...\" apre invece il form già compilato (ricorrenza compresa) per cambiare titolo o note prima di salvare. L'evento copiato resta disponibile per incollarlo più volte, finché non si chiude il programma.",
-            "Calendario: tasto destro su un giorno → \"Nuovo evento qui\" (prima serviva il doppio clic).",
-        ],
-    },
-    {
-        "version": "2.5.1",
-        "date": "12-10-2026",
         "notes": [
             "Stato dei server durante la manutenzione: il servizio esterno spesso continua a dire \"online\" a server spenti. Nel giorno di una manutenzione annunciata, dentro l'orario previsto (di default 08:00-12:00 UTC, cioè 10-14 in Italia con l'ora legale, 9-13 con l'ora solare), il programma ora mostra \"In manutenzione (stimata)\" con il tempo rimasto, nel footer, nella scheda BDO e in dashboard. Se il servizio esterno segnala davvero la manutenzione, vale quello che dice lui. Finita la finestra si torna allo stato dato dal servizio. Vale per Europa e Nord America (PC).",
             "Dashboard: l'avviso rosso di manutenzione ora riporta l'orario stimato (\"dalle 10:00 alle 14:00\") e sparisce quando la manutenzione finisce, invece di restare fino a mezzanotte.",
-            "Scheda BDO: durante la manutenzione stimata compaiono \"+1 ora\" (se si allunga, come capita fino alle 15) e \"È già finita\".",
-            "Impostazioni → Server BDO: orario di inizio (UTC) e durata della manutenzione modificabili, con l'equivalente sul tuo PC.",
+            "Scheda BDO: durante la manutenzione stimata compaiono \"+1 ora\" (se si allunga, come capita fino alle 15) e \"È già finita\". In Impostazioni → Server BDO si possono cambiare l'orario di inizio (UTC) e la durata, con l'equivalente sul proprio PC.",
+            "Calendario: \"Copia evento\" nel menu del tasto destro di un evento; poi, con il tasto destro su un giorno qualsiasi, \"Incolla evento singolo\" (una sola occorrenza), \"Incolla serie (con ripetizione)\" (mantiene la ricorrenza; se la serie aveva una fine, si sposta con l'inizio) oppure \"Incolla e modifica...\" (form già compilato). La voce della serie compare solo se l'evento copiato si ripete. L'evento copiato resta disponibile finché non si chiude il programma.",
+            "Calendario: tasto destro su un giorno → \"Nuovo evento qui\" (prima serviva il doppio clic).",
+            "Novità dopo un aggiornamento: al primo avvio dopo l'aggiornamento compare una finestra con le novità della versione, una volta sola (se si salta una versione, anche quelle saltate). Si può rivedere da Impostazioni → \"Novità di questa versione\".",
         ],
     },
     {

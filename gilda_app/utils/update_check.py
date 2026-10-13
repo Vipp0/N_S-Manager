@@ -22,14 +22,15 @@ def _parse_version(text: str) -> tuple[int, ...]:
     return tuple(parts)
 
 
-def is_newer(remote_version: str, current_version: str) -> bool:
-    """Le versioni delle release possono omettere il terzo numero quando è 0 ("2.1" =
-    "2.1.0"): si allineano a tre numeri prima di confrontare."""
-    def padded(text: str) -> tuple[int, ...]:
-        parts = _parse_version(text)
-        return parts + (0,) * (3 - len(parts))
+def version_key(text: str) -> tuple[int, ...]:
+    """Chiave per confrontare/ordinare le versioni. Le versioni delle release possono omettere
+    il terzo numero quando è 0 ("2.1" = "2.1.0"): si allineano a tre numeri."""
+    parts = _parse_version(text)
+    return parts + (0,) * (3 - len(parts))
 
-    return padded(remote_version) > padded(current_version)
+
+def is_newer(remote_version: str, current_version: str) -> bool:
+    return version_key(remote_version) > version_key(current_version)
 
 
 @dataclass
