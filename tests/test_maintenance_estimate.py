@@ -10,13 +10,42 @@ def utc(hour, minute=0, day=8):
     return datetime(2026, 10, day, hour, minute, tzinfo=timezone.utc)
 
 
-def test_window_is_stored_in_utc_so_italian_time_follows_daylight_saving():
-    start, end = me.window_for(DAY, 8, 4)
+def italian_hours(day, offset_hours):
+    """Ora italiana di inizio e fine della manutenzione di `day` (offset 1 = CET, 2 = CEST)."""
+    start, end = me.window_for(day, 1, 4)
+    return (start + timedelta(hours=offset_hours)).hour, (end + timedelta(hours=offset_hours)).hour
+
+
+def test_window_follows_los_angeles_time_like_the_official_notices():
+    # 8 ottobre 2026 (avviso ufficiale): 01:00-05:00 PDT = 08:00-12:00 UTC = 10:00-14:00 CEST
+    start, end = me.window_for(DAY, 1, 4)
     assert (start, end) == (utc(8), utc(12))
-    # 10-14 in Italia con l'ora legale (CEST = UTC+2), 9-13 con l'ora solare (CET = UTC+1)
-    assert (start + timedelta(hours=2)).hour == 10 and (end + timedelta(hours=2)).hour == 14
-    winter_start, _ = me.window_for(date(2026, 11, 5), 8, 4)
-    assert (winter_start + timedelta(hours=1)).hour == 9
+    assert italian_hours(DAY, 2) == (10, 14)
+    # 8 gennaio 2026 (avviso ufficiale): 01:00-05:00 PST = 09:00-13:00 UTC = 10:00-14:00 CET
+    winter_start, winter_end = me.window_for(date(2026, 1, 8), 1, 4)
+    assert (winter_start.hour, winter_end.hour) == (9, 13)
+    assert italian_hours(date(2026, 1, 8), 1) == (10, 14)
+
+
+def test_italian_time_stays_10_14_except_in_the_weeks_when_us_and_eu_clocks_differ():
+    # autunno 2026: l'Europa passa all'ora solare il 25 ottobre, gli USA il 1 novembre
+    assert italian_hours(date(2026, 10, 22), 2) == (10, 14)  # entrambi ancora con l'ora legale
+    assert italian_hours(date(2026, 10, 29), 1) == (9, 13)  # discrepanza: Italia CET, California ancora PDT
+    assert italian_hours(date(2026, 11, 5), 1) == (10, 14)  # tornato uguale
+    # primavera 2026: gli USA passano all'ora legale l'8 marzo, l'Europa il 29
+    assert italian_hours(date(2026, 3, 5), 1) == (10, 14)
+    assert italian_hours(date(2026, 3, 12), 1) == (9, 13)  # discrepanza di tre settimane
+    assert italian_hours(date(2026, 4, 2), 2) == (10, 14)  # tornato uguale
+
+
+def test_pacific_offset_changes_exactly_at_the_us_clock_changes():
+    from datetime import datetime as dt
+
+    assert me.pacific_utc_offset(dt(2026, 3, 8, 1, 59)) == timedelta(hours=-8)
+    assert me.pacific_utc_offset(dt(2026, 3, 8, 3, 0)) == timedelta(hours=-7)
+    assert me.pacific_utc_offset(dt(2026, 11, 1, 0, 59)) == timedelta(hours=-7)
+    assert me.pacific_utc_offset(dt(2026, 11, 1, 2, 0)) == timedelta(hours=-8)
+    assert me.pacific_utc_offset(dt(2027, 3, 14, 3, 0)) == timedelta(hours=-7)  # seconda domenica di marzo 2027
 
 
 def test_phases_around_the_window():
@@ -77,8 +106,8 @@ def test_api_maintenance_always_wins_over_the_estimate():
 
 
 def test_parse_config_defaults_and_clamping():
-    assert me.parse_config(None, None) == (8, 4)
-    assert me.parse_config("abc", "") == (8, 4)
+    assert me.parse_config(None, None) == (1, 4)
+    assert me.parse_config("abc", "") == (1, 4)
     assert me.parse_config("9", "5") == (9, 5)
     assert me.parse_config(99, 99) == (23, 12)
     assert me.parse_config(-3, 0) == (0, 1)

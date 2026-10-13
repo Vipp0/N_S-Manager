@@ -645,11 +645,11 @@ STRINGS: dict[str, dict[str, str]] = {
         "it": "Orario della manutenzione, usato solo se il servizio esterno dice \"online\" durante una manutenzione annunciata (NA/EU)",
         "en": "Maintenance time, used only if the external service says \"online\" during an announced maintenance (NA/EU)",
     },
-    "settings.bdo_maint_start": {"it": "Inizio (ora UTC)", "en": "Start (UTC time)"},
+    "settings.bdo_maint_start": {"it": "Inizio (ora di Los Angeles)", "en": "Start (Los Angeles time)"},
     "settings.bdo_maint_hours": {"it": "Durata (ore)", "en": "Duration (hours)"},
     "settings.bdo_maint_preview": {
-        "it": "Oggi corrisponde alle {start}–{end} sul tuo PC (cambia da sola con l'ora legale).",
-        "en": "Today that is {start}–{end} on your PC (it follows daylight saving by itself).",
+        "it": "Oggi corrisponde alle {start}–{end} sul tuo PC (segue da sola i cambi d'ora di Italia e Stati Uniti).",
+        "en": "Today that is {start}–{end} on your PC (it follows the Italian and US clock changes by itself).",
     },
     "server.unknown": {"it": "n/d", "en": "n/a"},
     "server.error.no_key": {

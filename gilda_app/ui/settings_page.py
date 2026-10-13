@@ -19,7 +19,7 @@ from datetime import datetime, timezone
 from gilda_app.i18n import LANGUAGES, get_language, tr
 from gilda_app.utils.maintenance_estimate import (
     DEFAULT_DURATION_HOURS,
-    DEFAULT_START_HOUR_UTC,
+    DEFAULT_START_HOUR_PT,
     MAX_DURATION_HOURS,
     MIN_DURATION_HOURS,
     window_for,
@@ -44,7 +44,7 @@ class SettingsPage(QWidget):
     api_key_saved = Signal(str)
     guild_name_saved = Signal(str)
     server_region_changed = Signal(str)
-    maintenance_window_changed = Signal(int, int)  # ora di inizio (UTC), durata in ore
+    maintenance_window_changed = Signal(int, int)  # ora di inizio (a Los Angeles), durata in ore
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -122,7 +122,7 @@ class SettingsPage(QWidget):
         maint_row = QHBoxLayout()
         self.maint_start_spin = SpinBox(bdo_card)
         self.maint_start_spin.setRange(0, 23)
-        self.maint_start_spin.setSuffix(":00 UTC")
+        self.maint_start_spin.setSuffix(":00")
         self.maint_hours_spin = SpinBox(bdo_card)
         self.maint_hours_spin.setRange(MIN_DURATION_HOURS, MAX_DURATION_HOURS)
         maint_row.addWidget(QLabel(tr("settings.bdo_maint_start"), bdo_card))
@@ -225,7 +225,7 @@ class SettingsPage(QWidget):
         self.api_key_saved.emit("")
 
     def _update_maint_preview(self) -> None:
-        """L'orario in UTC tradotto nell'ora del PC (di oggi): è quello che si vede in dashboard."""
+        """L'orario di Los Angeles tradotto nell'ora del PC (di oggi): è quello che si vede in dashboard."""
         start, end = window_for(
             datetime.now(timezone.utc).date(), self.maint_start_spin.value(), self.maint_hours_spin.value()
         )
@@ -246,7 +246,7 @@ class SettingsPage(QWidget):
         api_key: str | None,
         region: str,
         guild_name: str | None = None,
-        maint_start_hour: int = DEFAULT_START_HOUR_UTC,
+        maint_start_hour: int = DEFAULT_START_HOUR_PT,
         maint_hours: int = DEFAULT_DURATION_HOURS,
     ) -> None:
         self.api_key_edit.setText(api_key or "")

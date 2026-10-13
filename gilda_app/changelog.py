@@ -6,6 +6,13 @@ usa il programma, non i dettagli tecnici del come."""
 
 CHANGELOG: list[dict] = [
     {
+        "version": "2.6.1",
+        "date": "13-10-2026",
+        "notes": [
+            "Manutenzione stimata: l'orario ora segue l'ora di Los Angeles (01:00-05:00), come negli avvisi ufficiali, invece dell'UTC. Così in Italia resta 10:00-14:00 tutto l'anno e, per i pochi giorni in cui il cambio d'ora europeo e quello americano non coincidono (circa una settimana in autunno, tre in primavera), il programma segna da solo 9:00-13:00, come accade davvero. In Impostazioni → Server BDO il campo di inizio è ora \"ora di Los Angeles\" (di default 1:00).",
+        ],
+    },
+    {
         "version": "2.6",
         "date": "13-10-2026",
         "notes": [
