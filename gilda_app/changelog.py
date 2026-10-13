@@ -6,6 +6,14 @@ usa il programma, non i dettagli tecnici del come."""
 
 CHANGELOG: list[dict] = [
     {
+        "version": "2.5.2",
+        "date": "13-10-2026",
+        "notes": [
+            "Calendario: nuova voce \"Copia evento\" nel menu del tasto destro di un evento. Poi, con il tasto destro su un giorno qualsiasi del calendario, \"Incolla evento qui\" crea subito una copia (stesso titolo, nota e colore) in quel giorno, come evento singolo senza ripetizione; \"Incolla e modifica...\" apre invece il form già compilato (ricorrenza compresa) per cambiare titolo o note prima di salvare. L'evento copiato resta disponibile per incollarlo più volte, finché non si chiude il programma.",
+            "Calendario: tasto destro su un giorno → \"Nuovo evento qui\" (prima serviva il doppio clic).",
+        ],
+    },
+    {
         "version": "2.5.1",
         "date": "12-10-2026",
         "notes": [

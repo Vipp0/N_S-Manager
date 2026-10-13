@@ -39,6 +39,8 @@ class CalendarPage(QWidget):
         super().__init__(parent)
         self.get_conn = get_conn
         self._day_events: dict[date, list] = {}
+        # Evento copiato con "Copia evento", da incollare su un altro giorno (solo in memoria).
+        self._copied_event: dict | None = None
 
         layout = QHBoxLayout(self)
         layout.setContentsMargins(24, 20, 24, 20)
@@ -68,6 +70,7 @@ class CalendarPage(QWidget):
             "}"
         )
         self.calendar.selectionChanged.connect(self._refresh_day_panel)
+        self.calendar.day_menu_requested.connect(self._show_day_menu)
         # activated = doppio click (o Invio) su un giorno: apre subito il form di
         # aggiunta evento su quella data.
         self.calendar.activated.connect(lambda _date: self._on_add())
@@ -223,18 +226,61 @@ class CalendarPage(QWidget):
                 )
             )
             menu.addSeparator()
+        menu.addAction(Action(FIF.COPY, tr("calendar.menu.copy_event"), triggered=lambda: self._copy_event(row)))
         menu.addAction(Action(FIF.EDIT, tr("menu.edit"), triggered=lambda: self._on_edit(row)))
         menu.addAction(Action(FIF.ADD, tr("calendar.menu.duplicate"), triggered=lambda: self._on_duplicate(row)))
         menu.addSeparator()
         menu.addAction(Action(FIF.DELETE, tr("menu.delete"), triggered=lambda: self._on_delete(row)))
         menu.exec(global_pos)
 
+    def _toast(self, text: str) -> None:
+        InfoBar.success(
+            title="", content=text, isClosable=True, position=InfoBarPosition.TOP, duration=2200, parent=self.window()
+        )
+
     def _copy(self, text: str) -> None:
         QGuiApplication.clipboard().setText(text)
-        InfoBar.success(
-            title="", content=tr("calendar.copied"), isClosable=True, position=InfoBarPosition.TOP, duration=1500,
-            parent=self.window(),
+        self._toast(tr("calendar.copied"))
+
+    # -- copia / incolla di un evento tra giorni -------------------------------------
+    def _copy_event(self, row) -> None:
+        self._copied_event = dict(row)
+        self._toast(tr("calendar.event_copied"))
+
+    def _show_day_menu(self, day: QDate, global_pos) -> None:
+        # Il giorno cliccato diventa quello selezionato: il pannello a destra mostra il suo elenco.
+        self.calendar.setSelectedDate(day)
+        menu = RoundMenu(parent=self)
+        if self._copied_event is not None:
+            menu.addAction(Action(FIF.PASTE, tr("calendar.menu.paste_event"), triggered=lambda: self._paste_event(day)))
+            menu.addAction(Action(FIF.EDIT, tr("calendar.menu.paste_edit"), triggered=lambda: self._paste_and_edit(day)))
+            menu.addSeparator()
+        menu.addAction(Action(FIF.ADD, tr("calendar.menu.new_here"), triggered=lambda: self._on_add()))
+        menu.exec(global_pos)
+
+    def _paste_event(self, day: QDate) -> None:
+        """Incolla subito: stessi titolo, nota e colore, una sola occorrenza (senza ripetizione)."""
+        source = self._copied_event
+        if source is None:
+            return
+        add_event(
+            self.get_conn(),
+            start_date=day.toString("yyyy-MM-dd"),
+            title=source["title"],
+            color=source["color"],
+            note=source["note"],
         )
+        self.refresh()
+        self._toast(tr("calendar.event_pasted", date=day.toString(DISPLAY_DATE_QT_FORMAT)))
+
+    def _paste_and_edit(self, day: QDate) -> None:
+        """Form già compilato (ricorrenza compresa) sul giorno scelto, per ritoccare prima di salvare."""
+        if self._copied_event is None:
+            return
+        dialog = CalendarEventDialog(self.window(), start_date=day, duplicate_of=self._copied_event)
+        if dialog.exec():
+            add_event(self.get_conn(), **dialog.values())
+            self.refresh()
 
     # -- azioni -----------------------------------------------------------
     def _on_duplicate(self, row) -> None:

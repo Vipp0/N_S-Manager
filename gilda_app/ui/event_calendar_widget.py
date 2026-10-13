@@ -1,8 +1,8 @@
 from datetime import date, timedelta
 
-from PySide6.QtCore import QDate, QRect, QRectF, Qt
+from PySide6.QtCore import QDate, QPoint, QRect, QRectF, Qt, Signal
 from PySide6.QtGui import QColor, QFont, QFontMetrics, QPainter, QPen
-from PySide6.QtWidgets import QCalendarWidget
+from PySide6.QtWidgets import QCalendarWidget, QTableView
 
 from gilda_app.i18n import tr
 
@@ -34,11 +34,51 @@ class EventCalendarWidget(QCalendarWidget):
     di eventi e quando MainWindow si accorge che è scoccata la mezzanotte: il programma
     resta spesso aperto per giorni, quindi non bastava calcolarli una sola volta."""
 
+    # Tasto destro su un giorno: (data cliccata, posizione sullo schermo per il menu).
+    day_menu_requested = Signal(QDate, QPoint)
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self._day_events: dict[date, list[tuple[str, str]]] = {}
         self._today = date.today()
         self._week_start, self._week_end = self._week_bounds(self._today)
+        # La griglia dei giorni è un QTableView interno di Qt (nome fisso, non API pubblica):
+        # se non si trovasse, il menu sui giorni semplicemente non compare.
+        self._view = self.findChild(QTableView, "qt_calendar_calendarview")
+        if self._view is not None:
+            self._view.viewport().setContextMenuPolicy(Qt.CustomContextMenu)
+            self._view.viewport().customContextMenuRequested.connect(self._on_view_context_menu)
+
+    def date_at(self, pos: QPoint) -> QDate | None:
+        """Il giorno nella cella sotto `pos` (coordinate della griglia), None fuori dai giorni.
+        Qt non espone questa conversione: si ricava dal numero scritto nella cella e dalla riga
+        (la griglia ha sempre 6 settimane: i numeri alti nelle prime righe sono del mese
+        prima, quelli bassi nelle ultime del mese dopo). Verificato contro Qt su mesi di ogni tipo."""
+        if self._view is None:
+            return None
+        index = self._view.indexAt(pos)
+        if not index.isValid() or index.row() < 1:  # la riga 0 sono i nomi dei giorni
+            return None
+        try:
+            day = int(index.data(Qt.DisplayRole))
+        except (TypeError, ValueError):
+            return None
+        year, month = self.yearShown(), self.monthShown()
+        if index.row() <= 2 and day > 14:
+            month -= 1
+        elif index.row() >= 5 and day < 15:
+            month += 1
+        if month == 0:
+            year, month = year - 1, 12
+        elif month == 13:
+            year, month = year + 1, 1
+        result = QDate(year, month, day)
+        return result if result.isValid() else None
+
+    def _on_view_context_menu(self, pos: QPoint) -> None:
+        clicked = self.date_at(pos)
+        if clicked is not None:
+            self.day_menu_requested.emit(clicked, self._view.viewport().mapToGlobal(pos))
 
     @staticmethod
     def _week_bounds(today: date) -> tuple[date, date]:
