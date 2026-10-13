@@ -46,8 +46,11 @@ class EventCalendarWidget(QCalendarWidget):
         # se non si trovasse, il menu sui giorni semplicemente non compare.
         self._view = self.findChild(QTableView, "qt_calendar_calendarview")
         if self._view is not None:
-            self._view.viewport().setContextMenuPolicy(Qt.CustomContextMenu)
-            self._view.viewport().customContextMenuRequested.connect(self._on_view_context_menu)
+            # Il menu va richiesto sulla tabella, non sulla sua viewport: gli eventi della
+            # viewport passano dalla tabella (QAbstractScrollArea), che emette il segnale con
+            # la posizione in coordinate della viewport.
+            self._view.setContextMenuPolicy(Qt.CustomContextMenu)
+            self._view.customContextMenuRequested.connect(self._on_view_context_menu)
 
     def date_at(self, pos: QPoint) -> QDate | None:
         """Il giorno nella cella sotto `pos` (coordinate della griglia), None fuori dai giorni.

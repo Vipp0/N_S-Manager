@@ -6,6 +6,13 @@ usa il programma, non i dettagli tecnici del come."""
 
 CHANGELOG: list[dict] = [
     {
+        "version": "2.5.4",
+        "date": "13-10-2026",
+        "notes": [
+            "Calendario: corretto il tasto destro su un giorno, che non faceva comparire il menu (Incolla evento, Nuovo evento qui).",
+        ],
+    },
+    {
         "version": "2.5.3",
         "date": "13-10-2026",
         "notes": [
