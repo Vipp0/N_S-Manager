@@ -470,7 +470,9 @@ STRINGS: dict[str, dict[str, str]] = {
     "calendar.menu.copy_title_note": {"it": "Copia titolo e nota", "en": "Copy title and note"},
     "calendar.menu.duplicate": {"it": "Duplica evento", "en": "Duplicate event"},
     "calendar.menu.copy_event": {"it": "Copia evento", "en": "Copy event"},
-    "calendar.menu.paste_event": {"it": "Incolla evento qui", "en": "Paste event here"},
+    "calendar.menu.paste_event": {"it": "Incolla evento singolo", "en": "Paste single event"},
+    "calendar.menu.paste_series": {"it": "Incolla serie (con ripetizione)", "en": "Paste series (repeating)"},
+    "calendar.series_pasted": {"it": "Serie incollata dal {date}.", "en": "Series pasted from {date}."},
     "calendar.menu.paste_edit": {"it": "Incolla e modifica...", "en": "Paste and edit..."},
     "calendar.menu.new_here": {"it": "Nuovo evento qui", "en": "New event here"},
     "calendar.event_copied": {

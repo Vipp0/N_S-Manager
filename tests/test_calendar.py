@@ -95,3 +95,22 @@ def test_crud_roundtrip(conn):
 
     delete_event(conn, event_id)
     assert get_all_events(conn) == []
+
+
+def test_series_copy_keeps_recurrence_and_shifts_the_end_with_the_start():
+    from datetime import date
+
+    from gilda_app.db.calendar_events import series_copy_at
+
+    row = {
+        "start_date": "2026-10-01", "title": "Raid", "color": "#d13438", "note": "pozioni",
+        "recurrence_unit": "weekly", "recurrence_interval": 2, "recurrence_end_date": "2026-10-29",
+    }
+    copy = series_copy_at(row, date(2026, 10, 15))
+    assert copy == {
+        "start_date": "2026-10-15", "title": "Raid", "color": "#d13438", "note": "pozioni",
+        "recurrence_unit": "weekly", "recurrence_interval": 2,
+        "recurrence_end_date": "2026-11-12",  # stessa durata: 28 giorni dopo l'inizio
+    }
+    no_end = series_copy_at(dict(row, recurrence_end_date=None), date(2026, 9, 1))
+    assert no_end["recurrence_end_date"] is None and no_end["start_date"] == "2026-09-01"

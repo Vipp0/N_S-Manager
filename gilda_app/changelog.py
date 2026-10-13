@@ -6,6 +6,13 @@ usa il programma, non i dettagli tecnici del come."""
 
 CHANGELOG: list[dict] = [
     {
+        "version": "2.5.3",
+        "date": "13-10-2026",
+        "notes": [
+            "Calendario: tasto destro su un giorno → ora ci sono due incolla veloci: \"Incolla evento singolo\" (una sola occorrenza) e \"Incolla serie (con ripetizione)\", che mantiene la ricorrenza dell'evento copiato a partire dal giorno scelto (se la serie aveva una data di fine, si sposta con l'inizio, così dura quanto l'originale). La voce della serie compare solo se l'evento copiato si ripete.",
+        ],
+    },
+    {
         "version": "2.5.2",
         "date": "13-10-2026",
         "notes": [

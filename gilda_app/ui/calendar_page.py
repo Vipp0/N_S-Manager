@@ -15,6 +15,7 @@ from gilda_app.db.calendar_events import (
     delete_event,
     get_all_events,
     occurrences_in_range,
+    series_copy_at,
     update_event,
 )
 from gilda_app.db.holidays import HOLIDAY_COLOR, get_holidays_in_range
@@ -253,6 +254,10 @@ class CalendarPage(QWidget):
         menu = RoundMenu(parent=self)
         if self._copied_event is not None:
             menu.addAction(Action(FIF.PASTE, tr("calendar.menu.paste_event"), triggered=lambda: self._paste_event(day)))
+            if self._copied_event["recurrence_unit"] != RECURRENCE_NONE:  # altrimenti sarebbe identica
+                menu.addAction(
+                    Action(FIF.PASTE, tr("calendar.menu.paste_series"), triggered=lambda: self._paste_series(day))
+                )
             menu.addAction(Action(FIF.EDIT, tr("calendar.menu.paste_edit"), triggered=lambda: self._paste_and_edit(day)))
             menu.addSeparator()
         menu.addAction(Action(FIF.ADD, tr("calendar.menu.new_here"), triggered=lambda: self._on_add()))
@@ -272,6 +277,15 @@ class CalendarPage(QWidget):
         )
         self.refresh()
         self._toast(tr("calendar.event_pasted", date=day.toString(DISPLAY_DATE_QT_FORMAT)))
+
+    def _paste_series(self, day: QDate) -> None:
+        """Incolla subito l'evento con la sua ricorrenza, a partire dal giorno scelto."""
+        source = self._copied_event
+        if source is None:
+            return
+        add_event(self.get_conn(), **series_copy_at(source, date(day.year(), day.month(), day.day())))
+        self.refresh()
+        self._toast(tr("calendar.series_pasted", date=day.toString(DISPLAY_DATE_QT_FORMAT)))
 
     def _paste_and_edit(self, day: QDate) -> None:
         """Form già compilato (ricorrenza compresa) sul giorno scelto, per ritoccare prima di salvare."""

@@ -75,6 +75,24 @@ def get_all_events(conn: sqlite3.Connection) -> list[sqlite3.Row]:
     return conn.execute("SELECT * FROM calendar_events ORDER BY start_date, id").fetchall()
 
 
+def series_copy_at(row, new_start: date) -> dict:
+    """Parametri per add_event di una copia dell'evento `row` con la sua ricorrenza, che parte
+    da new_start. Se la serie aveva una data di fine, si sposta della stessa distanza di cui
+    si sposta l'inizio: la copia dura quanto l'originale invece di finire prima di cominciare."""
+    start = date.fromisoformat(row["start_date"])
+    end = row["recurrence_end_date"]
+    new_end = (date.fromisoformat(end) + (new_start - start)).isoformat() if end else None
+    return {
+        "start_date": new_start.isoformat(),
+        "title": row["title"],
+        "color": row["color"],
+        "note": row["note"],
+        "recurrence_unit": row["recurrence_unit"],
+        "recurrence_interval": row["recurrence_interval"],
+        "recurrence_end_date": new_end,
+    }
+
+
 def _add_months(d: date, months: int) -> date:
     """Somma mesi a una data; se il giorno non esiste nel mese di arrivo (es. 31 in un
     mese da 30) si ferma all'ultimo giorno di quel mese."""
