@@ -68,8 +68,36 @@ def test_extension_moves_the_end_and_can_reopen_a_window_just_over():
 
 
 def test_ended_early_closes_the_window_but_not_before_it_starts():
-    assert me.estimate_for(DAY, utc(10), ended_early=True).phase == me.OVER
-    assert me.estimate_for(DAY, utc(7), ended_early=True).phase == me.UPCOMING
+    est = me.estimate_for(DAY, utc(10, 30), ended_at=utc(10))
+    assert est.phase == me.OVER and est.confirmed and est.end == utc(10)  # finita quando l'hanno segnalato
+    # segnalata prima dell'inizio previsto: non vale
+    assert me.estimate_for(DAY, utc(7, 30), ended_at=utc(7)).phase == me.UPCOMING
+    # la fine segnalata non può essere dopo quella prevista
+    assert me.estimate_for(DAY, utc(12, 30), ended_at=utc(12, 20)).end == utc(12)
+
+
+def test_recently_finished_lasts_thirty_minutes_after_the_end():
+    est = lambda now, **kw: me.estimate_for(DAY, now, **kw)
+    assert not me.recently_finished(est(utc(11, 59)), utc(11, 59))  # ancora in corso
+    assert me.recently_finished(est(utc(12, 0)), utc(12, 0))
+    assert me.recently_finished(est(utc(12, 29)), utc(12, 29))
+    assert not me.recently_finished(est(utc(12, 30)), utc(12, 30))  # passati i 30 minuti
+    assert not me.recently_finished(None, utc(12, 5))
+    assert not me.recently_finished(me.estimate_for(DAY, utc(7)), utc(7))  # non ancora iniziata
+
+
+def test_marking_finished_by_hand_starts_the_thirty_minutes_from_that_moment():
+    pressed = utc(10, 40)
+    assert me.recently_finished(me.estimate_for(DAY, utc(11, 0), ended_at=pressed), utc(11, 0))
+    assert not me.recently_finished(me.estimate_for(DAY, utc(11, 20), ended_at=pressed), utc(11, 20))
+
+
+def test_extension_after_the_planned_end_reopens_it_so_no_green_banner():
+    from datetime import timedelta
+
+    # fine prevista 12:00, alle 12:10 si preme "+1 ora": di nuovo in corso fino alle 13:10
+    est = me.estimate_for(DAY, utc(12, 10), extra=timedelta(hours=1, minutes=10))
+    assert est.phase == me.ACTIVE and not me.recently_finished(est, utc(12, 10))
 
 
 def test_adjustable_from_start_until_a_while_after_the_end():

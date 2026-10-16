@@ -6,6 +6,13 @@ usa il programma, non i dettagli tecnici del come."""
 
 CHANGELOG: list[dict] = [
     {
+        "version": "2.6.5",
+        "date": "16-10-2026",
+        "notes": [
+            "Dashboard: quando una manutenzione finisce compare, nello stesso punto in alto dove c'era l'avviso in corso, un banner verde per 30 minuti. Se la fine si basa solo sull'orario previsto dice \"Manutenzione terminata (fine prevista alle 12:00): i server dovrebbero essere tornati online\"; se la fine è certa (si è premuto \"È già finita\" nella scheda BDO, o il servizio esterno ha visto i server tornare online) dice \"I server sono tornati online\". Se dopo la fine prevista si preme \"+1 ora\", il banner verde sparisce e torna quello rosso.",
+        ],
+    },
+    {
         "version": "2.6.4",
         "date": "16-10-2026",
         "notes": [

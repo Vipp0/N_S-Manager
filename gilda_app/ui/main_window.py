@@ -65,6 +65,7 @@ from gilda_app.ui.reset_dialog import ResetConfirmDialog
 from gilda_app.ui.restore_dialog import RestoreBackupDialog, format_backup_when
 from gilda_app.ui.server_status_footer import (
     COLOR_MAINTENANCE,
+    COLOR_ONLINE,
     ServerStatusFooter,
     announced_color,
     describe_error,
@@ -87,6 +88,7 @@ from gilda_app.utils.bdo_timers import fetch_boss_timers, fetch_reset_timers
 from gilda_app.utils.bdoalerts_api import ERROR_BAD_RESPONSE, ERROR_NO_KEY, ApiError
 from gilda_app.utils.maintenance_estimate import (
     ACTIVE,
+    BACK_ONLINE_BANNER,
     ESTIMATED_REGIONS,
     OVER,
     Estimate,
@@ -95,6 +97,7 @@ from gilda_app.utils.maintenance_estimate import (
     estimate_for,
     parse_config,
     parse_temporary_hours,
+    recently_finished,
 )
 from gilda_app.utils.error_log import LOG_NAME, write_entry
 from gilda_app.utils.restart import restart_app
@@ -369,7 +372,9 @@ class MainWindow(FluentWindow):
         self._notice_signal = _NoticeSignal()
         self._notice_signal.finished.connect(self._on_notice)
         # Proroga (+1 ora) e "già finita" segnalate a mano, per data di manutenzione: restano solo in memoria.
-        self._estimate_adjust: dict[date, tuple[timedelta, bool]] = {}
+        self._estimate_adjust: dict[date, tuple[timedelta, datetime | None]] = {}
+        # Per regione: quando l'API ha visto i server tornare online dopo una manutenzione (banner verde).
+        self._back_online_at: dict[str, datetime] = {}
         self._maintenance_seen_live = False  # vera anche per un attimo: evita che l'avviso
         # torni "annunciata" appena finisce, lo stesso giorno in cui è cominciata davvero.
         self._server_status_signal = _ServerStatusSignal()
@@ -578,6 +583,11 @@ class MainWindow(FluentWindow):
                 self.bdo_page.show_news_error(result)
         else:
             self._server_error = None
+            now = datetime.now(timezone.utc)
+            for region, status in result.items():
+                before = self._server_statuses.get(region)
+                if before is not None and before.in_maintenance and not status.in_maintenance:
+                    self._back_online_at[region] = now  # l'API stessa li ha visti tornare: certo
             self._server_statuses = result
         self._update_server_footer()
 
@@ -628,9 +638,9 @@ class MainWindow(FluentWindow):
 
     def _current_estimate(self, now: datetime | None = None) -> Estimate | None:
         day = self._upcoming_maintenance_date
-        extra, ended_early = self._estimate_adjust.get(day, (timedelta(0), False)) if day else (timedelta(0), False)
+        extra, ended_at = self._estimate_adjust.get(day, (timedelta(0), None)) if day else (timedelta(0), None)
         return estimate_for(
-            day, now or datetime.now(timezone.utc), *self._estimate_config(), extra, ended_early, self._published_schedule()
+            day, now or datetime.now(timezone.utc), *self._estimate_config(), extra, ended_at, self._published_schedule()
         )
 
     def _effective_statuses(self) -> dict:
@@ -641,7 +651,7 @@ class MainWindow(FluentWindow):
         now = datetime.now(timezone.utc)
         estimate = self._current_estimate(now)
         day = self._upcoming_maintenance_date
-        ended_early = bool(day and self._estimate_adjust.get(day, (None, False))[1])
+        ended_early = bool(day and self._estimate_adjust.get(day, (None, None))[1] is not None)
         api_confirms = any(
             self._server_statuses.get(region) is not None and self._server_statuses[region].in_maintenance
             for region in ESTIMATED_REGIONS
@@ -659,19 +669,19 @@ class MainWindow(FluentWindow):
         day = self._upcoming_maintenance_date
         if day is None:
             return
-        extra, _ = self._estimate_adjust.get(day, (timedelta(0), False))
+        extra, _ = self._estimate_adjust.get(day, (timedelta(0), None))
         now = datetime.now(timezone.utc)
         end = estimate_for(day, now, *self._estimate_config(), extra).end
         if end < now:  # la manutenzione stimata era già finita: la proroga riparte da adesso
             extra += now - end
-        self._estimate_adjust[day] = (extra + timedelta(hours=1), False)
+        self._estimate_adjust[day] = (extra + timedelta(hours=1), None)  # riapre anche una fine già segnalata
         self._update_server_footer()
 
     def _finish_estimate(self) -> None:
         day = self._upcoming_maintenance_date
         if day is not None:
-            extra, _ = self._estimate_adjust.get(day, (timedelta(0), False))
-            self._estimate_adjust[day] = (extra, True)
+            extra, _ = self._estimate_adjust.get(day, (timedelta(0), None))
+            self._estimate_adjust[day] = (extra, datetime.now(timezone.utc))  # l'ora serve al banner "tornati online"
             self._update_server_footer()
 
     def _on_maintenance_window_changed(self, start_hour: int, hours: int, temp_hours: int) -> None:
@@ -745,7 +755,7 @@ class MainWindow(FluentWindow):
             temporary = self._upcoming_maintenance_temporary
             estimate = self._current_estimate() if region in ESTIMATED_REGIONS else None
             if estimate is not None and estimate.phase == OVER:
-                self.dashboard_page.set_maintenance_banner(None)
+                self._show_back_online_banner(region, estimate)
                 return
             when = day_text(
                 self._upcoming_maintenance_date, date.today(), self._upcoming_maintenance_date.strftime("%d-%m-%Y")
@@ -762,7 +772,25 @@ class MainWindow(FluentWindow):
             key = "dash.maintenance_banner_temp" if temporary else "dash.maintenance_banner"
             self.dashboard_page.set_maintenance_banner(tr(key, when=when), announced_color(temporary))
             return
-        self.dashboard_page.set_maintenance_banner(None)
+        estimate = self._current_estimate() if region in ESTIMATED_REGIONS else None
+        self._show_back_online_banner(region, estimate)
+
+    def _show_back_online_banner(self, region: str | None, estimate) -> None:
+        """Banner verde per 30 minuti dopo la fine di una manutenzione: certo se la fine è stata
+        confermata (a mano o dall'API), "dovrebbero" se si basa solo sull'orario previsto."""
+        now = datetime.now(timezone.utc)
+        seen = self._back_online_at.get(region or "")
+        if seen is not None and now - seen < BACK_ONLINE_BANNER:
+            text = tr("dash.back_online")
+        elif recently_finished(estimate, now):
+            if estimate.confirmed:
+                text = tr("dash.back_online")
+            else:
+                text = tr("dash.maintenance_over_planned", end=estimate.end.astimezone().strftime("%H:%M"))
+        else:
+            self.dashboard_page.set_maintenance_banner(None)
+            return
+        self.dashboard_page.set_maintenance_banner(text, COLOR_ONLINE)
 
     def _on_api_key_saved(self, key: str) -> None:
         if key:

@@ -27,6 +27,8 @@ MAX_DURATION_HOURS = 12
 ESTIMATED_REGIONS = ("eu", "na")
 # Dopo la fine prevista si può ancora segnalare "è durata di più" per un po'.
 GRACE_AFTER_END = timedelta(hours=3)
+# Per quanto tempo, a manutenzione finita, la dashboard avvisa che i server sono tornati online.
+BACK_ONLINE_BANNER = timedelta(minutes=30)
 
 UPCOMING = "upcoming"
 ACTIVE = "active"
@@ -39,6 +41,7 @@ class Estimate:
     start: datetime  # UTC
     end: datetime  # UTC, già comprensivo di eventuali proroghe
     official: bool = False  # l'orario viene dall'avviso ufficiale invece che dalla stima di riserva
+    confirmed: bool = False  # la fine è stata segnalata a mano ("È già finita"), non dedotta dall'orario
 
 
 def _nth_sunday(year: int, month: int, n: int) -> date:
@@ -95,11 +98,11 @@ def estimate_for(
     start_hour_pt: int = DEFAULT_START_HOUR_PT,
     duration_hours: int = DEFAULT_DURATION_HOURS,
     extra: timedelta = timedelta(0),
-    ended_early: bool = False,
+    ended_at: datetime | None = None,
     published: PublishedSchedule | None = None,
 ) -> Estimate | None:
     """None se non c'è una manutenzione annunciata. extra: proroga aggiunta a mano;
-    ended_early: segnalata a mano come già finita. published: orario letto dall'avviso
+    ended_at: il momento in cui è stata segnalata a mano come già finita. published: orario letto dall'avviso
     ufficiale, che se c'è (ed è dello stesso giorno) vale più della stima di riserva."""
     if announced_day is None:
         return None
@@ -109,11 +112,17 @@ def estimate_for(
     else:
         start, end = window_for(announced_day, start_hour_pt, duration_hours)
     end += extra
-    if ended_early and now >= start:
-        return Estimate(OVER, start, min(end, now), official)
+    if ended_at is not None and ended_at >= start:
+        return Estimate(OVER, start, min(end, ended_at), official, confirmed=True)
     if now < start:
         return Estimate(UPCOMING, start, end, official)
     return Estimate(ACTIVE if now < end else OVER, start, end, official)
+
+
+def recently_finished(estimate: Estimate | None, now: datetime) -> bool:
+    """Se la manutenzione è finita da poco (meno di BACK_ONLINE_BANNER): è il momento di dire in
+    dashboard che i server sono tornati online."""
+    return estimate is not None and estimate.phase == OVER and timedelta(0) <= now - estimate.end < BACK_ONLINE_BANNER
 
 
 def adjustable(estimate: Estimate | None, now: datetime) -> bool:

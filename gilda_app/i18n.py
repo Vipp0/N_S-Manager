@@ -537,6 +537,11 @@ STRINGS: dict[str, dict[str, str]] = {
         "it": "⚠ Manutenzione annunciata: {when}",
         "en": "⚠ Maintenance announced: {when}",
     },
+    "dash.back_online": {"it": "✔ I server sono tornati online", "en": "✔ The servers are back online"},
+    "dash.maintenance_over_planned": {
+        "it": "✔ Manutenzione terminata (fine prevista alle {end}): i server dovrebbero essere tornati online",
+        "en": "✔ Maintenance over (planned end at {end}): the servers should be back online",
+    },
     "dash.maintenance_banner_temp": {
         "it": "⚠ Manutenzione temporanea annunciata: {when}",
         "en": "⚠ Temporary maintenance announced: {when}",
