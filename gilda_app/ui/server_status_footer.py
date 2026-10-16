@@ -6,6 +6,7 @@ from gilda_app.utils.server_status import RegionStatus, remaining_text
 
 COLOR_ONLINE = "#1a7f37"
 COLOR_MAINTENANCE = "#c42b1c"
+COLOR_ANNOUNCED = "#d9730d"  # arancione: manutenzione ordinaria annunciata
 COLOR_UNKNOWN = "#8a8886"
 
 
@@ -16,11 +17,19 @@ def describe_region(status: RegionStatus | None) -> tuple[str, str]:
     if not status.in_maintenance:
         return tr("server.online"), COLOR_ONLINE
     remaining = remaining_text(status)
-    prefix = "server.maintenance_estimated" if status.estimated else "server.maintenance"
+    base = "server.maintenance"
+    if status.estimated:
+        base = "server.maintenance_official" if status.official else "server.maintenance_estimated"
     if remaining:
-        key = "server.maintenance_estimated_remaining" if status.estimated else "server.maintenance_remaining"
-        return tr(key, time=remaining), COLOR_MAINTENANCE
-    return tr(prefix), COLOR_MAINTENANCE
+        return tr(f"{base}_remaining" if status.estimated else "server.maintenance_remaining", time=remaining), COLOR_MAINTENANCE
+    return tr(base), COLOR_MAINTENANCE
+
+
+def announced_color(temporary: bool) -> str:
+    """Colore di una manutenzione annunciata ma non ancora iniziata: arancione se ordinaria, rosso
+    se temporanea/straordinaria (fuori programma). Quando è in corso è sempre rosso. Unico punto da
+    cui prendono il colore dashboard, banner e scheda BDO, così non possono divergere."""
+    return COLOR_MAINTENANCE if temporary else COLOR_ANNOUNCED
 
 
 def describe_error(kind: str) -> tuple[str, str]:

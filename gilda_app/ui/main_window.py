@@ -63,7 +63,13 @@ from gilda_app.ui.player_profile_dialog import BdoContext
 from gilda_app.ui.progress_dialog import ImportProgressDialog
 from gilda_app.ui.reset_dialog import ResetConfirmDialog
 from gilda_app.ui.restore_dialog import RestoreBackupDialog, format_backup_when
-from gilda_app.ui.server_status_footer import ServerStatusFooter, describe_error, describe_region
+from gilda_app.ui.server_status_footer import (
+    COLOR_MAINTENANCE,
+    ServerStatusFooter,
+    announced_color,
+    describe_error,
+    describe_region,
+)
 from gilda_app.ui.settings_page import SettingsPage
 from gilda_app.ui.update_window import UpdateDownloadWorker, UpdateProgressWindow
 from gilda_app.ui.whats_new_dialog import WhatsNewDialog
@@ -75,6 +81,7 @@ from gilda_app.utils.icons import ban_icon
 from gilda_app.utils.paths import app_dir, backups_dir
 from gilda_app.utils.bdo_guild import compare_guild, fetch_guild
 from gilda_app.utils.bdo_news import fetch_news, upcoming_maintenance
+from gilda_app.utils.bdo_notice import PublishedSchedule, fetch_schedule
 from gilda_app.utils.bdo_timers import fetch_boss_timers, fetch_reset_timers
 from gilda_app.utils.bdoalerts_api import ERROR_BAD_RESPONSE, ERROR_NO_KEY, ApiError
 from gilda_app.utils.maintenance_estimate import (
@@ -108,6 +115,10 @@ SERVER_STATUS_INTERVAL_MS = 5 * 60 * 1000
 TIMERS_TICK_MS = 30 * 1000
 DAY_CHANGE_TICK_MS = 60 * 1000
 NIGHTLY_BACKUP_CHECK_MS = 5 * 60 * 1000
+# Ogni quanto si rilegge l'avviso ufficiale della manutenzione: spesso nel giorno stesso (può essere
+# aggiornato, es. allungata), di rado prima.
+NOTICE_REFRESH_SOON = timedelta(minutes=15)
+NOTICE_REFRESH_LATER = timedelta(hours=6)
 
 
 class _HolidayRefreshSignal(QObject):
@@ -133,6 +144,10 @@ class _NewsSignal(QObject):
 class _TimersSignal(QObject):
     # (ResetTimers | kind, BossTimers | kind): ogni metà è i dati oppure il "kind" dell'errore.
     finished = Signal(object)
+
+
+class _NoticeSignal(QObject):
+    finished = Signal(object)  # (url, giorno, PublishedSchedule | None)
 
 
 class _GuildSignal(QObject):
@@ -347,6 +362,11 @@ class MainWindow(FluentWindow):
         self._upcoming_maintenance: str | None = None
         self._upcoming_maintenance_date: date | None = None
         self._upcoming_maintenance_temporary = False  # l'avviso è una manutenzione temporanea (più breve)
+        self._upcoming_notice_url = ""
+        self._notice_cache: dict[str, tuple[datetime, PublishedSchedule | None]] = {}
+        self._notice_busy = False
+        self._notice_signal = _NoticeSignal()
+        self._notice_signal.finished.connect(self._on_notice)
         # Proroga (+1 ora) e "già finita" segnalate a mano, per data di manutenzione: restano solo in memoria.
         self._estimate_adjust: dict[date, tuple[timedelta, bool]] = {}
         self._maintenance_seen_live = False  # vera anche per un attimo: evita che l'avviso
@@ -525,6 +545,7 @@ class MainWindow(FluentWindow):
             self._upcoming_maintenance = None
             self._upcoming_maintenance_date = None
             self._upcoming_maintenance_temporary = False
+            self._upcoming_notice_url = ""
         else:
             self.bdo_page.show_news(result)
             upcoming = upcoming_maintenance(result, date.today())
@@ -533,9 +554,16 @@ class MainWindow(FluentWindow):
                 self._maintenance_seen_live = False  # è un nuovo annuncio, si riparte da "annunciata"
             self._upcoming_maintenance_date = new_date
             self._upcoming_maintenance_temporary = bool(upcoming and upcoming.is_temporary)
+            self._upcoming_notice_url = upcoming.url if upcoming else ""
             self._upcoming_maintenance = (
-                tr("bdo.news_upcoming", date=upcoming.maintenance_date.strftime("%d-%m-%Y")) if upcoming else None
+                tr(
+                    "bdo.news_upcoming_temp" if upcoming.is_temporary else "bdo.news_upcoming",
+                    date=upcoming.maintenance_date.strftime("%d-%m-%Y"),
+                )
+                if upcoming
+                else None
             )
+        self._maybe_fetch_notice()
         # L'annuncio può arrivare dopo lo stato dei server: footer, scheda BDO e dashboard
         # (che dipendono da entrambi) si ricalcolano subito, senza aspettare il giro successivo.
         self._update_server_footer()
@@ -563,10 +591,46 @@ class MainWindow(FluentWindow):
             hours = parse_temporary_hours(get_setting(self.conn, MAINT_TEMP_HOURS_SETTING))
         return start, hours
 
+    # -- Orario letto dall'avviso ufficiale (se non si riesce, resta la stima di riserva) ----
+    def _maybe_fetch_notice(self) -> None:
+        url, day = self._upcoming_notice_url, self._upcoming_maintenance_date
+        if not url or day is None or self._notice_busy:
+            return
+        now = datetime.now(timezone.utc)
+        cached = self._notice_cache.get(url)
+        limit = NOTICE_REFRESH_SOON if day <= now.date() + timedelta(days=1) else NOTICE_REFRESH_LATER
+        if cached is not None and now - cached[0] < limit:
+            return
+        self._notice_busy = True
+        threading.Thread(target=self._notice_worker, args=(url, day), daemon=True).start()
+
+    def _notice_worker(self, url: str, day: date) -> None:
+        schedule = fetch_schedule(url, day)
+        try:
+            self._notice_signal.finished.emit((url, day, schedule))
+        except RuntimeError:  # la finestra è stata chiusa mentre si scaricava: niente da aggiornare
+            pass
+
+    def _on_notice(self, result) -> None:
+        self._notice_busy = False
+        url, _day, schedule = result
+        previous = self._notice_cache.get(url)
+        if schedule is None and previous is not None and previous[1] is not None:
+            schedule = previous[1]  # una lettura fallita non cancella un orario già noto
+        self._notice_cache[url] = (datetime.now(timezone.utc), schedule)
+        self._update_server_footer()
+
+    def _published_schedule(self) -> PublishedSchedule | None:
+        cached = self._notice_cache.get(self._upcoming_notice_url)
+        schedule = cached[1] if cached else None
+        return schedule if schedule is not None and schedule.day == self._upcoming_maintenance_date else None
+
     def _current_estimate(self, now: datetime | None = None) -> Estimate | None:
         day = self._upcoming_maintenance_date
         extra, ended_early = self._estimate_adjust.get(day, (timedelta(0), False)) if day else (timedelta(0), False)
-        return estimate_for(day, now or datetime.now(timezone.utc), *self._estimate_config(), extra, ended_early)
+        return estimate_for(
+            day, now or datetime.now(timezone.utc), *self._estimate_config(), extra, ended_early, self._published_schedule()
+        )
 
     def _effective_statuses(self) -> dict:
         """Gli stati dell'API, con la stima al posto di "online" mentre dura la finestra."""
@@ -586,7 +650,8 @@ class MainWindow(FluentWindow):
             return
         start = estimate.start.astimezone().strftime("%H:%M")
         end = estimate.end.astimezone().strftime("%H:%M")
-        key = "bdo.estimate.running" if estimate.phase == ACTIVE else "bdo.estimate.over"
+        running = "bdo.estimate.running_official" if estimate.official else "bdo.estimate.running"
+        key = running if estimate.phase == ACTIVE else "bdo.estimate.over"
         self.bdo_page.set_estimate_controls(tr(key, start=start, end=end), estimate.phase == ACTIVE)
 
     def _extend_estimate(self) -> None:
@@ -647,24 +712,33 @@ class MainWindow(FluentWindow):
         region_status = self._effective_statuses().get(region)
         text, color = describe_region(region_status)
         lines = [tr(f"region.{region}")]
-        if self._upcoming_maintenance:
+        announce_color = None
+        estimate = self._current_estimate() if region in ESTIMATED_REGIONS else None
+        if self._upcoming_maintenance and not (estimate is not None and estimate.phase == OVER):
+            # (finita la finestra la riga "annunciata" non ha più senso e sparisce)
             lines.append(self._upcoming_maintenance)
-        self.dashboard_page.set_bdo(text, color, lines)
+            in_progress = region_status is not None and region_status.in_maintenance
+            announce_color = COLOR_MAINTENANCE if in_progress else announced_color(self._upcoming_maintenance_temporary)
+        self.dashboard_page.set_bdo(text, color, lines, announce_color)
         self._update_maintenance_banner(region_status, region)
 
     def _update_maintenance_banner(self, region_status: RegionStatus | None, region: str | None = None) -> None:
-        """Il banner rosso in dashboard: "annunciata" prima che inizi, poi "in corso" (col
-        tempo restante, come nel footer) finché il server non torna online da solo. Una
+        """Il banner in dashboard: "annunciata" prima che inizi (arancione se ordinaria, rossa se
+        temporanea), poi "in corso" (rosso, col tempo restante, come nel footer) finché il server
+        non torna online da solo. Il colore viene da announced_color, come nel riquadro BDO. Una
         volta vista partire, non deve ripresentarsi come "annunciata" lo stesso giorno se
         lo stato torna online per un attimo tra due controlli (ogni 5 minuti)."""
         if region_status is not None and region_status.in_maintenance:
             self._maintenance_seen_live = True
             status_text, _ = describe_region(region_status)
-            self.dashboard_page.set_maintenance_banner(tr("dash.maintenance_banner_ongoing", status=status_text))
+            self.dashboard_page.set_maintenance_banner(
+                tr("dash.maintenance_banner_ongoing", status=status_text), COLOR_MAINTENANCE
+            )
             return
         if self._upcoming_maintenance_date is not None and not self._maintenance_seen_live:
             # Per NA/EU l'orario è noto (stimato): finita la finestra l'avviso sparisce, invece
             # di restare "annunciata" fino a mezzanotte a server già tornati online.
+            temporary = self._upcoming_maintenance_temporary
             estimate = self._current_estimate() if region in ESTIMATED_REGIONS else None
             if estimate is not None and estimate.phase == OVER:
                 self.dashboard_page.set_maintenance_banner(None)
@@ -675,10 +749,14 @@ class MainWindow(FluentWindow):
             if estimate is not None:
                 start = estimate.start.astimezone().strftime("%H:%M")
                 end = estimate.end.astimezone().strftime("%H:%M")
-                key = "dash.maintenance_banner_window_temp" if self._upcoming_maintenance_temporary else "dash.maintenance_banner_window"
-                self.dashboard_page.set_maintenance_banner(tr(key, when=when, start=start, end=end))
+                key = "dash.maintenance_banner_window_temp" if temporary else "dash.maintenance_banner_window"
+                basis = tr("maint.basis.official" if estimate.official else "maint.basis.estimated")
+                self.dashboard_page.set_maintenance_banner(
+                    tr(key, when=when, start=start, end=end, basis=basis), announced_color(temporary)
+                )
                 return
-            self.dashboard_page.set_maintenance_banner(tr("dash.maintenance_banner", when=when))
+            key = "dash.maintenance_banner_temp" if temporary else "dash.maintenance_banner"
+            self.dashboard_page.set_maintenance_banner(tr(key, when=when), announced_color(temporary))
             return
         self.dashboard_page.set_maintenance_banner(None)
 

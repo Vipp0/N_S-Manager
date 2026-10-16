@@ -64,20 +64,24 @@ class MaintenanceBanner(CardWidget):
     annuncio, niente striscia, nessuno spazio occupato. Click -> scheda BDO."""
 
     _COLOR = QColor("#c42b1c")  # stesso rosso di "in manutenzione" nel footer/scheda BDO
+    # Colore attuale: serve già durante la costruzione (la scheda di Qt chiede lo sfondo subito),
+    # poi lo cambia set_text().
+    _color = QColor("#c42b1c")
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setCursor(Qt.PointingHandCursor)
         layout = QHBoxLayout(self)
         layout.setContentsMargins(16, 10, 16, 10)
+        self._color = QColor(self._COLOR)
         self._label = StrongBodyLabel(self)
-        self._label.setStyleSheet(f"color: {self._COLOR.name()};")
+        self._label.setStyleSheet(f"color: {self._color.name()};")
         layout.addWidget(self._label)
         layout.addStretch(1)
         self.hide()
 
     def _tinted(self, alpha: int) -> QColor:
-        return QColor(self._COLOR.red(), self._COLOR.green(), self._COLOR.blue(), alpha)
+        return QColor(self._color.red(), self._color.green(), self._color.blue(), alpha)
 
     def _normalBackgroundColor(self):
         return self._tinted(30 if isDarkTheme() else 26)
@@ -88,10 +92,16 @@ class MaintenanceBanner(CardWidget):
     def _pressedBackgroundColor(self):
         return self._tinted(55)
 
-    def set_text(self, text: str | None) -> None:
+    def set_text(self, text: str | None, color: str | None = None) -> None:
+        """color: colore esadecimale del testo e dello sfondo tenue (di default il rosso)."""
         self.setVisible(bool(text))
         if text:
+            self._color = QColor(color or self._COLOR)
+            self._label.setStyleSheet(f"color: {self._color.name()};")
             self._label.setText(text)
+            # Qt tiene in memoria il colore di sfondo: cambiato il colore, va riapplicato a mano.
+            self.setBackgroundColor(self._normalBackgroundColor())
+            self.update()
 
 
 class DashboardTile(CardWidget):
@@ -433,8 +443,14 @@ class DashboardPage(QWidget):
     def set_timers(self, lines: list[str]) -> None:
         self._info_cards["info_timers"].set_content("", lines or [tr("server.error.no_key")])
 
-    def set_bdo(self, value: str, color: str | None, lines: list[str]) -> None:
-        self._tiles[TILE_BDO].set_content(value, lines, color)
+    def set_bdo(self, value: str, color: str | None, lines: list[str], announce_color: str | None = None) -> None:
+        """announce_color: colore della seconda riga (manutenzione annunciata), in evidenza."""
+        if announce_color and len(lines) > 1:
+            self._tiles[TILE_BDO].set_content(
+                value, lines, color, today_lines=frozenset({1}), today_colors={1: announce_color}
+            )
+        else:
+            self._tiles[TILE_BDO].set_content(value, lines, color)
 
-    def set_maintenance_banner(self, text: str | None) -> None:
-        self._maintenance_banner.set_text(text)
+    def set_maintenance_banner(self, text: str | None, color: str | None = None) -> None:
+        self._maintenance_banner.set_text(text, color)

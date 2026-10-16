@@ -6,6 +6,15 @@ usa il programma, non i dettagli tecnici del come."""
 
 CHANGELOG: list[dict] = [
     {
+        "version": "2.6.3",
+        "date": "16-10-2026",
+        "notes": [
+            "Orario della manutenzione letto dall'avviso ufficiale: il programma legge dalla pagina dell'avviso (quella linkata nelle news) l'orario reale e la durata, quindi non deve più indovinare (4 ore, 2 ore per le temporanee, orari diversi dal solito). Quando l'orario viene dall'avviso la scritta è \"In manutenzione, secondo l'avviso (fine tra …)\" invece di \"stimata\". Se il sito cambia o non risponde, il programma torna alla stima di prima senza mostrare errori. La pagina si rilegge ogni 15 minuti nel giorno della manutenzione, per cogliere eventuali aggiornamenti.",
+            "Colori degli avvisi di manutenzione: arancione per una manutenzione ordinaria annunciata, rosso per una temporanea/straordinaria annunciata e per qualunque manutenzione in corso. Il colore è lo stesso nel banner in cima alla dashboard e nella riga del riquadro BDO (che ora è in evidenza invece che nera), e nella scheda BDO. Per le temporanee il testo dice anche \"temporanea\".",
+            "Le manutenzioni che non fermano il gioco (come \"Central Market Maintenance\", di circa 20 minuti) non fanno più comparire \"In manutenzione\" per i server. Finita la manutenzione, la riga \"annunciata\" nel riquadro BDO sparisce.",
+        ],
+    },
+    {
         "version": "2.6.2",
         "date": "16-10-2026",
         "notes": [

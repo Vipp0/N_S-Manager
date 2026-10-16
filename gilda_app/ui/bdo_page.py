@@ -6,7 +6,13 @@ from PySide6.QtWidgets import QFrame, QGridLayout, QHBoxLayout, QLabel, QVBoxLay
 from qfluentwidgets import CardWidget, CaptionLabel, FluentIcon as FIF, PushButton, ScrollArea, StrongBodyLabel, SubtitleLabel
 
 from gilda_app.i18n import tr
-from gilda_app.ui.server_status_footer import COLOR_MAINTENANCE, COLOR_UNKNOWN, describe_error, describe_region
+from gilda_app.ui.server_status_footer import (
+    COLOR_MAINTENANCE,
+    COLOR_UNKNOWN,
+    announced_color,
+    describe_error,
+    describe_region,
+)
 from gilda_app.utils.bdo_guild import GuildComparison, GuildInfo
 from gilda_app.utils.bdo_news import NewsItem, upcoming_maintenance
 from gilda_app.utils.bdo_timers import (
@@ -210,8 +216,9 @@ class BdoPage(QWidget):
         upcoming = upcoming_maintenance(items, date.today())
         if upcoming is not None:
             when = upcoming.maintenance_date.strftime("%d-%m-%Y")
-            self._upcoming.setText(f"<b>{html.escape(tr('bdo.news_upcoming', date=when))}</b>")
-            self._upcoming.setStyleSheet(f"color: {COLOR_MAINTENANCE};")
+            key = "bdo.news_upcoming_temp" if upcoming.is_temporary else "bdo.news_upcoming"
+            self._upcoming.setText(f"<b>{html.escape(tr(key, date=when))}</b>")
+            self._upcoming.setStyleSheet(f"color: {announced_color(upcoming.is_temporary)};")
         else:
             self._upcoming.setText(tr("bdo.news_none_upcoming"))
             self._upcoming.setStyleSheet("")

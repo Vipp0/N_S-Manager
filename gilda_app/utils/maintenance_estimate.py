@@ -14,6 +14,7 @@ d'ora europeo e quello americano in autunno, circa tre settimane in primavera) �
 from dataclasses import dataclass, replace
 from datetime import date, datetime, timedelta, timezone
 
+from gilda_app.utils.bdo_notice import PublishedSchedule
 from gilda_app.utils.server_status import RegionStatus
 
 DEFAULT_START_HOUR_PT = 1
@@ -37,6 +38,7 @@ class Estimate:
     phase: str  # UPCOMING | ACTIVE | OVER
     start: datetime  # UTC
     end: datetime  # UTC, già comprensivo di eventuali proroghe
+    official: bool = False  # l'orario viene dall'avviso ufficiale invece che dalla stima di riserva
 
 
 def _nth_sunday(year: int, month: int, n: int) -> date:
@@ -94,18 +96,24 @@ def estimate_for(
     duration_hours: int = DEFAULT_DURATION_HOURS,
     extra: timedelta = timedelta(0),
     ended_early: bool = False,
+    published: PublishedSchedule | None = None,
 ) -> Estimate | None:
     """None se non c'è una manutenzione annunciata. extra: proroga aggiunta a mano;
-    ended_early: segnalata a mano come già finita."""
+    ended_early: segnalata a mano come già finita. published: orario letto dall'avviso
+    ufficiale, che se c'è (ed è dello stesso giorno) vale più della stima di riserva."""
     if announced_day is None:
         return None
-    start, end = window_for(announced_day, start_hour_pt, duration_hours)
+    official = published is not None and published.day == announced_day
+    if official:
+        start, end = published.start, published.end
+    else:
+        start, end = window_for(announced_day, start_hour_pt, duration_hours)
     end += extra
     if ended_early and now >= start:
-        return Estimate(OVER, start, min(end, now))
+        return Estimate(OVER, start, min(end, now), official)
     if now < start:
-        return Estimate(UPCOMING, start, end)
-    return Estimate(ACTIVE if now < end else OVER, start, end)
+        return Estimate(UPCOMING, start, end, official)
+    return Estimate(ACTIVE if now < end else OVER, start, end, official)
 
 
 def adjustable(estimate: Estimate | None, now: datetime) -> bool:
@@ -122,5 +130,5 @@ def apply_estimate(statuses: dict[str, RegionStatus], estimate: Estimate | None)
     for region in ESTIMATED_REGIONS:
         status = result.get(region)
         if status is not None and not status.in_maintenance:
-            result[region] = replace(status, in_maintenance=True, ends_at=estimate.end, estimated=True)
+            result[region] = replace(status, in_maintenance=True, ends_at=estimate.end, estimated=True, official=estimate.official)
     return result

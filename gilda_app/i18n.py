@@ -528,10 +528,18 @@ STRINGS: dict[str, dict[str, str]] = {
     "bdo.title": {"it": "Black Desert", "en": "Black Desert"},
     "bdo.server_status": {"it": "Stato dei server", "en": "Server status"},
     "bdo.news_title": {"it": "Avvisi ufficiali (NA/EU)", "en": "Official notices (NA/EU)"},
+    "bdo.news_upcoming_temp": {
+        "it": "Manutenzione temporanea annunciata per il {date}",
+        "en": "Temporary maintenance announced for {date}",
+    },
     "bdo.news_upcoming": {"it": "Manutenzione annunciata per il {date}", "en": "Maintenance announced for {date}"},
     "dash.maintenance_banner": {
         "it": "⚠ Manutenzione annunciata: {when}",
         "en": "⚠ Maintenance announced: {when}",
+    },
+    "dash.maintenance_banner_temp": {
+        "it": "⚠ Manutenzione temporanea annunciata: {when}",
+        "en": "⚠ Temporary maintenance announced: {when}",
     },
     "dash.maintenance_banner_ongoing": {
         "it": "⚠ {status}",
@@ -620,14 +628,25 @@ STRINGS: dict[str, dict[str, str]] = {
     "server.online": {"it": "Online", "en": "Online"},
     "server.maintenance": {"it": "In manutenzione", "en": "Under maintenance"},
     "server.maintenance_remaining": {"it": "In manutenzione (fine tra {time})", "en": "Under maintenance ({time} left)"},
+    "server.maintenance_official": {"it": "In manutenzione (da avviso)", "en": "Under maintenance (per notice)"},
+    "server.maintenance_official_remaining": {
+        "it": "In manutenzione, secondo l'avviso (fine tra {time})",
+        "en": "Under maintenance, per the notice ({time} left)",
+    },
+    "maint.basis.estimated": {"it": "orario stimato", "en": "estimated times"},
+    "maint.basis.official": {"it": "orario dell'avviso", "en": "times from the notice"},
+    "bdo.estimate.running_official": {
+        "it": "Manutenzione dalle {start} alle {end} (ora del tuo PC), secondo l'avviso ufficiale: il servizio esterno non la segnala, quindi lo stato dei server qui sopra viene dall'avviso.",
+        "en": "Maintenance from {start} to {end} (your PC's time), per the official notice: the external service does not report it, so the server status above comes from the notice.",
+    },
     "server.maintenance_estimated": {"it": "In manutenzione (stimata)", "en": "Under maintenance (estimated)"},
     "server.maintenance_estimated_remaining": {
         "it": "In manutenzione, stimata (fine tra {time})",
         "en": "Under maintenance, estimated ({time} left)",
     },
     "dash.maintenance_banner_window": {
-        "it": "⚠ Manutenzione annunciata: {when}, dalle {start} alle {end} (orario stimato)",
-        "en": "⚠ Maintenance announced: {when}, from {start} to {end} (estimated times)",
+        "it": "⚠ Manutenzione annunciata: {when}, dalle {start} alle {end} ({basis})",
+        "en": "⚠ Maintenance announced: {when}, from {start} to {end} ({basis})",
     },
     "bdo.estimate.running": {
         "it": "Manutenzione stimata dalle {start} alle {end} (ora del tuo PC): il servizio esterno non la segnala, "
@@ -648,8 +667,8 @@ STRINGS: dict[str, dict[str, str]] = {
     "settings.bdo_maint_start": {"it": "Inizio (ora di Los Angeles)", "en": "Start (Los Angeles time)"},
     "settings.bdo_maint_temp_hours": {"it": "Se temporanea (ore)", "en": "If temporary (hours)"},
     "dash.maintenance_banner_window_temp": {
-        "it": "⚠ Manutenzione temporanea annunciata: {when}, dalle {start} alle {end} (orario stimato)",
-        "en": "⚠ Temporary maintenance announced: {when}, from {start} to {end} (estimated times)",
+        "it": "⚠ Manutenzione temporanea annunciata: {when}, dalle {start} alle {end} ({basis})",
+        "en": "⚠ Temporary maintenance announced: {when}, from {start} to {end} ({basis})",
     },
     "settings.bdo_maint_hours": {"it": "Durata (ore)", "en": "Duration (hours)"},
     "settings.bdo_maint_preview": {

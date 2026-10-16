@@ -17,6 +17,8 @@ class RegionStatus:
     ends_at: datetime | None = None
     # Vero se lo stato non viene dall'API ma da una stima (vedi maintenance_estimate.py).
     estimated: bool = False
+    # Con estimated: l'orario viene dall'avviso ufficiale e non dalla stima di riserva.
+    official: bool = False
 
 
 def _parse_datetime(value) -> datetime | None:

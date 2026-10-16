@@ -29,6 +29,9 @@ _TITLE_DATE_RE = re.compile(
 )
 # Avvisi di manutenzione fuori dal solito calendario del giovedì: durano meno (di solito 2 ore).
 _TEMPORARY_WORDS = ("temporary", "emergency")
+# Manutenzioni di servizi che non fermano il gioco ("Central Market Maintenance": il gioco resta
+# acceso, e di solito dura una ventina di minuti): non sono la manutenzione dei server.
+_NOT_SERVER_WORDS = ("central market", "website", "web site", "payment", "forum", "pearl shop")
 
 
 @dataclass
@@ -39,6 +42,7 @@ class NewsItem:
     is_maintenance: bool
     maintenance_date: date | None
     is_temporary: bool = False  # "Temporary Maintenance": fuori calendario, più breve
+    affects_servers: bool = True  # False per manutenzioni del solo mercato, sito, pagamenti...
 
 
 def _parse_posted(text) -> date | None:
@@ -94,6 +98,7 @@ def parse_news(payload: dict) -> list[NewsItem]:
                 is_maintenance=is_maintenance,
                 maintenance_date=_parse_maintenance_date(title, posted) if is_maintenance else None,
                 is_temporary=is_maintenance and any(word in title.lower() for word in _TEMPORARY_WORDS),
+                affects_servers=not any(word in title.lower() for word in _NOT_SERVER_WORDS),
             )
         )
     return items
@@ -101,7 +106,9 @@ def parse_news(payload: dict) -> list[NewsItem]:
 
 def upcoming_maintenance(items: list[NewsItem], today: date) -> NewsItem | None:
     """L'annuncio di manutenzione più vicino tra oggi e il futuro, se ce n'è uno."""
-    candidates = [i for i in items if i.maintenance_date is not None and i.maintenance_date >= today]
+    candidates = [
+        i for i in items if i.maintenance_date is not None and i.maintenance_date >= today and i.affects_servers
+    ]
     return min(candidates, key=lambda i: i.maintenance_date) if candidates else None
 
 

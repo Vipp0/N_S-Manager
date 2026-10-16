@@ -88,3 +88,22 @@ def test_temporary_maintenance_is_the_upcoming_one_on_its_own_day():
     ]})
     assert upcoming_maintenance(items, date(2026, 10, 16)).is_temporary
     assert not upcoming_maintenance(items, date(2026, 10, 17)).is_temporary
+
+
+def test_central_market_maintenance_is_not_a_server_maintenance():
+    # 16 ottobre 2026: oltre alla temporanea c'era un avviso del solo Central Market (20 minuti,
+    # il gioco resta acceso): non deve far partire stato "in manutenzione" né il banner dei server
+    items = parse_news({"updates": [
+        {"title": "October 16 (Fri) Central Market Maintenance", "url": "", "date_posted": "Oct 16, 2026 (UTC)"},
+        {"title": "Oct 16, 2026 (Fri) - Temporary Maintenance", "url": "", "date_posted": "Oct 15, 2026 (UTC)"},
+    ]})
+    assert items[0].is_maintenance and not items[0].affects_servers and items[0].maintenance_date == date(2026, 10, 16)
+    assert items[1].affects_servers and items[1].is_temporary
+    assert upcoming_maintenance(items, date(2026, 10, 16)).is_temporary  # vince la temporanea
+    assert upcoming_maintenance(items[:1], date(2026, 10, 16)) is None  # da sola: nessuna manutenzione dei server
+
+
+@pytest.mark.parametrize("title", ["October 22 (Thu) Website Maintenance", "Oct 5 (Mon) Payment Service Maintenance"])
+def test_other_non_server_maintenances_are_ignored_for_the_server_status(title):
+    item = _title_item(title)
+    assert item.is_maintenance and not item.affects_servers
