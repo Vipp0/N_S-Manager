@@ -126,3 +126,20 @@ def test_announced_color_orange_for_ordinary_red_for_temporary():
 
     assert announced_color(False) == COLOR_ANNOUNCED != COLOR_MAINTENANCE
     assert announced_color(True) == COLOR_MAINTENANCE
+
+
+def test_region_parts_keep_the_big_headline_short():
+    from datetime import timedelta
+
+    from gilda_app.ui.server_status_footer import describe_region_parts
+
+    ends = datetime.now(timezone.utc) + timedelta(hours=1, minutes=30)  # nel futuro, qualunque sia l'ora
+    official = RegionStatus(True, ends_at=ends, estimated=True, official=True)
+    headline, detail, _ = describe_region_parts(official)
+    assert headline == "In manutenzione" and "avviso" in detail and "fine tra" in detail  # il lungo sta nel dettaglio
+    assert "stimata" in describe_region_parts(RegionStatus(True, ends_at=ends, estimated=True))[1]
+    real = RegionStatus(True, ends_at=ends)  # dato dall'API: nessuna etichetta, solo il tempo rimasto
+    assert describe_region_parts(real)[1].startswith("fine tra")
+    assert describe_region_parts(RegionStatus(True))[1] is None  # fine non nota
+    assert describe_region_parts(RegionStatus(False))[1] is None and describe_region_parts(None)[1] is None
+    assert len(headline) < 20

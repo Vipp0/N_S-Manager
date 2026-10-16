@@ -25,6 +25,23 @@ def describe_region(status: RegionStatus | None) -> tuple[str, str]:
     return tr(base), COLOR_MAINTENANCE
 
 
+def describe_region_parts(status: RegionStatus | None) -> tuple[str, str | None, str]:
+    """Come describe_region, ma in due pezzi: (titolo breve, dettaglio o None, colore). Il riquadro
+    BDO della dashboard mostra il titolo in carattere grande: con il testo intero ("In manutenzione,
+    secondo l'avviso (fine tra 1h 29m)") il riquadro si allargava più degli altri."""
+    if status is None:
+        return tr("server.unknown"), None, COLOR_UNKNOWN
+    if not status.in_maintenance:
+        return tr("server.online"), None, COLOR_ONLINE
+    details = []
+    if status.estimated:
+        details.append(tr("server.detail.official" if status.official else "server.detail.estimated"))
+    remaining = remaining_text(status)
+    if remaining:
+        details.append(tr("server.detail.remaining", time=remaining))
+    return tr("server.headline.maintenance"), " · ".join(details) or None, COLOR_MAINTENANCE
+
+
 def announced_color(temporary: bool) -> str:
     """Colore di una manutenzione annunciata ma non ancora iniziata: arancione se ordinaria, rosso
     se temporanea/straordinaria (fuori programma). Quando è in corso è sempre rosso. Unico punto da

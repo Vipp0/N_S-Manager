@@ -69,6 +69,7 @@ from gilda_app.ui.server_status_footer import (
     announced_color,
     describe_error,
     describe_region,
+    describe_region_parts,
 )
 from gilda_app.ui.settings_page import SettingsPage
 from gilda_app.ui.update_window import UpdateDownloadWorker, UpdateProgressWindow
@@ -710,15 +711,18 @@ class MainWindow(FluentWindow):
             self._update_maintenance_banner(None)
             return
         region_status = self._effective_statuses().get(region)
-        text, color = describe_region(region_status)
+        text, detail, color = describe_region_parts(region_status)
         lines = [tr(f"region.{region}")]
+        if detail:
+            lines.append(detail)
         announce_color = None
         estimate = self._current_estimate() if region in ESTIMATED_REGIONS else None
-        if self._upcoming_maintenance and not (estimate is not None and estimate.phase == OVER):
-            # (finita la finestra la riga "annunciata" non ha più senso e sparisce)
+        in_progress = region_status is not None and region_status.in_maintenance
+        if self._upcoming_maintenance and not in_progress and not (estimate is not None and estimate.phase == OVER):
+            # "Annunciata" ha senso solo prima: durante la manutenzione lo dice già lo stato, e finita
+            # la finestra non c'è più niente da annunciare.
             lines.append(self._upcoming_maintenance)
-            in_progress = region_status is not None and region_status.in_maintenance
-            announce_color = COLOR_MAINTENANCE if in_progress else announced_color(self._upcoming_maintenance_temporary)
+            announce_color = announced_color(self._upcoming_maintenance_temporary)
         self.dashboard_page.set_bdo(text, color, lines, announce_color)
         self._update_maintenance_banner(region_status, region)
 

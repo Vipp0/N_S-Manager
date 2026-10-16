@@ -628,6 +628,10 @@ STRINGS: dict[str, dict[str, str]] = {
     "server.online": {"it": "Online", "en": "Online"},
     "server.maintenance": {"it": "In manutenzione", "en": "Under maintenance"},
     "server.maintenance_remaining": {"it": "In manutenzione (fine tra {time})", "en": "Under maintenance ({time} left)"},
+    "server.headline.maintenance": {"it": "In manutenzione", "en": "Under maintenance"},
+    "server.detail.official": {"it": "secondo l'avviso", "en": "per the notice"},
+    "server.detail.estimated": {"it": "stimata", "en": "estimated"},
+    "server.detail.remaining": {"it": "fine tra {time}", "en": "{time} left"},
     "server.maintenance_official": {"it": "In manutenzione (da avviso)", "en": "Under maintenance (per notice)"},
     "server.maintenance_official_remaining": {
         "it": "In manutenzione, secondo l'avviso (fine tra {time})",

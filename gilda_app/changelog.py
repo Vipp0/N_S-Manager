@@ -6,6 +6,14 @@ usa il programma, non i dettagli tecnici del come."""
 
 CHANGELOG: list[dict] = [
     {
+        "version": "2.6.4",
+        "date": "16-10-2026",
+        "notes": [
+            "Dashboard: durante una manutenzione il riquadro BDO non si allarga più. Il titolo è \"In manutenzione\" e i dettagli (\"secondo l'avviso · fine tra 1h 29m\") stanno sotto in carattere normale; la riga \"annunciata per il…\" compare solo prima che la manutenzione cominci.",
+            "Scheda BDO: tra gli avvisi ufficiali, solo le manutenzioni che fermano il gioco sono evidenziate in rosso; quelle del solo Central Market (circa 20 minuti, il gioco resta acceso) restano normali.",
+        ],
+    },
+    {
         "version": "2.6.3",
         "date": "16-10-2026",
         "notes": [

@@ -227,7 +227,7 @@ class BdoPage(QWidget):
             title = html.escape(item.title)
             if item.url:
                 title = f'<a href="{html.escape(item.url, quote=True)}">{title}</a>'
-            if item.is_maintenance:
+            if item.is_maintenance and item.affects_servers:  # solo quelle che fermano il gioco in rosso
                 title = f'<b style="color: {COLOR_MAINTENANCE};">{title}</b>'
             posted = item.posted.strftime("%d-%m-%Y") if item.posted else ""
             lines.append(f"{posted} &nbsp; {title}")

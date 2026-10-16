@@ -5,7 +5,7 @@ from typing import Callable
 
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QColor, QPainter, QPen, QPixmap
-from PySide6.QtWidgets import QFrame, QGridLayout, QHBoxLayout, QLabel, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QFrame, QGridLayout, QHBoxLayout, QLabel, QSizePolicy, QVBoxLayout, QWidget
 from qfluentwidgets import (
     BodyLabel,
     CardWidget,
@@ -123,6 +123,10 @@ class DashboardTile(CardWidget):
         layout.addLayout(head)
         self._value = QLabel(self)
         self._value.setStyleSheet(_VALUE_STYLE)
+        # Mai più largo di quanto il riquadro concede: un titolo lungo va a capo invece di
+        # allargare la colonna (e con lei tutti i riquadri della riga).
+        self._value.setWordWrap(True)
+        self._value.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
         layout.addWidget(self._value)
         self._lines = BodyLabel(self)
         self._lines.setWordWrap(True)
@@ -444,10 +448,11 @@ class DashboardPage(QWidget):
         self._info_cards["info_timers"].set_content("", lines or [tr("server.error.no_key")])
 
     def set_bdo(self, value: str, color: str | None, lines: list[str], announce_color: str | None = None) -> None:
-        """announce_color: colore della seconda riga (manutenzione annunciata), in evidenza."""
+        """announce_color: colore dell'ultima riga (manutenzione annunciata), in evidenza."""
         if announce_color and len(lines) > 1:
+            last = len(lines) - 1  # l'annuncio è sempre l'ultima riga
             self._tiles[TILE_BDO].set_content(
-                value, lines, color, today_lines=frozenset({1}), today_colors={1: announce_color}
+                value, lines, color, today_lines=frozenset({last}), today_colors={last: announce_color}
             )
         else:
             self._tiles[TILE_BDO].set_content(value, lines, color)
