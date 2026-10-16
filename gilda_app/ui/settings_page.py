@@ -20,6 +20,7 @@ from gilda_app.i18n import LANGUAGES, get_language, tr
 from gilda_app.utils.maintenance_estimate import (
     DEFAULT_DURATION_HOURS,
     DEFAULT_START_HOUR_PT,
+    DEFAULT_TEMPORARY_HOURS,
     MAX_DURATION_HOURS,
     MIN_DURATION_HOURS,
     window_for,
@@ -44,7 +45,7 @@ class SettingsPage(QWidget):
     api_key_saved = Signal(str)
     guild_name_saved = Signal(str)
     server_region_changed = Signal(str)
-    maintenance_window_changed = Signal(int, int)  # ora di inizio (a Los Angeles), durata in ore
+    maintenance_window_changed = Signal(int, int, int)  # inizio (a Los Angeles), durata, durata se temporanea
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -130,12 +131,18 @@ class SettingsPage(QWidget):
         maint_row.addSpacing(16)
         maint_row.addWidget(QLabel(tr("settings.bdo_maint_hours"), bdo_card))
         maint_row.addWidget(self.maint_hours_spin)
+        maint_row.addSpacing(16)
+        self.maint_temp_spin = SpinBox(bdo_card)
+        self.maint_temp_spin.setRange(MIN_DURATION_HOURS, MAX_DURATION_HOURS)
+        maint_row.addWidget(QLabel(tr("settings.bdo_maint_temp_hours"), bdo_card))
+        maint_row.addWidget(self.maint_temp_spin)
         maint_row.addStretch(1)
         bdo_layout.addLayout(maint_row)
         self._maint_preview = CaptionLabel("", bdo_card)
         bdo_layout.addWidget(self._maint_preview)
         self.maint_start_spin.valueChanged.connect(self._on_maintenance_changed)
         self.maint_hours_spin.valueChanged.connect(self._on_maintenance_changed)
+        self.maint_temp_spin.valueChanged.connect(self._on_maintenance_changed)
         self._update_maint_preview()
         layout.addWidget(bdo_card)
 
@@ -239,7 +246,9 @@ class SettingsPage(QWidget):
 
     def _on_maintenance_changed(self, _value: int) -> None:
         self._update_maint_preview()
-        self.maintenance_window_changed.emit(self.maint_start_spin.value(), self.maint_hours_spin.value())
+        self.maintenance_window_changed.emit(
+            self.maint_start_spin.value(), self.maint_hours_spin.value(), self.maint_temp_spin.value()
+        )
 
     def set_bdo_settings(
         self,
@@ -248,10 +257,15 @@ class SettingsPage(QWidget):
         guild_name: str | None = None,
         maint_start_hour: int = DEFAULT_START_HOUR_PT,
         maint_hours: int = DEFAULT_DURATION_HOURS,
+        maint_temp_hours: int = DEFAULT_TEMPORARY_HOURS,
     ) -> None:
         self.api_key_edit.setText(api_key or "")
         self.guild_name_edit.setText(guild_name or "")
-        for spin, value in ((self.maint_start_spin, maint_start_hour), (self.maint_hours_spin, maint_hours)):
+        for spin, value in (
+            (self.maint_start_spin, maint_start_hour),
+            (self.maint_hours_spin, maint_hours),
+            (self.maint_temp_spin, maint_temp_hours),
+        ):
             spin.blockSignals(True)
             spin.setValue(value)
             spin.blockSignals(False)

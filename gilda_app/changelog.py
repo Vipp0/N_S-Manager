@@ -6,6 +6,14 @@ usa il programma, non i dettagli tecnici del come."""
 
 CHANGELOG: list[dict] = [
     {
+        "version": "2.6.2",
+        "date": "16-10-2026",
+        "notes": [
+            "Manutenzioni temporanee (fuori dal solito giovedì, titolo tipo \"Oct 16, 2026 (Fri) - Temporary Maintenance\"): ora il programma le riconosce e le gestisce come le altre, con avviso in dashboard, stato \"In manutenzione (stimata)\" e orario previsto. La durata stimata è di 2 ore (modificabile in Impostazioni → Server BDO, \"Se temporanea\"), con \"+1 ora\" se si allunga. Prima il titolo, scritto con il mese abbreviato e l'anno, non veniva capito e non compariva nulla.",
+            "Stato dei server: se l'annuncio della manutenzione arriva dopo lo stato dei server, footer, scheda BDO e dashboard si aggiornano subito invece di aspettare fino a 30 secondi.",
+        ],
+    },
+    {
         "version": "2.6.1",
         "date": "13-10-2026",
         "notes": [

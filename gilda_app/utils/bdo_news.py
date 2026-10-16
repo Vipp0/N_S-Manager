@@ -20,7 +20,15 @@ _MONTHS = {
     )
 }
 _POSTED_RE = re.compile(r"([A-Za-z]{3})[a-z]* (\d{1,2}), (\d{4})")
-_TITLE_DATE_RE = re.compile(r"\b(" + "|".join(_MONTHS) + r")\s+(\d{1,2})\b", re.IGNORECASE)
+# "October 8 (Thu) Maintenance" ma anche "Oct 16, 2026 (Fri) - Temporary Maintenance": mese per
+# esteso o abbreviato (le forme lunghe prima, altrimenti "Sep" si mangerebbe "September"), anno facoltativo.
+_MONTH_WORDS = sorted(list(_MONTHS) + ["jan", "feb", "mar", "apr", "jun", "jul", "aug", "sept", "sep", "oct", "nov", "dec"],
+                      key=len, reverse=True)
+_TITLE_DATE_RE = re.compile(
+    r"\b(" + "|".join(_MONTH_WORDS) + r")\.?\s+(\d{1,2})(?:st|nd|rd|th)?\b(?:,?\s*(\d{4}))?", re.IGNORECASE
+)
+# Avvisi di manutenzione fuori dal solito calendario del giovedì: durano meno (di solito 2 ore).
+_TEMPORARY_WORDS = ("temporary", "emergency")
 
 
 @dataclass
@@ -30,6 +38,7 @@ class NewsItem:
     posted: date | None
     is_maintenance: bool
     maintenance_date: date | None
+    is_temporary: bool = False  # "Temporary Maintenance": fuori calendario, più breve
 
 
 def _parse_posted(text) -> date | None:
@@ -48,10 +57,14 @@ def _parse_posted(text) -> date | None:
 
 def _parse_maintenance_date(title: str, posted: date | None) -> date | None:
     match = _TITLE_DATE_RE.search(title)
-    if not match or posted is None:
+    if not match or (posted is None and not match.group(3)):
         return None
-    month, day = _MONTHS[match.group(1).lower()], int(match.group(2))
+    word = match.group(1).lower()
+    month = _MONTHS[word] if word in _MONTHS else next(i for name, i in _MONTHS.items() if name.startswith(word[:3]))
+    day = int(match.group(2))
     try:
+        if match.group(3):  # l'anno scritto nel titolo vale più di quello dedotto dalla data di pubblicazione
+            return date(int(match.group(3)), month, day)
         result = date(posted.year, month, day)
     except ValueError:
         return None
@@ -80,6 +93,7 @@ def parse_news(payload: dict) -> list[NewsItem]:
                 posted=posted,
                 is_maintenance=is_maintenance,
                 maintenance_date=_parse_maintenance_date(title, posted) if is_maintenance else None,
+                is_temporary=is_maintenance and any(word in title.lower() for word in _TEMPORARY_WORDS),
             )
         )
     return items

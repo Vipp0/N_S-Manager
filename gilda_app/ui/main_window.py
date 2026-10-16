@@ -86,6 +86,7 @@ from gilda_app.utils.maintenance_estimate import (
     apply_estimate,
     estimate_for,
     parse_config,
+    parse_temporary_hours,
 )
 from gilda_app.utils.error_log import LOG_NAME, write_entry
 from gilda_app.utils.restart import restart_app
@@ -102,6 +103,7 @@ GUILD_NAME_SETTING = "bdo_guild_name"
 MAINT_START_SETTING = "maintenance_start_pt"
 WHATS_NEW_SEEN_SETTING = "whats_new_seen_version"
 MAINT_HOURS_SETTING = "maintenance_hours"
+MAINT_TEMP_HOURS_SETTING = "maintenance_temp_hours"
 SERVER_STATUS_INTERVAL_MS = 5 * 60 * 1000
 TIMERS_TICK_MS = 30 * 1000
 DAY_CHANGE_TICK_MS = 60 * 1000
@@ -222,6 +224,7 @@ class MainWindow(FluentWindow):
             get_setting(self.conn, SERVER_REGION_SETTING, DEFAULT_REGION),
             get_setting(self.conn, GUILD_NAME_SETTING),
             *parse_config(get_setting(self.conn, MAINT_START_SETTING), get_setting(self.conn, MAINT_HOURS_SETTING)),
+            parse_temporary_hours(get_setting(self.conn, MAINT_TEMP_HOURS_SETTING)),
         )
         self.addSubInterface(self.settings_page, FIF.SETTING, tr("nav.settings"), NavigationItemPosition.BOTTOM)
 
@@ -343,6 +346,7 @@ class MainWindow(FluentWindow):
         self._server_busy = False
         self._upcoming_maintenance: str | None = None
         self._upcoming_maintenance_date: date | None = None
+        self._upcoming_maintenance_temporary = False  # l'avviso è una manutenzione temporanea (più breve)
         # Proroga (+1 ora) e "già finita" segnalate a mano, per data di manutenzione: restano solo in memoria.
         self._estimate_adjust: dict[date, tuple[timedelta, bool]] = {}
         self._maintenance_seen_live = False  # vera anche per un attimo: evita che l'avviso
@@ -520,6 +524,7 @@ class MainWindow(FluentWindow):
             self.bdo_page.show_news_error(result)
             self._upcoming_maintenance = None
             self._upcoming_maintenance_date = None
+            self._upcoming_maintenance_temporary = False
         else:
             self.bdo_page.show_news(result)
             upcoming = upcoming_maintenance(result, date.today())
@@ -527,10 +532,13 @@ class MainWindow(FluentWindow):
             if new_date != self._upcoming_maintenance_date:
                 self._maintenance_seen_live = False  # è un nuovo annuncio, si riparte da "annunciata"
             self._upcoming_maintenance_date = new_date
+            self._upcoming_maintenance_temporary = bool(upcoming and upcoming.is_temporary)
             self._upcoming_maintenance = (
                 tr("bdo.news_upcoming", date=upcoming.maintenance_date.strftime("%d-%m-%Y")) if upcoming else None
             )
-        self._update_dashboard_bdo()
+        # L'annuncio può arrivare dopo lo stato dei server: footer, scheda BDO e dashboard
+        # (che dipendono da entrambi) si ricalcolano subito, senza aspettare il giro successivo.
+        self._update_server_footer()
 
     def _on_server_status(self, result) -> None:
         self._server_busy = False
@@ -546,7 +554,14 @@ class MainWindow(FluentWindow):
 
     # -- Stima della manutenzione (quando l'API dice "online" a server spenti) ----
     def _estimate_config(self) -> tuple[int, int]:
-        return parse_config(get_setting(self.conn, MAINT_START_SETTING), get_setting(self.conn, MAINT_HOURS_SETTING))
+        """(inizio a Los Angeles, durata in ore): la durata è quella delle manutenzioni temporanee
+        se l'avviso in corso lo è."""
+        start, hours = parse_config(
+            get_setting(self.conn, MAINT_START_SETTING), get_setting(self.conn, MAINT_HOURS_SETTING)
+        )
+        if self._upcoming_maintenance_temporary:
+            hours = parse_temporary_hours(get_setting(self.conn, MAINT_TEMP_HOURS_SETTING))
+        return start, hours
 
     def _current_estimate(self, now: datetime | None = None) -> Estimate | None:
         day = self._upcoming_maintenance_date
@@ -593,9 +608,10 @@ class MainWindow(FluentWindow):
             self._estimate_adjust[day] = (extra, True)
             self._update_server_footer()
 
-    def _on_maintenance_window_changed(self, start_hour: int, hours: int) -> None:
+    def _on_maintenance_window_changed(self, start_hour: int, hours: int, temp_hours: int) -> None:
         set_setting(self.conn, MAINT_START_SETTING, str(start_hour))
         set_setting(self.conn, MAINT_HOURS_SETTING, str(hours))
+        set_setting(self.conn, MAINT_TEMP_HOURS_SETTING, str(temp_hours))
         self._update_server_footer()
 
     def _update_server_footer(self) -> None:
@@ -659,9 +675,8 @@ class MainWindow(FluentWindow):
             if estimate is not None:
                 start = estimate.start.astimezone().strftime("%H:%M")
                 end = estimate.end.astimezone().strftime("%H:%M")
-                self.dashboard_page.set_maintenance_banner(
-                    tr("dash.maintenance_banner_window", when=when, start=start, end=end)
-                )
+                key = "dash.maintenance_banner_window_temp" if self._upcoming_maintenance_temporary else "dash.maintenance_banner_window"
+                self.dashboard_page.set_maintenance_banner(tr(key, when=when, start=start, end=end))
                 return
             self.dashboard_page.set_maintenance_banner(tr("dash.maintenance_banner", when=when))
             return

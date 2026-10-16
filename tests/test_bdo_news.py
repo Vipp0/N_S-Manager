@@ -43,3 +43,48 @@ def test_maintenance_notice_across_new_year():
 def test_parse_news_rejects_garbage():
     with pytest.raises(ApiError):
         parse_news({"updates": "boh"})
+
+
+def _title_item(title, posted="Oct 15, 2026 (UTC)"):
+    return parse_news({"updates": [{"title": title, "url": "", "date_posted": posted}]})[0]
+
+
+def test_temporary_maintenance_title_with_abbreviated_month_and_year():
+    # titolo reale del 16 ottobre 2026: mese abbreviato, anno scritto, trattino
+    item = _title_item("Oct 16, 2026 (Fri) - Temporary Maintenance")
+    assert item.is_maintenance and item.is_temporary
+    assert item.maintenance_date == date(2026, 10, 16)
+
+
+def test_regular_maintenance_is_not_temporary_and_still_parsed():
+    item = _title_item("October 15 (Thu) Maintenance", "Oct 13, 2026 (UTC)")
+    assert item.is_maintenance and not item.is_temporary
+    assert item.maintenance_date == date(2026, 10, 15)
+
+
+@pytest.mark.parametrize(
+    "title",
+    ["Sept 3 (Thu) Maintenance", "Sep 3 (Thu) Maintenance", "September 3 (Thu) Maintenance", "Sep. 3rd Maintenance"],
+)
+def test_month_spellings_are_all_understood(title):
+    assert _title_item(title, "Sep 1, 2026 (UTC)").maintenance_date == date(2026, 9, 3)
+
+
+def test_year_written_in_the_title_beats_the_posted_date():
+    assert _title_item("Jan 2, 2027 (Sat) - Temporary Maintenance", "Dec 30, 2026 (UTC)").maintenance_date == date(2027, 1, 2)
+    # senza data di pubblicazione leggibile ma con l'anno nel titolo si ricava comunque
+    assert _title_item("Oct 16, 2026 Temporary Maintenance", "boh").maintenance_date == date(2026, 10, 16)
+
+
+def test_non_maintenance_titles_with_dates_are_ignored():
+    item = _title_item("BLACK DESERT MASTER CLASS 2026 (Last Updated: October 15, 2026 (Thu) 15:00 UTC)")
+    assert not item.is_maintenance and item.maintenance_date is None and not item.is_temporary
+
+
+def test_temporary_maintenance_is_the_upcoming_one_on_its_own_day():
+    items = parse_news({"updates": [
+        {"title": "Oct 16, 2026 (Fri) - Temporary Maintenance", "url": "", "date_posted": "Oct 15, 2026 (UTC)"},
+        {"title": "October 22 (Thu) Maintenance", "url": "", "date_posted": "Oct 20, 2026 (UTC)"},
+    ]})
+    assert upcoming_maintenance(items, date(2026, 10, 16)).is_temporary
+    assert not upcoming_maintenance(items, date(2026, 10, 17)).is_temporary

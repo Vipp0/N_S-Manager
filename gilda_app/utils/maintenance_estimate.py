@@ -18,6 +18,8 @@ from gilda_app.utils.server_status import RegionStatus
 
 DEFAULT_START_HOUR_PT = 1
 DEFAULT_DURATION_HOURS = 4
+# Una manutenzione "temporanea" (fuori dal calendario del giovedì) di solito dura 2 ore.
+DEFAULT_TEMPORARY_HOURS = 2
 MIN_DURATION_HOURS = 1
 MAX_DURATION_HOURS = 12
 # Gli avvisi letti (NA/EU PC) valgono per queste regioni; console, Corea, ecc. hanno altri orari.
@@ -66,6 +68,15 @@ def parse_config(start_hour, duration_hours) -> tuple[int, int]:
     except (TypeError, ValueError):
         hours = DEFAULT_DURATION_HOURS
     return max(0, min(23, start)), max(MIN_DURATION_HOURS, min(MAX_DURATION_HOURS, hours))
+
+
+def parse_temporary_hours(value) -> int:
+    """Durata (ore) di una manutenzione temporanea da un valore salvato, con default se manca."""
+    try:
+        hours = int(value)
+    except (TypeError, ValueError):
+        hours = DEFAULT_TEMPORARY_HOURS
+    return max(MIN_DURATION_HOURS, min(MAX_DURATION_HOURS, hours))
 
 
 def window_for(day: date, start_hour_pt: int, duration_hours: int) -> tuple[datetime, datetime]:

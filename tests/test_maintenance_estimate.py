@@ -111,3 +111,17 @@ def test_parse_config_defaults_and_clamping():
     assert me.parse_config("9", "5") == (9, 5)
     assert me.parse_config(99, 99) == (23, 12)
     assert me.parse_config(-3, 0) == (0, 1)
+
+
+def test_temporary_maintenance_hours_default_and_clamping():
+    assert me.parse_temporary_hours(None) == 2
+    assert me.parse_temporary_hours("3") == 3
+    assert me.parse_temporary_hours("abc") == 2
+    assert me.parse_temporary_hours(99) == 12 and me.parse_temporary_hours(0) == 1
+
+
+def test_temporary_window_is_two_hours_from_the_same_start():
+    # avviso ufficiale del 16 ottobre 2026: 01:00-03:00 PT = 08:00-10:00 UTC = 10:00-12:00 CEST
+    est_mid = me.estimate_for(date(2026, 10, 16), utc(9, 5, day=16), 1, 2)
+    assert (est_mid.phase, est_mid.start, est_mid.end) == (me.ACTIVE, utc(8, day=16), utc(10, day=16))
+    assert me.estimate_for(date(2026, 10, 16), utc(10, 0, day=16), 1, 2).phase == me.OVER

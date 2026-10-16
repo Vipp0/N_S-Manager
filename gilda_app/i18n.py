@@ -646,6 +646,11 @@ STRINGS: dict[str, dict[str, str]] = {
         "en": "Maintenance time, used only if the external service says \"online\" during an announced maintenance (NA/EU)",
     },
     "settings.bdo_maint_start": {"it": "Inizio (ora di Los Angeles)", "en": "Start (Los Angeles time)"},
+    "settings.bdo_maint_temp_hours": {"it": "Se temporanea (ore)", "en": "If temporary (hours)"},
+    "dash.maintenance_banner_window_temp": {
+        "it": "⚠ Manutenzione temporanea annunciata: {when}, dalle {start} alle {end} (orario stimato)",
+        "en": "⚠ Temporary maintenance announced: {when}, from {start} to {end} (estimated times)",
+    },
     "settings.bdo_maint_hours": {"it": "Durata (ore)", "en": "Duration (hours)"},
     "settings.bdo_maint_preview": {
         "it": "Oggi corrisponde alle {start}–{end} sul tuo PC (segue da sola i cambi d'ora di Italia e Stati Uniti).",
