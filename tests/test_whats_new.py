@@ -60,3 +60,19 @@ def test_real_highlights_are_well_formed():
         assert items, release
         for item in items:
             assert item.title.strip() and item.text.strip()
+
+
+def test_real_release_history_selection(monkeypatch):
+    import importlib
+
+    importlib.reload(wn)  # i dati veri, non quelli della fixture
+    from gilda_app.whats_new import releases_to_show as rts
+
+    assert "2.7" in wn.WHATS_NEW and "2.6" in wn.WHATS_NEW
+    assert rts("2.6", "2.7", True) == ["2.7"]  # chi aveva la 2.6 (già vista) vede solo la 2.7
+    assert rts("2.6.5", "2.7", True) == ["2.7"]  # anche chi ha provato le versioni intermedie
+    assert rts("2.6.3", "2.7", True) == ["2.7"]
+    assert rts("2.7", "2.7", True) == []  # già vista: niente al secondo avvio
+    assert rts(None, "2.7", True) == ["2.7"]  # primo avvio con la funzione su un database con dati
+    assert rts(None, "2.7", False) == []  # installazione nuova
+    assert rts("2.5", "2.7", True) == ["2.7", "2.6"]  # chi salta una versione vede anche quella saltata

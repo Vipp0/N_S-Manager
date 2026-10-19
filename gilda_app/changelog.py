@@ -6,42 +6,17 @@ usa il programma, non i dettagli tecnici del come."""
 
 CHANGELOG: list[dict] = [
     {
-        "version": "2.6.5",
-        "date": "16-10-2026",
+        "version": "2.7",
+        "date": "19-10-2026",
         "notes": [
-            "Dashboard: quando una manutenzione finisce compare, nello stesso punto in alto dove c'era l'avviso in corso, un banner verde per 30 minuti. Se la fine si basa solo sull'orario previsto dice \"Manutenzione terminata (fine prevista alle 12:00): i server dovrebbero essere tornati online\"; se la fine è certa (si è premuto \"È già finita\" nella scheda BDO, o il servizio esterno ha visto i server tornare online) dice \"I server sono tornati online\". Se dopo la fine prevista si preme \"+1 ora\", il banner verde sparisce e torna quello rosso.",
-        ],
-    },
-    {
-        "version": "2.6.4",
-        "date": "16-10-2026",
-        "notes": [
-            "Dashboard: durante una manutenzione il riquadro BDO non si allarga più. Il titolo è \"In manutenzione\" e i dettagli (\"secondo l'avviso · fine tra 1h 29m\") stanno sotto in carattere normale; la riga \"annunciata per il…\" compare solo prima che la manutenzione cominci.",
-            "Scheda BDO: tra gli avvisi ufficiali, solo le manutenzioni che fermano il gioco sono evidenziate in rosso; quelle del solo Central Market (circa 20 minuti, il gioco resta acceso) restano normali.",
-        ],
-    },
-    {
-        "version": "2.6.3",
-        "date": "16-10-2026",
-        "notes": [
-            "Orario della manutenzione letto dall'avviso ufficiale: il programma legge dalla pagina dell'avviso (quella linkata nelle news) l'orario reale e la durata, quindi non deve più indovinare (4 ore, 2 ore per le temporanee, orari diversi dal solito). Quando l'orario viene dall'avviso la scritta è \"In manutenzione, secondo l'avviso (fine tra …)\" invece di \"stimata\". Se il sito cambia o non risponde, il programma torna alla stima di prima senza mostrare errori. La pagina si rilegge ogni 15 minuti nel giorno della manutenzione, per cogliere eventuali aggiornamenti.",
-            "Colori degli avvisi di manutenzione: arancione per una manutenzione ordinaria annunciata, rosso per una temporanea/straordinaria annunciata e per qualunque manutenzione in corso. Il colore è lo stesso nel banner in cima alla dashboard e nella riga del riquadro BDO (che ora è in evidenza invece che nera), e nella scheda BDO. Per le temporanee il testo dice anche \"temporanea\".",
-            "Le manutenzioni che non fermano il gioco (come \"Central Market Maintenance\", di circa 20 minuti) non fanno più comparire \"In manutenzione\" per i server. Finita la manutenzione, la riga \"annunciata\" nel riquadro BDO sparisce.",
-        ],
-    },
-    {
-        "version": "2.6.2",
-        "date": "16-10-2026",
-        "notes": [
-            "Manutenzioni temporanee (fuori dal solito giovedì, titolo tipo \"Oct 16, 2026 (Fri) - Temporary Maintenance\"): ora il programma le riconosce e le gestisce come le altre, con avviso in dashboard, stato \"In manutenzione (stimata)\" e orario previsto. La durata stimata è di 2 ore (modificabile in Impostazioni → Server BDO, \"Se temporanea\"), con \"+1 ora\" se si allunga. Prima il titolo, scritto con il mese abbreviato e l'anno, non veniva capito e non compariva nulla.",
+            "Orario della manutenzione letto dall'avviso ufficiale: il programma legge dalla pagina dell'avviso (quella linkata nelle news) l'orario reale e la durata, quindi non deve più indovinare (4 ore, 2 ore per le temporanee, orari diversi dal solito). Quando l'orario viene dall'avviso la scritta è \"In manutenzione, secondo l'avviso (fine tra …)\" invece di \"stimata\". Se il sito cambia o non risponde, il programma ripiega sulla stima. La pagina si rilegge ogni 15 minuti nel giorno della manutenzione, per cogliere eventuali aggiornamenti.",
+            "Stima di riserva corretta: l'orario segue l'ora di Los Angeles (01:00), come negli avvisi ufficiali, invece dell'UTC. Così in Italia resta 10:00-14:00 tutto l'anno e, per i pochi giorni in cui il cambio d'ora europeo e quello americano non coincidono (circa una settimana in autunno, tre in primavera), il programma segna da solo 9:00-13:00, come accade davvero. In Impostazioni → Server BDO il campo di inizio è \"ora di Los Angeles\" (di default 1:00), con la durata ordinaria, quella delle temporanee (2 ore) e l'equivalente sul proprio PC.",
+            "Manutenzioni temporanee (fuori dal solito giovedì, titolo tipo \"Oct 16, 2026 (Fri) - Temporary Maintenance\"): ora il programma le riconosce, con avviso in dashboard, stato \"In manutenzione\" e orario previsto. Prima il titolo, scritto con il mese abbreviato e l'anno, non veniva capito e non compariva nulla.",
+            "Le manutenzioni che non fermano il gioco (come \"Central Market Maintenance\", circa 20 minuti) non fanno più comparire \"In manutenzione\" per i server; nella scheda BDO restano in lista ma non in rosso.",
+            "Colori degli avvisi di manutenzione: arancione per una manutenzione ordinaria annunciata, rosso per una temporanea/straordinaria annunciata e per qualunque manutenzione in corso. Il colore è lo stesso nel banner in cima alla dashboard, nella riga del riquadro BDO e nella scheda BDO. Per le temporanee il testo dice anche \"temporanea\".",
+            "Dashboard: il riquadro BDO non si allarga più durante una manutenzione (titolo \"In manutenzione\" e dettagli sotto, in carattere normale); la riga \"annunciata per il…\" compare solo prima che la manutenzione cominci.",
+            "Dashboard: quando una manutenzione finisce compare in alto un banner verde per 30 minuti. Se la fine si basa solo sull'orario previsto dice \"Manutenzione terminata (fine prevista alle 12:00): i server dovrebbero essere tornati online\"; se la fine è certa (si è premuto \"È già finita\" nella scheda BDO, o il servizio esterno ha visto i server tornare online) dice \"I server sono tornati online\". Se dopo la fine prevista si preme \"+1 ora\", torna il banner rosso.",
             "Stato dei server: se l'annuncio della manutenzione arriva dopo lo stato dei server, footer, scheda BDO e dashboard si aggiornano subito invece di aspettare fino a 30 secondi.",
-        ],
-    },
-    {
-        "version": "2.6.1",
-        "date": "13-10-2026",
-        "notes": [
-            "Manutenzione stimata: l'orario ora segue l'ora di Los Angeles (01:00-05:00), come negli avvisi ufficiali, invece dell'UTC. Così in Italia resta 10:00-14:00 tutto l'anno e, per i pochi giorni in cui il cambio d'ora europeo e quello americano non coincidono (circa una settimana in autunno, tre in primavera), il programma segna da solo 9:00-13:00, come accade davvero. In Impostazioni → Server BDO il campo di inizio è ora \"ora di Los Angeles\" (di default 1:00).",
         ],
     },
     {

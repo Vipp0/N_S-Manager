@@ -18,7 +18,7 @@ from gilda_app.ui.changelog_dialog import ChangelogDialog
 from gilda_app.whats_new import WHATS_NEW, Highlight
 
 ICON_SIZE = 30
-MAX_HEIGHT = 440
+MAX_HEIGHT = 380
 
 
 class WhatsNewDialog(MessageBoxBase):

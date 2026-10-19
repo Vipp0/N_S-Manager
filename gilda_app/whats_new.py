@@ -21,6 +21,35 @@ class Highlight:
 
 # Chiave: versione della release (come in version.py, es. "2.6").
 WHATS_NEW: dict[str, list[Highlight]] = {
+    "2.7": [
+        Highlight(
+            "GLOBE",
+            "Orario della manutenzione preso dall'avviso ufficiale",
+            "Il programma legge dall'avviso ufficiale l'orario e la durata reali, anche per le manutenzioni "
+            "temporanee, e mostra \"In manutenzione, secondo l'avviso\" con il tempo rimasto. Se il sito non "
+            "risponde usa una stima, corretta anche con il cambio d'ora.",
+        ),
+        Highlight(
+            "BRUSH",
+            "Nuovi colori degli avvisi di manutenzione",
+            "Arancione: manutenzione ordinaria annunciata. Rosso: manutenzione straordinaria o temporanea e "
+            "qualunque manutenzione in corso. Lo stesso colore vale nel banner in cima alla dashboard e nel "
+            "riquadro BDO.",
+        ),
+        Highlight(
+            "ACCEPT",
+            "Avviso verde a fine manutenzione",
+            "Per 30 minuti dopo la fine compare un banner verde in alto: \"I server sono tornati online\", oppure "
+            "\"dovrebbero essere tornati online\" se la fine è solo quella prevista. Se la manutenzione si "
+            "allunga, nella scheda BDO c'è il pulsante \"+1 ora\".",
+        ),
+        Highlight(
+            "SHOPPING_CART",
+            "Manutenzioni del solo mercato",
+            "Gli avvisi che riguardano solo il Central Market, il sito o i pagamenti non fanno più comparire "
+            "\"In manutenzione\" per i server.",
+        ),
+    ],
     "2.6": [
         Highlight(
             "GLOBE",
