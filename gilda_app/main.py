@@ -63,8 +63,7 @@ def _start_seasonal_splash(db_file: Path) -> SeasonalSplash | None:
         greets = greeting_active(season, date.today(), mode)
         text_key = f"season.loading.{season.key}" if greets else "season.loading.plain"
         splash = SeasonalSplash(season, tr_in(language, text_key))
-        splash.show()
-        QApplication.processEvents()  # la fa comparire subito, prima del lavoro lungo
+        splash.fade_in()  # compare subito, prima del lavoro lungo, in dissolvenza sopra quella dell'exe
         _hide_bootloader_splash()
         return splash
     except Exception:
@@ -80,7 +79,7 @@ def _animate_splash_dots(splash: SeasonalSplash | None = None) -> None:
     if splash is not None:
         for _ in range(2):
             for dots in (1, 2, 3):
-                splash.set_dots(dots)  # si ridisegna da sola (showMessage)
+                splash.set_dots(dots)
                 time.sleep(0.25)
         return
     try:
