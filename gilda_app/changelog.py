@@ -10,6 +10,7 @@ CHANGELOG: list[dict] = [
         "date": "23-10-2026",
         "notes": [
             "Scheda BDO: sotto lo stato dei server c'è ora un blocco con la manutenzione in corso o annunciata: titolo a colori con la fascia oraria (\"Manutenzione temporanea · oggi, 10:00 – 12:00\"; passando il mouse si vede la fonte: avviso ufficiale, stima o servizio esterno) e, per le temporanee, il motivo scritto nell'avviso ufficiale (\"Maintenance Reason\", nel testo originale in inglese) su righe separate, con una barra colorata a sinistra. Le ordinarie non hanno un motivo e mostrano solo il titolo. La frase lunga sull'orario non c'è più.",
+            "Programma sempre aperto: il controllo di una nuova versione si ripete ogni 6 ore anche a programma aperto (prima solo all'avvio); se ne trova una compare una striscia in alto con \"Vedi\", che non interrompe quello che si sta facendo. A mezzanotte, se il calendario era sul giorno appena finito, passa al giorno nuovo (così \"Aggiungi evento\" non propone la data di ieri), e si ricontrolla se servono nuove festività.",
             "Scheda BDO: nuovo riquadro \"Ultime patch note\" con le ultime tre (titolo, data e link al sito), cioè cosa cambia a ogni manutenzione. Si aggiorna circa una volta all'ora, con una sola richiesta in più.",
         ],
     },

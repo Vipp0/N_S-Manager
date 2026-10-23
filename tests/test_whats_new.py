@@ -118,3 +118,15 @@ def test_popup_stays_in_italian_even_if_the_program_is_in_english():
         assert i18n.tr_in("it", "chiave.inesistente") == "chiave.inesistente"
     finally:
         i18n.set_language(previous)
+
+
+def test_real_history_for_2_7_3(monkeypatch):
+    import importlib
+
+    importlib.reload(wn)
+    from gilda_app.whats_new import releases_to_show as rts
+
+    assert rts("2.7.2", "2.7.3", True) == ["2.7.3"]
+    assert rts("2.7", "2.7.3", True) == ["2.7.3", "2.7.2", "2.7.1"]  # al massimo le ultime tre
+    assert rts("2.7.3", "2.7.3", True) == []
+    assert len(wn.WHATS_NEW["2.7.3"]) == 3

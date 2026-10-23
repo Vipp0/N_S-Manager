@@ -33,6 +33,38 @@ class Highlight:
 
 # Chiave: versione della release (come in version.py, es. "2.6").
 WHATS_NEW: dict[str, list[Highlight]] = {
+    "2.7.3": [
+        Highlight(
+            "INFO",
+            "Fascia oraria e motivo della manutenzione",
+            "Nella scheda BDO un blocco mostra la manutenzione con la fascia oraria in evidenza e, per le "
+            "temporanee, il motivo scritto nell'avviso ufficiale (in inglese). Passando il mouse sul titolo si vede "
+            "da dove viene l'orario.",
+            "Maintenance time and reason",
+            "In the BDO tab a block shows the maintenance with its time slot highlighted and, for temporary ones, "
+            "the reason written in the official notice. Hovering the title shows where the time comes from.",
+        ),
+        Highlight(
+            "DOCUMENT",
+            "Ultime patch note",
+            "Sempre nella scheda BDO compaiono le ultime tre patch note, con il link al sito: cosa cambia a ogni "
+            "manutenzione.",
+            "Latest patch notes",
+            "The BDO tab also lists the latest three patch notes, with a link to the site: what changes with each "
+            "maintenance.",
+        ),
+        Highlight(
+            "UPDATE",
+            "Nuove versioni anche a programma sempre aperto",
+            "Se lasci il programma aperto per giorni, controlla da solo ogni 6 ore se c'è una nuova versione e te "
+            "lo segnala con una striscia in alto, senza interrompere quello che stai facendo. A mezzanotte il "
+            "calendario passa al nuovo giorno.",
+            "New versions even if the program stays open",
+            "If you leave the program open for days, it checks by itself every 6 hours for a new version and tells "
+            "you with a bar at the top, without interrupting what you are doing. At midnight the calendar moves to "
+            "the new day.",
+        ),
+    ],
     "2.7.2": [
         Highlight(
             "TILES",

@@ -8,7 +8,15 @@ from PySide6.QtCore import QObject, Qt, QTimer, QUrl, Signal
 from PySide6.QtGui import QDesktopServices, QGuiApplication, QIcon, QKeySequence, QShortcut
 from PySide6.QtWidgets import QApplication, QFileDialog, QVBoxLayout
 from qfluentwidgets import FluentIcon as FIF
-from qfluentwidgets import FluentWindow, InfoBar, InfoBarPosition, MessageBox, NavigationItemPosition, TransparentToolButton
+from qfluentwidgets import (
+    FluentWindow,
+    InfoBar,
+    InfoBarPosition,
+    MessageBox,
+    NavigationItemPosition,
+    PushButton,
+    TransparentToolButton,
+)
 
 from gilda_app.db.backup import (
     AUTO_REASON,
@@ -121,6 +129,8 @@ SERVER_STATUS_INTERVAL_MS = 5 * 60 * 1000
 TIMERS_TICK_MS = 30 * 1000
 DAY_CHANGE_TICK_MS = 60 * 1000
 NIGHTLY_BACKUP_CHECK_MS = 5 * 60 * 1000
+# Il programma resta aperto per giorni: una nuova versione si cerca anche mentre è aperto, non solo all'avvio.
+UPDATE_CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000
 # Ogni quanto si rilegge l'avviso ufficiale della manutenzione: spesso nel giorno stesso (può essere
 # aggiornato, es. allungata), di rado prima.
 NOTICE_REFRESH_SOON = timedelta(minutes=15)
@@ -215,6 +225,9 @@ class MainWindow(FluentWindow):
         self.addSubInterface(self.calendar_page, FIF.CALENDAR, tr("nav.calendar"))
         self._start_holiday_refresh()
         self._start_update_check()
+        self._update_timer = QTimer(self)
+        self._update_timer.timeout.connect(lambda: self._start_update_check(periodic=True))
+        self._update_timer.start(UPDATE_CHECK_INTERVAL_MS)
 
         self.bdo_page = BdoPage(self)
         self.bdo_page.setObjectName("page_bdo")
@@ -315,9 +328,11 @@ class MainWindow(FluentWindow):
         today = date.today()
         if today == self._current_day:
             return
-        self._current_day = today
+        previous_day, self._current_day = self._current_day, today
         self.refresh_all()
+        self.calendar_page.follow_new_day(previous_day, today)
         self.calendar_page.refresh()
+        self._start_holiday_refresh()  # si rilegge solo se è passato il tempo (ogni ~300 giorni); a mezzanotte basta
         self._update_dashboard_bdo()  # "Oggi/Domani" del banner manutenzione segue il nuovo giorno
 
     # -- Festività (aggiornamento in background) --------------------------
@@ -975,12 +990,15 @@ class MainWindow(FluentWindow):
         WhatsNewDialog(self, [release]).exec()
 
     # -- Controllo aggiornamenti -------------------------------------------
-    def _start_update_check(self, manual: bool = False) -> None:
+    def _start_update_check(self, manual: bool = False, periodic: bool = False) -> None:
         """Un controllo veloce ad ogni avvio (una singola richiesta a GitHub, con
         timeout breve): se c'è una versione più recente lo si segnala una volta sola,
         non ad ogni riapertura del programma per la stessa versione già vista. Il
         controllo manuale (Impostazioni) risponde sempre, anche "sei aggiornato"."""
         self._update_manual = manual
+        # periodic: controllo ripetuto a programma già aperto; se trova qualcosa avvisa con una striscia in alto
+        # (non con una finestra che interrompe quello che si sta facendo).
+        self._update_periodic = periodic
         self._update_check_signal = _UpdateCheckSignal()
         self._update_check_signal.finished.connect(self._on_update_checked)
         threading.Thread(target=self._check_update_worker, daemon=True).start()
@@ -1002,7 +1020,27 @@ class MainWindow(FluentWindow):
             if get_setting(self.conn, UPDATE_NOTIFIED_SETTING) == info.tag:
                 return
             set_setting(self.conn, UPDATE_NOTIFIED_SETTING, info.tag)
-        self._offer_update(info)
+        if getattr(self, "_update_periodic", False) and not manual:
+            self._announce_update(info)
+        else:
+            self._offer_update(info)
+
+    def _announce_update(self, info: ReleaseInfo) -> None:
+        """Nuova versione trovata a programma aperto: striscia in alto con "Vedi", che apre la solita
+        proposta di installazione. Resta finché non la si chiude, senza bloccare niente."""
+        if getattr(self, "_update_window", None) is not None and self._update_window.isVisible():
+            return  # un aggiornamento è già in corso
+        bar = InfoBar.info(
+            title=tr("update.available.title"),
+            content=tr("update.available.notice", version=info.tag.lstrip("vV")),
+            isClosable=True,
+            duration=-1,
+            position=InfoBarPosition.TOP,
+            parent=self,
+        )
+        button = PushButton(tr("update.available.notice_button"))
+        button.clicked.connect(lambda: (bar.close(), self._offer_update(info)))
+        bar.addWidget(button)
 
     def _offer_update(self, info: ReleaseInfo) -> None:
         version = info.tag.lstrip("vV")

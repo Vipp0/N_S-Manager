@@ -75,3 +75,48 @@ def test_dashboard_stacks_maintenance_banners(qapp, window):
     assert [b for b in dash._extra_banners if not b.isHidden()] == []
     dash.set_maintenance_banner(None)
     assert dash._maintenance_banner.isHidden()
+
+
+def test_update_check_repeats_while_the_program_stays_open(qapp, window, monkeypatch):
+    from qfluentwidgets import InfoBar
+
+    from gilda_app.ui.main_window import UPDATE_CHECK_INTERVAL_MS
+    from gilda_app.utils.update_check import ReleaseInfo
+
+    assert window._update_timer.isActive() and window._update_timer.interval() == UPDATE_CHECK_INTERVAL_MS
+    offered = []
+    monkeypatch.setattr(window, "_offer_update", lambda info: offered.append(info.tag))
+    window.show()
+    window._update_manual, window._update_periodic = False, True
+    window._on_update_checked(ReleaseInfo("v99.0"))
+    assert offered == []  # a programma aperto non compare una finestra che interrompe: solo una striscia
+    bars = window.findChildren(InfoBar)
+    assert len(bars) == 1
+    window._on_update_checked(ReleaseInfo("v99.0"))  # la stessa versione non si segnala due volte
+    assert len(window.findChildren(InfoBar)) == 1
+    # il controllo all'avvio resta quello di prima: finestra di proposta
+    window._update_manual, window._update_periodic = False, False
+    window._on_update_checked(ReleaseInfo("v99.1"))
+    assert offered == ["v99.1"]
+
+
+def test_midnight_moves_the_calendar_to_the_new_day_and_rechecks_holidays(qapp, window, monkeypatch):
+    from datetime import date, timedelta
+
+    from PySide6.QtCore import QDate
+
+    calls = []
+    monkeypatch.setattr(window, "_start_holiday_refresh", lambda: calls.append(1))
+    yesterday = date.today() - timedelta(days=1)
+    window._current_day = yesterday
+    window.calendar_page.calendar.setSelectedDate(QDate(yesterday.year, yesterday.month, yesterday.day))
+    window._check_day_change()
+    selected = window.calendar_page.calendar.selectedDate()
+    assert selected == QDate.currentDate()  # si era sul giorno finito: passa a oggi
+    assert calls == [1]
+    # chi aveva scelto un altro giorno a mano lo ritrova com'era
+    other = date.today() + timedelta(days=3)
+    window._current_day = yesterday
+    window.calendar_page.calendar.setSelectedDate(QDate(other.year, other.month, other.day))
+    window._check_day_change()
+    assert window.calendar_page.calendar.selectedDate() == QDate(other.year, other.month, other.day)

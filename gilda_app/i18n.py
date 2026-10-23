@@ -221,6 +221,8 @@ STRINGS: dict[str, dict[str, str]] = {
         "it": "È disponibile la versione {version}. Vuoi installarla adesso?\n\nPrima di aggiornare viene fatta una copia di sicurezza del database, poi il programma si riavvia da solo.",
         "en": "Version {version} is available. Do you want to install it now?\n\nA safety copy of the database is made first, then the program restarts by itself.",
     },
+    "update.available.notice": {"it": "È disponibile la versione {version}.", "en": "Version {version} is available."},
+    "update.available.notice_button": {"it": "Vedi", "en": "View"},
     "update.available.install": {"it": "Installa ora", "en": "Install now"},
     "update.window.title": {"it": "Aggiornamento in corso...", "en": "Updating..."},
     "update.step.download": {"it": "Scaricamento della versione {version}...", "en": "Downloading version {version}..."},

@@ -138,6 +138,13 @@ class CalendarPage(QWidget):
             {day: [(row["title"], row["color"]) for row in rows] for day, rows in self._day_events.items()}
         )
 
+    def follow_new_day(self, previous: date, today: date) -> None:
+        """Passata la mezzanotte: se il calendario era sul giorno appena finito (cioè su "oggi", come si
+        apre di solito) passa al giorno nuovo, così "Aggiungi evento" non propone la data di ieri."""
+        if self._selected_date() == previous:
+            self.calendar.setSelectedDate(QDate(today.year, today.month, today.day))
+            self.calendar.setCurrentPage(today.year, today.month)
+
     def _go_to_today(self) -> None:
         self.calendar.refresh_today()
         today = QDate.currentDate()
