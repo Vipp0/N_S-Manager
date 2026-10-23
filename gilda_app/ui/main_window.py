@@ -728,13 +728,43 @@ class MainWindow(FluentWindow):
             for region in ESTIMATED_REGIONS
         )
         if self._server_error or ended_early or api_confirms or not adjustable(estimate, now):
-            self.bdo_page.set_estimate_controls(None, False)
+            self.bdo_page.set_estimate_controls(False)
             return
         start = estimate.start.astimezone().strftime("%H:%M")
         end = estimate.end.astimezone().strftime("%H:%M")
-        running = "bdo.estimate.running_official" if estimate.official else "bdo.estimate.running"
-        key = running if estimate.phase == ACTIVE else "bdo.estimate.over"
-        self.bdo_page.set_estimate_controls(tr(key, start=start, end=end), estimate.phase == ACTIVE)
+        # In corso bastano i pulsanti; a fine prevista passata serve la domanda "ancora fuori servizio?".
+        text = tr("bdo.estimate.over", end=end) if estimate.phase != ACTIVE else ""
+        self.bdo_page.set_estimate_controls(True, text, estimate.phase == ACTIVE)
+
+    def _update_maintenance_info(self) -> None:
+        """Blocco della scheda BDO: titolo "Manutenzione [temporanea] · oggi, 10:00 – 12:00" e motivo."""
+        estimate = self._current_estimate()
+        if self._server_error or estimate is None or estimate.phase == OVER:
+            self.bdo_page.set_maintenance_info(None, "", "", "")
+            return
+        temporary = self._upcoming_maintenance_temporary
+        in_progress = estimate.phase == ACTIVE or any(
+            self._server_statuses.get(region) is not None and self._server_statuses[region].in_maintenance
+            for region in ESTIMATED_REGIONS
+        )
+        when = day_text(
+            self._upcoming_maintenance_date, date.today(), self._upcoming_maintenance_date.strftime("%d-%m-%Y")
+        ).lower()
+        title = tr(
+            "bdo.maint_title_temp" if temporary else "bdo.maint_title",
+            when=when,
+            start=estimate.start.astimezone().strftime("%H:%M"),
+            end=estimate.end.astimezone().strftime("%H:%M"),
+        )
+        api_confirms = any(
+            self._server_statuses.get(region) is not None and self._server_statuses[region].in_maintenance
+            and not self._server_statuses[region].estimated
+            for region in ESTIMATED_REGIONS
+        )
+        source = "bdo.source.api" if api_confirms else "bdo.source.official" if estimate.official else "bdo.source.estimate"
+        schedule = self._published_schedule()
+        color = COLOR_MAINTENANCE if in_progress else announced_color(temporary)
+        self.bdo_page.set_maintenance_info(title, color, schedule.reason if schedule is not None else "", tr(source))
 
     def _extend_estimate(self) -> None:
         day = self._upcoming_maintenance_date
@@ -775,8 +805,7 @@ class MainWindow(FluentWindow):
                 self.bdo_page.show_status(effective)
         self.bdo_page.set_region(label)
         self._update_estimate_controls()
-        schedule = self._published_schedule()
-        self.bdo_page.set_maintenance_reason(schedule.reason if schedule is not None and schedule.reason else None)
+        self._update_maintenance_info()
         self._update_dashboard_bdo()
 
     def _on_footer_clicked(self) -> None:

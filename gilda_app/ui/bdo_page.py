@@ -3,7 +3,7 @@ from datetime import date, datetime, timezone
 
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import QFrame, QGridLayout, QHBoxLayout, QLabel, QVBoxLayout, QWidget
-from qfluentwidgets import CardWidget, CaptionLabel, FluentIcon as FIF, PushButton, ScrollArea, StrongBodyLabel, SubtitleLabel
+from qfluentwidgets import BodyLabel, CardWidget, CaptionLabel, FluentIcon as FIF, PushButton, ScrollArea, StrongBodyLabel, SubtitleLabel
 
 from gilda_app.i18n import tr
 from gilda_app.ui.server_status_footer import (
@@ -106,12 +106,27 @@ class BdoPage(QWidget):
         self._message = CaptionLabel("", status_card)
         self._message.setWordWrap(True)
         card_layout.addWidget(self._message)
-        # Motivo della manutenzione (dall'avviso ufficiale): solo se l'avviso lo dà, di solito nelle temporanee.
-        self._reason = QLabel(status_card)
+        # Blocco della manutenzione in corso o annunciata: titolo con la fascia oraria e, se l'avviso lo
+        # dà (di solito nelle temporanee), il motivo in evidenza. Nascosto quando non c'è niente.
+        self._info_box = QWidget(status_card)
+        info_layout = QVBoxLayout(self._info_box)
+        info_layout.setContentsMargins(0, 8, 0, 4)
+        info_layout.setSpacing(6)
+        self._info_title = StrongBodyLabel("", self._info_box)
+        info_layout.addWidget(self._info_title)
+        self._reason_caption = CaptionLabel(tr("bdo.maintenance_reason_caption"), self._info_box)
+        info_layout.addWidget(self._reason_caption)
+        self._reason_frame = QFrame(self._info_box)
+        self._reason_frame.setObjectName("reasonFrame")
+        reason_layout = QVBoxLayout(self._reason_frame)
+        reason_layout.setContentsMargins(14, 8, 12, 8)
+        self._reason = BodyLabel(self._reason_frame)
         self._reason.setWordWrap(True)
         self._reason.setTextInteractionFlags(Qt.TextSelectableByMouse)
-        self._reason.hide()
-        card_layout.addWidget(self._reason)
+        reason_layout.addWidget(self._reason)
+        info_layout.addWidget(self._reason_frame)
+        self._info_box.hide()
+        card_layout.addWidget(self._info_box)
         # Visibile solo durante (e poco dopo) la manutenzione stimata: vedi MainWindow._update_estimate_controls.
         self._estimate_box = QWidget(status_card)
         estimate_layout = QVBoxLayout(self._estimate_box)
@@ -217,11 +232,12 @@ class BdoPage(QWidget):
             text, color = describe_region(statuses.get(region))
             self._set_value(region, text, color)
 
-    def set_estimate_controls(self, text: str | None, can_finish: bool) -> None:
-        """Riga sotto lo stato dei server con "+1 ora" / "È già finita"; text None la nasconde."""
-        self._estimate_box.setVisible(bool(text))
-        if text:
+    def set_estimate_controls(self, visible: bool, text: str = "", can_finish: bool = False) -> None:
+        """Pulsanti "+1 ora" / "È già finita" (con una domanda sopra, se text c'è); visible False li nasconde."""
+        self._estimate_box.setVisible(visible)
+        if visible:
             self._estimate_label.setText(text)
+            self._estimate_label.setVisible(bool(text))
             self._finished_btn.setVisible(can_finish)
 
     def show_error(self, kind: str) -> None:
@@ -251,11 +267,24 @@ class BdoPage(QWidget):
             lines.append(f"{posted} &nbsp; {title}")
         self._news_list.setText("<br>".join(lines))
 
-    def set_maintenance_reason(self, reason: str | None) -> None:
-        """Motivo della manutenzione in corso o annunciata (testo dell'avviso); None lo nasconde."""
-        self._reason.setVisible(bool(reason))
-        if reason:
-            self._reason.setText(tr("bdo.maintenance_reason", reason=reason))
+    def set_maintenance_info(self, title: str | None, color: str, reason: str, source_tip: str) -> None:
+        """Titolo con la fascia oraria (a colori) e il motivo sotto, una frase per riga; title None nasconde
+        tutto il blocco. source_tip: da dove viene l'orario, mostrato passando il mouse sul titolo."""
+        self._info_box.setVisible(bool(title))
+        if not title:
+            return
+        self._info_title.setText(title)
+        self._info_title.setStyleSheet(f"color: {color};")
+        self._info_title.setToolTip(source_tip)
+        has_reason = bool(reason)
+        self._reason_caption.setVisible(has_reason)
+        self._reason_frame.setVisible(has_reason)
+        if has_reason:
+            # Barra colorata a sinistra e fondo appena tinto: il motivo si stacca dal resto.
+            self._reason_frame.setStyleSheet(
+                f"#reasonFrame {{ border-left: 3px solid {color}; background: rgba(127, 127, 127, 0.10); border-radius: 3px; }}"
+            )
+            self._reason.setText("\n".join(line for line in reason.split("\n") if line))
 
     def show_patch_notes(self, items: list[NewsItem]) -> None:
         """Le ultime patch notes: titolo, data e link al sito (il contenuto non si riassume: è lungo e cambia formato)."""

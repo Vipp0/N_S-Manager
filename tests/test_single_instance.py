@@ -5,11 +5,6 @@ from PySide6.QtTest import QTest
 from gilda_app.utils import single_instance as si
 
 
-@pytest.fixture(scope="module")
-def qapp():
-    return QCoreApplication.instance() or QCoreApplication([])
-
-
 def test_second_instance_is_refused_and_first_is_notified(qapp, tmp_path):
     db = tmp_path / "gilda.db"
     first = si.SingleInstance(db)

@@ -528,10 +528,18 @@ STRINGS: dict[str, dict[str, str]] = {
     "bdo.title": {"it": "Black Desert", "en": "Black Desert"},
     "bdo.server_status": {"it": "Stato dei server", "en": "Server status"},
     "bdo.news_title": {"it": "Avvisi ufficiali (NA/EU)", "en": "Official notices (NA/EU)"},
-    "bdo.maintenance_reason": {
-        "it": "Motivo della manutenzione (dall'avviso ufficiale, in inglese): {reason}",
-        "en": "Reason for the maintenance (from the official notice): {reason}",
+    "bdo.maintenance_reason_caption": {
+        "it": "Motivo (dall'avviso ufficiale, in inglese)",
+        "en": "Reason (from the official notice)",
     },
+    "bdo.maint_title": {"it": "Manutenzione · {when}, {start} – {end}", "en": "Maintenance · {when}, {start} – {end}"},
+    "bdo.maint_title_temp": {
+        "it": "Manutenzione temporanea · {when}, {start} – {end}",
+        "en": "Temporary maintenance · {when}, {start} – {end}",
+    },
+    "bdo.source.official": {"it": "Fonte: avviso ufficiale sul sito", "en": "Source: official notice on the site"},
+    "bdo.source.estimate": {"it": "Fonte: stima del programma", "en": "Source: the program's estimate"},
+    "bdo.source.api": {"it": "Fonte: servizio esterno (API)", "en": "Source: external service (API)"},
     "bdo.patch_title": {"it": "Ultime patch note", "en": "Latest patch notes"},
     "bdo.patch_hint": {
         "it": "Cosa cambia a ogni manutenzione: clicca il titolo per aprire l'avviso sul sito.",
@@ -676,8 +684,8 @@ STRINGS: dict[str, dict[str, str]] = {
         "so the server status above is an estimate.",
     },
     "bdo.estimate.over": {
-        "it": "L'orario stimato è finito alle {end} (ora del tuo PC). I server sono ancora fuori servizio?",
-        "en": "The estimated time ended at {end} (your PC's time). Are the servers still down?",
+        "it": "L'orario previsto è finito alle {end}. I server sono ancora fuori servizio?",
+        "en": "The planned time ended at {end}. Are the servers still down?",
     },
     "bdo.estimate.extend": {"it": "+1 ora", "en": "+1 hour"},
     "bdo.estimate.finished": {"it": "È già finita", "en": "It is already over"},

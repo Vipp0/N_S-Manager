@@ -158,8 +158,8 @@ def test_reason_is_read_from_the_temporary_notice_in_the_original_text():
         "All Agris Fever will be fully recharged after the temporary maintenance.",
     )
     schedule = bn.parse_schedule(html, date(2026, 10, 23))
-    assert schedule.reason == (
-        "To fix an issue where defeating monsters consumes Agris Fever points without applying the effect. "
+    assert schedule.reason == (  # una riga per frase, come nell'avviso
+        "To fix an issue where defeating monsters consumes Agris Fever points without applying the effect.\n"
         "All Agris Fever will be fully recharged after the temporary maintenance."
     )
     assert (schedule.start, schedule.end) == (utc(23, 8), utc(23, 10))  # l'orario si legge come prima

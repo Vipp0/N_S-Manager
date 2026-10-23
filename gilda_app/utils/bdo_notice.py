@@ -27,7 +27,7 @@ class PublishedSchedule:
     day: date
     start: datetime
     end: datetime
-    reason: str = ""  # "Maintenance Reason" dell'avviso (nelle temporanee), nel testo originale
+    reason: str = ""  # "Maintenance Reason" dell'avviso (nelle temporanee), nel testo originale, una frase per riga
 
 
 def _text_lines(html: str) -> list[str]:
@@ -53,7 +53,7 @@ def parse_reason(lines: list[str]) -> str:
         if line.startswith("■") or "maintenance impact" in lowered or "we appreciate" in lowered or "thank you" in lowered:
             break
         parts.append(line.lstrip("-•· ").strip())
-    text = " ".join(part for part in parts if part)
+    text = "\n".join(part for part in parts if part)  # una riga per frase/voce, come nell'avviso
     return text[: MAX_REASON_CHARS - 1] + "…" if len(text) > MAX_REASON_CHARS else text
 
 
