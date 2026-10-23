@@ -6,10 +6,10 @@ usa il programma, non i dettagli tecnici del come."""
 
 CHANGELOG: list[dict] = [
     {
-        "version": "2.7.4",
+        "version": "2.8",
         "date": "23-10-2026",
         "notes": [
-            "Temi stagionali: nei periodi di festa cambiano la schermata di caricamento, il logo nelle intestazioni e il colore dei pulsanti (arancione), con qualche decorazione (ragnatele, ragno, zucche) negli angoli e nei vuoti della dashboard; il 31 ottobre e il 1 novembre compare anche la scritta \"Buon Halloween\" nel caricamento e in dashboard. Finita la festa torna tutto normale da solo, anche a programma aperto (si controlla a mezzanotte). Per ora c'è Halloween, dal 21 ottobre al 2 novembre; Natale (dall'8 dicembre al 6 gennaio) si accende quando ci sono le sue immagini. Per il primo secondo circa, prima che parta il programma, si vede ancora la schermata normale dell'exe, poi subentra quella a tema. Anche la schermata dell'aggiornamento automatico segue il tema.",
+            "Temi stagionali: nei periodi di festa il programma cambia aspetto da solo. Per ora c'è Halloween (dal 21 ottobre al 2 novembre): schermata di caricamento a tema (compare in dissolvenza sopra quella normale dell'exe), logo delle intestazioni, icona del programma nella finestra e nella barra delle applicazioni, colore arancione dei pulsanti e decorazioni (ragnatele, ragno, zucche, pipistrelli, teschi, corvo) negli angoli e nei vuoti di dashboard, liste e altre schede, senza coprire nulla e senza intercettare i clic. Il 31 ottobre e il 1 novembre compare anche la scritta \"Buon Halloween\" nel caricamento e in dashboard. Anche la schermata dell'aggiornamento automatico segue il tema. Finita la festa torna tutto normale da solo, anche a programma aperto (si controlla a mezzanotte); l'icona del file .exe, invece, resta sempre quella normale. Natale (dall'8 dicembre al 6 gennaio) è previsto e si accende quando ci sono le sue immagini.",
             "Impostazioni → Tema stagionale: Automatico (default), Sempre normale, oppure \"Prova: Halloween\" per vederlo fuori stagione.",
         ],
     },

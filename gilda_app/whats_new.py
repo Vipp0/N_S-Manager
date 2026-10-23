@@ -33,6 +33,28 @@ class Highlight:
 
 # Chiave: versione della release (come in version.py, es. "2.6").
 WHATS_NEW: dict[str, list[Highlight]] = {
+    "2.8": [
+        Highlight(
+            "BRUSH",
+            "Temi per le feste",
+            "Nei periodi di festa il programma cambia aspetto da solo: per ora c'è Halloween, fino al 2 novembre, con "
+            "schermata di caricamento a tema, logo, icona, colore dei pulsanti e qualche decorazione negli angoli. "
+            "Il 31 ottobre e il 1 novembre compare anche la scritta di auguri. Finita la festa torna tutto normale.",
+            "Holiday themes",
+            "During holidays the program changes its look by itself: for now there is Halloween, until 2 November, "
+            "with a themed loading screen, logo, icon, button colour and a few decorations in the corners. On 31 "
+            "October and 1 November a greeting also appears. When the holiday ends everything goes back to normal.",
+        ),
+        Highlight(
+            "SETTING",
+            "Tema stagionale in Impostazioni",
+            "In Impostazioni → Tema stagionale puoi lasciare l'automatico, tenere sempre l'aspetto normale oppure "
+            "provare Halloween fuori stagione.",
+            "Seasonal theme in Settings",
+            "In Settings → Seasonal theme you can keep it automatic, always use the normal look, or preview "
+            "Halloween out of season.",
+        ),
+    ],
     "2.7.3": [
         Highlight(
             "INFO",
