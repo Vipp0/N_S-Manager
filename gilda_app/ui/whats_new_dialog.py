@@ -13,7 +13,7 @@ from qfluentwidgets import (
     TransparentPushButton,
 )
 
-from gilda_app.i18n import tr
+from gilda_app.i18n import get_language, tr
 from gilda_app.ui.changelog_dialog import ChangelogDialog
 from gilda_app.whats_new import WHATS_NEW, Highlight
 
@@ -74,8 +74,9 @@ class WhatsNewDialog(MessageBoxBase):
         row.addWidget(icon, 0, Qt.AlignTop)
         text_col = QVBoxLayout()
         text_col.setSpacing(4)
-        text_col.addWidget(StrongBodyLabel(highlight.title, card))
-        body = BodyLabel(highlight.text, card)
+        title, text = highlight.localized(get_language())
+        text_col.addWidget(StrongBodyLabel(title, card))
+        body = BodyLabel(text, card)
         body.setWordWrap(True)
         text_col.addWidget(body)
         row.addLayout(text_col, 1)

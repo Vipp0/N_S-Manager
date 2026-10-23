@@ -76,3 +76,30 @@ def test_real_release_history_selection(monkeypatch):
     assert rts(None, "2.7", True) == ["2.7"]  # primo avvio con la funzione su un database con dati
     assert rts(None, "2.7", False) == []  # installazione nuova
     assert rts("2.5", "2.7", True) == ["2.7", "2.6"]  # chi salta una versione vede anche quella saltata
+
+
+def test_real_history_with_the_2_7_x_patches(monkeypatch):
+    import importlib
+
+    importlib.reload(wn)
+    from gilda_app.whats_new import releases_to_show as rts
+
+    assert rts("2.7", "2.7.2", True) == ["2.7.2", "2.7.1"]  # chi ha la 2.7 vede la correzione e le novità
+    assert rts("2.7.1", "2.7.2", True) == ["2.7.2"]  # chi aveva già la 2.7.1 non rivede la sua correzione
+    assert rts("2.7.2", "2.7.2", True) == []
+    assert rts("2.6", "2.7.2", True) == ["2.7.2", "2.7.1", "2.7"]  # salto di versione: al massimo le ultime tre
+    assert rts("2.6.5", "2.7.2", True) == ["2.7.2", "2.7.1", "2.7"]
+    assert rts(None, "2.7.2", True) == ["2.7.2"]
+
+
+def test_every_real_highlight_is_translated_and_localized_picks_the_language():
+    import importlib
+
+    importlib.reload(wn)
+    for release, items in wn.WHATS_NEW.items():
+        for item in items:
+            assert item.title_en.strip() and item.text_en.strip(), (release, item.title)  # niente scheda solo italiana
+            assert item.localized("en") == (item.title_en, item.text_en)
+            assert item.localized("it") == (item.title, item.text)
+    untranslated = wn.Highlight("INFO", "titolo", "testo")
+    assert untranslated.localized("en") == ("titolo", "testo")  # senza traduzione, ripiego sull'italiano
