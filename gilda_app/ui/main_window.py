@@ -184,6 +184,13 @@ class MainWindow(FluentWindow):
         super().__init__()
         self.conn = conn
         self.db_path = db_path
+        # Il colore d'accento del tema stagionale si imposta PRIMA di costruire le schede: cambiarlo a finestra
+        # già costruita fa ridisegnare gli stili di tutti i widget (da mezzo secondo a due di avvio in più).
+        self._default_accent = themeColor()  # il colore normale, da rimettere finita la festa
+        self._season = None
+        early = active_season(date.today(), get_setting(self.conn, SEASON_MODE_SETTING, MODE_AUTO))
+        if early is not None and early.accent:
+            setThemeColor(QColor(early.accent))
 
         self.setWindowTitle(f"{tr('window.title')} v{__version__}")
         self.resize(1100, 720)
@@ -276,8 +283,6 @@ class MainWindow(FluentWindow):
         self._setup_server_status_footer()
         self.navigationInterface.setCurrentItem(self.dashboard_page.objectName())
         self.stackedWidget.currentChanged.connect(self._on_page_changed)
-        self._default_accent = themeColor()  # il colore d'accento normale, da rimettere finita la festa
-        self._season = None
         self.apply_season(force=True)
         self.refresh_all()
 
