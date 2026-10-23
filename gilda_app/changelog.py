@@ -6,6 +6,14 @@ usa il programma, non i dettagli tecnici del come."""
 
 CHANGELOG: list[dict] = [
     {
+        "version": "2.7.2",
+        "date": "23-10-2026",
+        "notes": [
+            "Dashboard: se ci sono più manutenzioni vicine (per esempio una ordinaria in corso e una temporanea annunciata per il giorno dopo) compare un banner per ciascuna, impilati uno sotto l'altro (al massimo tre), ognuno con il suo colore e il suo orario. Con una sola manutenzione non cambia nulla. L'orario di ogni manutenzione si legge dal suo avviso ufficiale.",
+            "Manutenzioni temporanee: durante la manutenzione il banner dice \"Manutenzione temporanea in corso\" e il riquadro BDO aggiunge \"temporanea\" ai dettagli, così non si distingue solo dal colore.",
+        ],
+    },
+    {
         "version": "2.7.1",
         "date": "23-10-2026",
         "notes": [

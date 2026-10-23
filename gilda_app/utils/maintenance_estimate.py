@@ -125,7 +125,7 @@ def recently_finished(estimate: Estimate | None, now: datetime) -> bool:
     return estimate is not None and estimate.phase == OVER and timedelta(0) <= now - estimate.end < BACK_ONLINE_BANNER
 
 
-def pick_current(
+def pending_notices(
     candidates,
     now: datetime,
     start_hour_pt: int,
@@ -133,12 +133,13 @@ def pick_current(
     temporary_hours: int,
     published_for=None,
     adjust_for=None,
-):
-    """Tra gli annunci (già in ordine di data) il primo che interessa ancora: quelli la cui manutenzione
-    è finita da più di BACK_ONLINE_BANNER si saltano. Senza questo, il giovedì sera restava
-    "l'annuncio" quello della manutenzione ordinaria già finita, e l'avviso del giorno dopo
-    (una temporanea) non compariva fino a mezzanotte.
+) -> list:
+    """Tra gli annunci (già in ordine di data) quelli che interessano ancora, nello stesso ordine:
+    quelli la cui manutenzione è finita da più di BACK_ONLINE_BANNER si saltano. Senza questo, il
+    giovedì sera restava "l'annuncio" quello della manutenzione ordinaria già finita, e l'avviso del
+    giorno dopo (una temporanea) non compariva fino a mezzanotte.
     published_for(item) -> orario letto dall'avviso o None; adjust_for(giorno) -> (proroga, fine segnalata)."""
+    result = []
     for item in candidates:
         extra, ended_at = adjust_for(item.maintenance_date) if adjust_for else (timedelta(0), None)
         published = published_for(item) if published_for else None
@@ -146,8 +147,14 @@ def pick_current(
         estimate = estimate_for(item.maintenance_date, now, start_hour_pt, hours, extra, ended_at, published)
         if estimate is not None and estimate.phase == OVER and now - estimate.end >= BACK_ONLINE_BANNER:
             continue
-        return item
-    return None
+        result.append(item)
+    return result
+
+
+def pick_current(candidates, *args, **kwargs):
+    """Il primo annuncio che interessa ancora (vedi pending_notices), o None."""
+    pending = pending_notices(candidates, *args, **kwargs)
+    return pending[0] if pending else None
 
 
 def adjustable(estimate: Estimate | None, now: datetime) -> bool:

@@ -97,6 +97,7 @@ from gilda_app.utils.maintenance_estimate import (
     estimate_for,
     parse_config,
     parse_temporary_hours,
+    pending_notices,
     pick_current,
     recently_finished,
 )
@@ -368,6 +369,7 @@ class MainWindow(FluentWindow):
         self._upcoming_maintenance_date: date | None = None
         self._upcoming_maintenance_temporary = False  # l'avviso è una manutenzione temporanea (più breve)
         self._upcoming_notice_url = ""
+        self._news_items: list = []  # le news già lette, per i banner delle manutenzioni successive
         self._notice_cache: dict[str, tuple[datetime, PublishedSchedule | None]] = {}
         self._notice_busy = False
         self._notice_signal = _NoticeSignal()
@@ -546,8 +548,8 @@ class MainWindow(FluentWindow):
             lines = [describe_error(self._timers_error)[0]]
         self.dashboard_page.set_timers(lines)
 
-    def _pick_upcoming(self, items):
-        """L'annuncio di manutenzione da mostrare: il primo non ancora finito da più di mezz'ora."""
+    def _pending(self, items) -> list:
+        """Gli annunci di manutenzione non ancora finiti da più di mezz'ora, dal più vicino."""
         start, hours = parse_config(
             get_setting(self.conn, MAINT_START_SETTING), get_setting(self.conn, MAINT_HOURS_SETTING)
         )
@@ -557,7 +559,7 @@ class MainWindow(FluentWindow):
             schedule = cached[1] if cached else None
             return schedule if schedule is not None and schedule.day == item.maintenance_date else None
 
-        return pick_current(
+        return pending_notices(
             upcoming_maintenances(items, date.today()),
             datetime.now(timezone.utc),
             start,
@@ -567,7 +569,22 @@ class MainWindow(FluentWindow):
             lambda day: self._estimate_adjust.get(day, (timedelta(0), None)),
         )
 
+    def _pick_upcoming(self, items):
+        """L'annuncio da mostrare in primo piano: il primo non ancora finito da più di mezz'ora."""
+        pending = self._pending(items)
+        return pending[0] if pending else None
+
+    def _extra_pending(self) -> list:
+        """Le manutenzioni successive a quella in primo piano (al massimo due), per i banner impilati."""
+        primary_url, primary_day = self._upcoming_notice_url, self._upcoming_maintenance_date
+        return [
+            item
+            for item in self._pending(self._news_items)
+            if not (item.url == primary_url and item.maintenance_date == primary_day)
+        ][:2]
+
     def _on_news(self, result) -> None:
+        self._news_items = [] if isinstance(result, str) else result
         if isinstance(result, str):
             self.bdo_page.show_news_error(result)
             self._upcoming_maintenance = None
@@ -626,16 +643,23 @@ class MainWindow(FluentWindow):
 
     # -- Orario letto dall'avviso ufficiale (se non si riesce, resta la stima di riserva) ----
     def _maybe_fetch_notice(self) -> None:
-        url, day = self._upcoming_notice_url, self._upcoming_maintenance_date
-        if not url or day is None or self._notice_busy:
+        """Rilegge l'orario dall'avviso di ogni manutenzione mostrata (la principale e le successive),
+        una alla volta e solo se la lettura è vecchia."""
+        if self._notice_busy:
             return
         now = datetime.now(timezone.utc)
-        cached = self._notice_cache.get(url)
-        limit = NOTICE_REFRESH_SOON if day <= now.date() + timedelta(days=1) else NOTICE_REFRESH_LATER
-        if cached is not None and now - cached[0] < limit:
+        shown = [(self._upcoming_notice_url, self._upcoming_maintenance_date)]
+        shown += [(item.url, item.maintenance_date) for item in self._extra_pending()]
+        for url, day in shown:
+            if not url or day is None:
+                continue
+            cached = self._notice_cache.get(url)
+            limit = NOTICE_REFRESH_SOON if day <= now.date() + timedelta(days=1) else NOTICE_REFRESH_LATER
+            if cached is not None and now - cached[0] < limit:
+                continue
+            self._notice_busy = True
+            threading.Thread(target=self._notice_worker, args=(url, day), daemon=True).start()
             return
-        self._notice_busy = True
-        threading.Thread(target=self._notice_worker, args=(url, day), daemon=True).start()
 
     def _notice_worker(self, url: str, day: date) -> None:
         schedule = fetch_schedule(url, day)
@@ -743,7 +767,7 @@ class MainWindow(FluentWindow):
             self._update_maintenance_banner(None)
             return
         region_status = self._effective_statuses().get(region)
-        text, detail, color = describe_region_parts(region_status)
+        text, detail, color = describe_region_parts(region_status, self._upcoming_maintenance_temporary)
         lines = [tr(f"region.{region}")]
         if detail:
             lines.append(detail)
@@ -759,6 +783,45 @@ class MainWindow(FluentWindow):
         self._update_maintenance_banner(region_status, region)
 
     def _update_maintenance_banner(self, region_status: RegionStatus | None, region: str | None = None) -> None:
+        self._update_primary_banner(region_status, region)
+        self._update_extra_banners(region)
+
+    def _update_extra_banners(self, region: str | None) -> None:
+        """Una riga "annunciata" per ogni manutenzione successiva alla principale (al massimo due)."""
+        if region not in ESTIMATED_REGIONS:
+            self.dashboard_page.set_extra_maintenance_banners([])
+            return
+        now = datetime.now(timezone.utc)
+        start, hours = parse_config(
+            get_setting(self.conn, MAINT_START_SETTING), get_setting(self.conn, MAINT_HOURS_SETTING)
+        )
+        temp_hours = parse_temporary_hours(get_setting(self.conn, MAINT_TEMP_HOURS_SETTING))
+        banners = []
+        for item in self._extra_pending():
+            cached = self._notice_cache.get(item.url)
+            schedule = cached[1] if cached else None
+            published = schedule if schedule is not None and schedule.day == item.maintenance_date else None
+            estimate = estimate_for(
+                item.maintenance_date, now, start, temp_hours if item.is_temporary else hours, published=published
+            )
+            when = day_text(item.maintenance_date, date.today(), item.maintenance_date.strftime("%d-%m-%Y"))
+            if estimate is None:
+                continue
+            banners.append(
+                (
+                    tr(
+                        "dash.maintenance_banner_window_temp" if item.is_temporary else "dash.maintenance_banner_window",
+                        when=when,
+                        start=estimate.start.astimezone().strftime("%H:%M"),
+                        end=estimate.end.astimezone().strftime("%H:%M"),
+                        basis=tr("maint.basis.official" if estimate.official else "maint.basis.estimated"),
+                    ),
+                    announced_color(item.is_temporary),
+                )
+            )
+        self.dashboard_page.set_extra_maintenance_banners(banners)
+
+    def _update_primary_banner(self, region_status: RegionStatus | None, region: str | None = None) -> None:
         """Il banner in dashboard: "annunciata" prima che inizi (arancione se ordinaria, rossa se
         temporanea), poi "in corso" (rosso, col tempo restante, come nel footer) finché il server
         non torna online da solo. Il colore viene da announced_color, come nel riquadro BDO. Una
@@ -766,7 +829,11 @@ class MainWindow(FluentWindow):
         lo stato torna online per un attimo tra due controlli (ogni 5 minuti)."""
         if region_status is not None and region_status.in_maintenance:
             self._maintenance_seen_live = True
-            status_text, _ = describe_region(region_status)
+            if self._upcoming_maintenance_temporary:
+                _headline, detail, _color = describe_region_parts(region_status)
+                status_text = tr("dash.ongoing_temp_headline") + (f": {detail}" if detail else "")
+            else:
+                status_text, _ = describe_region(region_status)
             self.dashboard_page.set_maintenance_banner(
                 tr("dash.maintenance_banner_ongoing", status=status_text), COLOR_MAINTENANCE
             )

@@ -634,6 +634,8 @@ STRINGS: dict[str, dict[str, str]] = {
     "server.maintenance": {"it": "In manutenzione", "en": "Under maintenance"},
     "server.maintenance_remaining": {"it": "In manutenzione (fine tra {time})", "en": "Under maintenance ({time} left)"},
     "server.headline.maintenance": {"it": "In manutenzione", "en": "Under maintenance"},
+    "server.detail.temporary": {"it": "temporanea", "en": "temporary"},
+    "dash.ongoing_temp_headline": {"it": "Manutenzione temporanea in corso", "en": "Temporary maintenance in progress"},
     "server.detail.official": {"it": "secondo l'avviso", "en": "per the notice"},
     "server.detail.estimated": {"it": "stimata", "en": "estimated"},
     "server.detail.remaining": {"it": "fine tra {time}", "en": "{time} left"},

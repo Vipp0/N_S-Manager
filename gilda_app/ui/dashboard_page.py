@@ -255,9 +255,15 @@ class DashboardPage(QWidget):
         header.addStretch(1)
         layout.addLayout(header)
 
+        # Un banner per manutenzione: di norma uno solo (nascosto se non c'è niente), se ce ne sono di
+        # più (es. una ordinaria in corso e una temporanea annunciata per domani) si impilano.
+        self._banner_box = QVBoxLayout()
+        self._banner_box.setSpacing(8)
         self._maintenance_banner = MaintenanceBanner(self)
         self._maintenance_banner.clicked.connect(self.maintenance_clicked)
-        layout.addWidget(self._maintenance_banner)
+        self._banner_box.addWidget(self._maintenance_banner)
+        self._extra_banners: list[MaintenanceBanner] = []
+        layout.addLayout(self._banner_box)
 
         actions = QHBoxLayout()
         add_member = PrimaryPushButton(FIF.ADD, tr("button.add_member"), self)
@@ -459,3 +465,16 @@ class DashboardPage(QWidget):
 
     def set_maintenance_banner(self, text: str | None, color: str | None = None) -> None:
         self._maintenance_banner.set_text(text, color)
+
+    def set_extra_maintenance_banners(self, banners: list[tuple[str, str]]) -> None:
+        """Banner sotto il primo, uno per ogni altra manutenzione (testo, colore)."""
+        while len(self._extra_banners) < len(banners):
+            banner = MaintenanceBanner(self)
+            banner.clicked.connect(self.maintenance_clicked)
+            self._banner_box.addWidget(banner)
+            self._extra_banners.append(banner)
+        for index, banner in enumerate(self._extra_banners):
+            if index < len(banners):
+                banner.set_text(*banners[index])
+            else:
+                banner.set_text(None)

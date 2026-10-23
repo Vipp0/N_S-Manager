@@ -211,3 +211,25 @@ def test_official_schedule_decides_when_a_notice_is_over():
     short = PublishedSchedule(date(2026, 10, 22), at(22, 8), at(22, 9))  # durata vera: 1 ora
     published = lambda item: short if item is THURSDAY else None
     assert me.pick_current(CANDIDATES, at(22, 9, 40), 1, 4, 2, published_for=published) is FRIDAY_TEMP
+
+
+def test_pending_notices_lists_every_unfinished_notice_in_order():
+    saturday = _item(date(2026, 10, 24))
+    items = [THURSDAY, FRIDAY_TEMP, saturday]
+    assert me.pending_notices(items, at(22, 10), 1, 4, 2) == [THURSDAY, FRIDAY_TEMP, saturday]  # giovedì in corso: tutte
+    assert me.pending_notices(items, at(22, 18), 1, 4, 2) == [FRIDAY_TEMP, saturday]  # giovedì finita da ore: sparisce
+    assert me.pending_notices(items, at(23, 11), 1, 4, 2) == [saturday]  # temporanea del venerdì (08-10) finita
+    assert me.pending_notices([], at(22, 10), 1, 4, 2) == []
+    assert me.pick_current(items, at(22, 18), 1, 4, 2) is FRIDAY_TEMP  # pick_current = il primo
+
+
+def test_region_parts_mention_temporary_maintenance():
+    from datetime import timedelta
+
+    from gilda_app.ui.server_status_footer import describe_region_parts
+
+    status = RegionStatus(True, ends_at=datetime.now(timezone.utc) + timedelta(hours=1), estimated=True, official=True)
+    _, plain, _ = describe_region_parts(status)
+    _, temp, _ = describe_region_parts(status, temporary=True)
+    assert "temporanea" not in plain and temp.startswith("temporanea") and "avviso" in temp
+    assert describe_region_parts(RegionStatus(False), temporary=True)[1] is None  # online: niente da dire
