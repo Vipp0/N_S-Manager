@@ -13,9 +13,9 @@ from qfluentwidgets import (
     TransparentPushButton,
 )
 
-from gilda_app.i18n import get_language, tr
+from gilda_app.i18n import tr_in
 from gilda_app.ui.changelog_dialog import ChangelogDialog
-from gilda_app.whats_new import WHATS_NEW, Highlight
+from gilda_app.whats_new import POPUP_LANGUAGE, WHATS_NEW, Highlight
 
 ICON_SIZE = 30
 MAX_HEIGHT = 380
@@ -28,9 +28,9 @@ class WhatsNewDialog(MessageBoxBase):
 
     def __init__(self, parent, releases: list[str]):
         super().__init__(parent)
-        self.titleLabel = SubtitleLabel(tr("whatsnew.title", version=releases[0]), self)
+        self.titleLabel = SubtitleLabel(tr_in(POPUP_LANGUAGE, "whatsnew.title", version=releases[0]), self)
         self.viewLayout.addWidget(self.titleLabel)
-        subtitle = CaptionLabel(tr("whatsnew.subtitle"), self)
+        subtitle = CaptionLabel(tr_in(POPUP_LANGUAGE, "whatsnew.subtitle"), self)
         self.viewLayout.addWidget(subtitle)
 
         content = QWidget()
@@ -41,7 +41,7 @@ class WhatsNewDialog(MessageBoxBase):
         layout.setSpacing(10)
         for release in releases:
             if len(releases) > 1:
-                layout.addWidget(StrongBodyLabel(tr("whatsnew.version_header", version=release), content))
+                layout.addWidget(StrongBodyLabel(tr_in(POPUP_LANGUAGE, "whatsnew.version_header", version=release), content))
             for highlight in WHATS_NEW[release]:
                 layout.addWidget(self._card(highlight, content))
         layout.addStretch(1)
@@ -55,12 +55,12 @@ class WhatsNewDialog(MessageBoxBase):
         self._content = content
         self.viewLayout.addWidget(self._scroll)
 
-        changelog_btn = TransparentPushButton(FIF.HISTORY, tr("whatsnew.changelog"), self)
+        changelog_btn = TransparentPushButton(FIF.HISTORY, tr_in(POPUP_LANGUAGE, "whatsnew.changelog"), self)
         changelog_btn.clicked.connect(lambda: ChangelogDialog(self).exec())
         self.viewLayout.addWidget(changelog_btn, 0, Qt.AlignLeft)
 
         self.widget.setMinimumWidth(600)
-        self.yesButton.setText(tr("whatsnew.close"))
+        self.yesButton.setText(tr_in(POPUP_LANGUAGE, "whatsnew.close"))
         self.cancelButton.hide()
 
     @staticmethod
@@ -74,7 +74,7 @@ class WhatsNewDialog(MessageBoxBase):
         row.addWidget(icon, 0, Qt.AlignTop)
         text_col = QVBoxLayout()
         text_col.setSpacing(4)
-        title, text = highlight.localized(get_language())
+        title, text = highlight.localized(POPUP_LANGUAGE)
         text_col.addWidget(StrongBodyLabel(title, card))
         body = BodyLabel(text, card)
         body.setWordWrap(True)

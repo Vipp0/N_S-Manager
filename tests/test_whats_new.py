@@ -103,3 +103,18 @@ def test_every_real_highlight_is_translated_and_localized_picks_the_language():
             assert item.localized("it") == (item.title, item.text)
     untranslated = wn.Highlight("INFO", "titolo", "testo")
     assert untranslated.localized("en") == ("titolo", "testo")  # senza traduzione, ripiego sull'italiano
+
+
+def test_popup_stays_in_italian_even_if_the_program_is_in_english():
+    from gilda_app import i18n
+
+    assert wn.POPUP_LANGUAGE == "it"
+    previous = i18n.get_language()
+    try:
+        i18n.set_language("en")
+        assert i18n.tr("whatsnew.close") == "Got it"  # il programma è in inglese...
+        assert i18n.tr_in(wn.POPUP_LANGUAGE, "whatsnew.close") == "Ho capito"  # ...ma il popup no
+        assert i18n.tr_in("en", "whatsnew.title", version="2.7.2") == "What's new in version 2.7.2"
+        assert i18n.tr_in("it", "chiave.inesistente") == "chiave.inesistente"
+    finally:
+        i18n.set_language(previous)

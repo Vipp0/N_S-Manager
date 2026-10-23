@@ -730,9 +730,14 @@ def get_language() -> str:
     return _current_language
 
 
-def tr(key: str, **kwargs) -> str:
+def tr_in(language: str, key: str, **kwargs) -> str:
+    """Come tr(), ma in una lingua scelta invece di quella del programma."""
     entry = STRINGS.get(key)
     if entry is None:
         return key
-    text = entry.get(_current_language, entry.get(DEFAULT_LANGUAGE, key))
+    text = entry.get(language, entry.get(DEFAULT_LANGUAGE, key))
     return text.format(**kwargs) if kwargs else text
+
+
+def tr(key: str, **kwargs) -> str:
+    return tr_in(_current_language, key, **kwargs)

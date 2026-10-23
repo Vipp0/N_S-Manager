@@ -10,6 +10,10 @@ from dataclasses import dataclass
 from gilda_app.utils.update_check import version_key
 
 MAX_RELEASES_SHOWN = 3
+# Lingua del popup. Per ora sempre italiano, anche se il programma è impostato in inglese: lo usa
+# una sola persona, che sceglie l'inglese solo per coerenza con il gioco. Le traduzioni inglesi
+# sono già scritte: per usarle basta mettere qui get_language() (da i18n) al posto di "it".
+POPUP_LANGUAGE = "it"
 
 
 @dataclass(frozen=True)
