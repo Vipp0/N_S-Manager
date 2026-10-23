@@ -25,6 +25,7 @@ if TYPE_CHECKING:  # MainWindow si importa dopo, a schermata di caricamento già
 
 APP_FONT_FAMILY = "Segoe UI"
 APP_FONT_POINT_SIZE = 11
+BOOTLOADER_SPLASH_TITLE = "tk"  # titolo della finestra della schermata di avvio dell'exe (PyInstaller)
 
 
 def _maybe_run_initial_import(conn, db_file: Path, parent: "MainWindow") -> None:
@@ -48,8 +49,9 @@ def _maybe_run_initial_import(conn, db_file: Path, parent: "MainWindow") -> None
 
 
 def _start_seasonal_splash(db_file: Path) -> SeasonalSplash | None:
-    """Nei periodi di festa mostra la schermata di caricamento a tema al posto di quella normale, che si
-    chiude. Il tema e la lingua si leggono dal database in sola lettura, perché il programma non l'ha
+    """Nei periodi di festa mostra la schermata di caricamento a tema, sopra quella normale dell'exe (che la
+    copre del tutto e si chiude a fine avvio: chiuderla subito rallenta di diversi secondi tutto il resto
+    dell'avvio). Il tema e la lingua si leggono dal database in sola lettura, perché il programma non l'ha
     ancora aperto. Qualunque problema -> None: si prosegue con la schermata normale."""
     try:
         mode = read_setting(db_file, SEASON_MODE_SETTING, MODE_AUTO)
@@ -60,7 +62,7 @@ def _start_seasonal_splash(db_file: Path) -> SeasonalSplash | None:
         splash = SeasonalSplash(season, tr_in(language, f"season.loading.{season.key}"))
         splash.show()
         QApplication.processEvents()  # la fa comparire subito, prima del lavoro lungo
-        _close_splash()
+        _hide_bootloader_splash()
         return splash
     except Exception:
         return None
@@ -75,8 +77,7 @@ def _animate_splash_dots(splash: SeasonalSplash | None = None) -> None:
     if splash is not None:
         for _ in range(2):
             for dots in (1, 2, 3):
-                splash.set_dots(dots)
-                QApplication.processEvents()
+                splash.set_dots(dots)  # si ridisegna da sola (showMessage)
                 time.sleep(0.25)
         return
     try:
@@ -87,6 +88,35 @@ def _animate_splash_dots(splash: SeasonalSplash | None = None) -> None:
         for frame in ("Loading.", "Loading..", "Loading..."):
             pyi_splash.update_text(frame)
             time.sleep(0.25)
+
+
+def _hide_bootloader_splash() -> None:
+    """Nasconde (senza chiuderla) la schermata dell'exe, che altrimenti resta sopra quella stagionale: la sua
+    finestra, un "tk" a tutto schermo del bootloader, è sempre in primo piano. Chiuderla qui con
+    pyi_splash.close() rallenta di diversi secondi tutto il resto dell'avvio, quindi si chiude a fine avvio.
+    Solo Windows; in sviluppo non c'è nulla da nascondere. Un problema qualsiasi non deve fermare l'avvio."""
+    if sys.platform != "win32":
+        return
+    try:
+        import ctypes
+        from ctypes import wintypes
+
+        user32 = ctypes.windll.user32
+        pid = ctypes.windll.kernel32.GetCurrentProcessId()
+        enum_proc = ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND, wintypes.LPARAM)
+
+        def hide_if_splash(hwnd, _lparam):
+            window_pid = wintypes.DWORD()
+            user32.GetWindowThreadProcessId(hwnd, ctypes.byref(window_pid))
+            title = ctypes.create_unicode_buffer(8)
+            user32.GetWindowTextW(hwnd, title, len(title))
+            if window_pid.value == pid and title.value == BOOTLOADER_SPLASH_TITLE:
+                user32.ShowWindow(hwnd, 0)  # SW_HIDE
+            return True
+
+        user32.EnumWindows(enum_proc(hide_if_splash), 0)
+    except Exception:
+        pass
 
 
 def _close_splash() -> None:
@@ -129,6 +159,10 @@ def main() -> None:
     # Nei periodi di festa compare subito la schermata a tema; il resto (importazioni pesanti, database,
     # costruzione della finestra) si fa dopo, mentre l'utente la guarda.
     splash = _start_seasonal_splash(db_file)
+    if splash is not None:
+        # I puntini si animano ora e non a fine avvio: ogni aggiornamento della schermata fa elaborare gli
+        # eventi in coda, e a finestra principale già costruita (ma non mostrata) la rimpiccioliscono.
+        _animate_splash_dots(splash)
     # Prima di connect(): così la copia del giorno precede anche un'eventuale migrazione
     # dello schema fatta da una versione nuova del programma.
     try:
@@ -146,14 +180,14 @@ def main() -> None:
     window = MainWindow(conn, db_file)
     instance.activation_requested.connect(lambda: _bring_to_front(window))
     window.refresh_all()
-    _animate_splash_dots(splash)
+    if splash is None:
+        _animate_splash_dots()
     # Finestra mostrata prima di chiudere lo splash: altrimenti Windows non ha una
     # finestra in primo piano da cui passare il focus e l'app parte in background.
     window.show()
     if splash is not None:
         splash.finish(window)
-    else:
-        _close_splash()
+    _close_splash()
     window.raise_()
     window.activateWindow()
     _maybe_run_initial_import(conn, db_file, window)
