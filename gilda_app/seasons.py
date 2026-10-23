@@ -66,9 +66,10 @@ class Season:
         return today >= self.greeting_start or today <= self.greeting_end
 
 
-# Viola, non arancione: l'arancione negli avvisi vuol dire "manutenzione annunciata".
+# Halloween: arancione zucca, un po' più rosso di quello degli avvisi di manutenzione annunciata (#d9730d), che
+# compare solo in dashboard come scheda larga con testo: non si confonde con i pulsanti.
 SEASONS = [
-    Season("halloween", start=(10, 21), end=(11, 2), accent="#8e44ad", loading_color="#ffb36b",
+    Season("halloween", start=(10, 21), end=(11, 2), accent="#e8650a", loading_color="#ffb36b",
            greeting_start=(10, 31), greeting_end=(11, 1)),
     Season("natale", start=(12, 8), end=(1, 6), accent=None, loading_color="#d8ecff"),
 ]
