@@ -1,17 +1,23 @@
-"""Ricava l'icona di un tema (icon_<tema>.png, 512x512) ricolorando quella normale.
+"""Ricava l'icona di un tema (icon_<tema>.png, 512x512).
 
-L'icona normale è un gatto nero con occhi rossi e un bagliore/simbolo bianchi. Qui il bianco diventa il
-colore del tema (per Halloween un arancio) e il rosso degli occhi un ambra, lasciando il nero com'è.
+Due modi:
+  - con il logo del tema (PNG trasparente): lo centra e gli mette attorno un contorno luminoso del colore
+    del tema, perché a 16-32 px un logo scuro con linee sottili sparirebbe sulle barre scure;
+  - senza logo: ricolora l'icona normale (gatto nero con occhi rossi e bagliore/simbolo bianchi): il bianco
+    diventa il colore del tema e il rosso degli occhi un ambra.
 
 Uso (dalla cartella del progetto, con il venv):
+    python tools/make_seasonal_icon.py halloween "Logo Night_Shade Halloween.png"
     python tools/make_seasonal_icon.py halloween
 """
 import argparse
 import sys
 from pathlib import Path
 
-from PySide6.QtCore import Qt
-from PySide6.QtGui import QColor, QGuiApplication, QImage
+import math
+
+from PySide6.QtCore import QPointF, Qt
+from PySide6.QtGui import QColor, QGuiApplication, QImage, QPainter
 
 RESOURCES = Path(__file__).resolve().parent.parent / "gilda_app" / "resources"
 SIZE = 512
@@ -42,13 +48,48 @@ def recolor(source: QImage, light: tuple[int, int, int], eyes: tuple[int, int, i
     return result
 
 
+def with_glow_outline(logo: QImage, color: tuple[int, int, int], margin: int = 40) -> QImage:
+    """Il logo centrato in una tela quadrata, con un contorno luminoso: sagoma del colore del tema ripetuta
+    attorno al logo (spessore netto) e, più larga e tenue, per l'alone."""
+    inner = SIZE - 2 * margin
+    logo = logo.convertToFormat(QImage.Format_ARGB32_Premultiplied).scaled(
+        inner, inner, Qt.KeepAspectRatio, Qt.SmoothTransformation
+    )
+    left, top = (SIZE - logo.width()) // 2, (SIZE - logo.height()) // 2
+    silhouette = QImage(logo.size(), QImage.Format_ARGB32_Premultiplied)
+    silhouette.fill(QColor(*color))
+    painter = QPainter(silhouette)
+    painter.setCompositionMode(QPainter.CompositionMode_DestinationIn)
+    painter.drawImage(0, 0, logo)
+    painter.end()
+
+    canvas = QImage(SIZE, SIZE, QImage.Format_ARGB32_Premultiplied)
+    canvas.fill(0)
+    painter = QPainter(canvas)
+    # (raggio in pixel, opacità): dall'alone largo al contorno netto
+    for radius, opacity in ((30, 0.07), (22, 0.10), (15, 0.16), (9, 0.30), (5, 0.9)):
+        painter.setOpacity(opacity)
+        for step in range(24):
+            angle = 2 * math.pi * step / 24
+            offset = QPointF(left + radius * math.cos(angle), top + radius * math.sin(angle))
+            painter.drawImage(offset, silhouette)
+    painter.setOpacity(1.0)
+    painter.drawImage(left, top, logo)
+    painter.end()
+    return canvas.convertToFormat(QImage.Format_ARGB32)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("theme", choices=sorted(THEMES))
+    parser.add_argument("logo", nargs="?", help="logo del tema, PNG trasparente (senza: ricolora l'icona normale)")
     args = parser.parse_args()
     app = QGuiApplication.instance() or QGuiApplication(sys.argv)  # noqa: F841 - serve a QImage
     light, eyes = THEMES[args.theme]
-    icon = recolor(QImage(str(RESOURCES / "app_icon.png")), light, eyes)
+    if args.logo:
+        icon = with_glow_outline(QImage(args.logo), light)
+    else:
+        icon = recolor(QImage(str(RESOURCES / "app_icon.png")), light, eyes)
     target = RESOURCES / f"icon_{args.theme}.png"
     icon.save(str(target))
     print(f"{target.name} {icon.width()}x{icon.height()}")
