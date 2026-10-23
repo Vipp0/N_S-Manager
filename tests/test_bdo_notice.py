@@ -143,3 +143,59 @@ def test_region_parts_keep_the_big_headline_short():
     assert describe_region_parts(RegionStatus(True))[1] is None  # fine non nota
     assert describe_region_parts(RegionStatus(False))[1] is None and describe_region_parts(None)[1] is None
     assert len(headline) < 20
+
+
+# -- motivo della manutenzione ----------------------------------------------------------
+def with_reason(html, *lines):
+    reason = "<p>■ Maintenance Reason:</p>" + "".join(f"<p>{line}</p>" for line in lines)
+    return html.replace("<p>■ Maintenance Impact:</p>", reason + "<p>■ Maintenance Impact:</p>", 1)
+
+
+def test_reason_is_read_from_the_temporary_notice_in_the_original_text():
+    html = with_reason(
+        TEMPORARY,
+        "To fix an issue where defeating monsters consumes Agris Fever points without applying the effect.",
+        "All Agris Fever will be fully recharged after the temporary maintenance.",
+    )
+    schedule = bn.parse_schedule(html, date(2026, 10, 23))
+    assert schedule.reason == (
+        "To fix an issue where defeating monsters consumes Agris Fever points without applying the effect. "
+        "All Agris Fever will be fully recharged after the temporary maintenance."
+    )
+    assert (schedule.start, schedule.end) == (utc(23, 8), utc(23, 10))  # l'orario si legge come prima
+
+
+def test_no_reason_for_ordinary_maintenance_and_long_reasons_are_cut():
+    assert bn.parse_schedule(REGULAR, date(2026, 10, 15)).reason == ""
+    long_text = "x" * 2000
+    reason = bn.parse_schedule(with_reason(TEMPORARY, long_text), date(2026, 10, 23)).reason
+    assert len(reason) == bn.MAX_REASON_CHARS and reason.endswith("…")
+
+
+def test_reason_stops_at_the_next_section_and_ignores_bullets():
+    html = with_reason(TEMPORARY, "- Fix the crash when opening the map.")
+    assert bn.parse_schedule(html, date(2026, 10, 23)).reason == "Fix the crash when opening the map."
+
+
+# -- patch notes: stessa chiamata delle news, altra bacheca ------------------------------
+def test_patch_notes_use_the_updates_board():
+    from gilda_app.utils import bdo_news as news
+
+    seen = {}
+
+    def fake_api_get(path, key, params=None, **kw):
+        seen["params"] = (path, params)
+        return {"updates": [
+            {"title": "Patch Notes - October 22, 2026", "url": "https://www.naeu.playblackdesert.com/p", "date_posted": "Oct 22, 2026 (UTC)"},
+            {"title": "[Black Desert+] Update Details - October 14, 2026", "url": "", "date_posted": "Oct 14, 2026 (UTC)"},
+        ]}
+
+    with patch.object(news, "api_get", fake_api_get):
+        items = news.fetch_news("k", news.PATCH_NOTES_BOARD_TYPE, news.PATCH_NOTES_LIMIT)
+    assert seen["params"] == ("/api/news", {"board_type": 2, "limit": 3})
+    assert [i.title for i in items][0] == "Patch Notes - October 22, 2026" and items[0].posted == date(2026, 10, 22)
+    assert not any(i.is_maintenance for i in items)  # le patch notes non sono avvisi di manutenzione
+    # le notizie normali continuano a usare la bacheca degli avvisi
+    with patch.object(news, "api_get", fake_api_get):
+        news.fetch_news("k")
+    assert seen["params"][1]["board_type"] == 1

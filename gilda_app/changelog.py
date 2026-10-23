@@ -6,6 +6,14 @@ usa il programma, non i dettagli tecnici del come."""
 
 CHANGELOG: list[dict] = [
     {
+        "version": "2.7.3",
+        "date": "23-10-2026",
+        "notes": [
+            "Scheda BDO: per le manutenzioni temporanee compare il motivo scritto nell'avviso ufficiale (\"Maintenance Reason\", nel testo originale in inglese) sotto lo stato dei server, finché la manutenzione è in corso o annunciata. Le ordinarie non hanno un motivo e non mostrano niente.",
+            "Scheda BDO: nuovo riquadro \"Ultime patch note\" con le ultime tre (titolo, data e link al sito), cioè cosa cambia a ogni manutenzione. Si aggiorna circa una volta all'ora, con una sola richiesta in più.",
+        ],
+    },
+    {
         "version": "2.7.2",
         "date": "23-10-2026",
         "notes": [

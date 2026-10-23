@@ -82,7 +82,7 @@ from gilda_app.version import __version__
 from gilda_app.utils.icons import ban_icon
 from gilda_app.utils.paths import app_dir, backups_dir
 from gilda_app.utils.bdo_guild import compare_guild, fetch_guild
-from gilda_app.utils.bdo_news import fetch_news, upcoming_maintenances
+from gilda_app.utils.bdo_news import PATCH_NOTES_BOARD_TYPE, PATCH_NOTES_LIMIT, fetch_news, upcoming_maintenances
 from gilda_app.utils.bdo_notice import PublishedSchedule, fetch_schedule
 from gilda_app.utils.bdo_timers import fetch_boss_timers, fetch_reset_timers
 from gilda_app.utils.bdoalerts_api import ERROR_BAD_RESPONSE, ERROR_NO_KEY, ApiError
@@ -125,6 +125,8 @@ NIGHTLY_BACKUP_CHECK_MS = 5 * 60 * 1000
 # aggiornato, es. allungata), di rado prima.
 NOTICE_REFRESH_SOON = timedelta(minutes=15)
 NOTICE_REFRESH_LATER = timedelta(hours=6)
+# Le patch notes escono una volta a settimana: basta rileggerle ogni ora.
+PATCH_NOTES_REFRESH = timedelta(hours=1)
 
 
 class _HolidayRefreshSignal(QObject):
@@ -154,6 +156,10 @@ class _TimersSignal(QObject):
 
 class _NoticeSignal(QObject):
     finished = Signal(object)  # (url, giorno, PublishedSchedule | None)
+
+
+class _PatchSignal(QObject):
+    finished = Signal(object)  # elenco di NewsItem oppure il "kind" dell'errore
 
 
 class _GuildSignal(QObject):
@@ -374,6 +380,9 @@ class MainWindow(FluentWindow):
         self._notice_busy = False
         self._notice_signal = _NoticeSignal()
         self._notice_signal.finished.connect(self._on_notice)
+        self._patch_signal = _PatchSignal()
+        self._patch_signal.finished.connect(self._on_patch_notes)
+        self._patch_last_fetch: datetime | None = None
         # Proroga (+1 ora) e "già finita" segnalate a mano, per data di manutenzione: restano solo in memoria.
         self._estimate_adjust: dict[date, tuple[timedelta, datetime | None]] = {}
         # Per regione: quando l'API ha visto i server tornare online dopo una manutenzione (banner verde).
@@ -449,8 +458,12 @@ class MainWindow(FluentWindow):
             return
         self._server_busy = True
         guild_name = get_setting(self.conn, GUILD_NAME_SETTING) or ""
+        now = datetime.now(timezone.utc)
+        patches_due = self._patch_last_fetch is None or now - self._patch_last_fetch >= PATCH_NOTES_REFRESH
         threading.Thread(
-            target=self._server_status_worker, args=(api_key, self._server_region(), guild_name), daemon=True
+            target=self._server_status_worker,
+            args=(api_key, self._server_region(), guild_name, patches_due),
+            daemon=True,
         ).start()
 
     @staticmethod
@@ -465,10 +478,14 @@ class MainWindow(FluentWindow):
         except Exception:
             return ERROR_BAD_RESPONSE
 
-    def _server_status_worker(self, api_key: str, region: str, guild_name: str) -> None:
+    def _server_status_worker(self, api_key: str, region: str, guild_name: str, patches_due: bool = False) -> None:
         self._server_status_signal.finished.emit(self._fetch_or_kind(fetch_server_status, api_key))
         # Gli avvisi sono secondari: se falliscono lo stato dei server resta com'è.
         self._news_signal.finished.emit(self._fetch_or_kind(fetch_news, api_key))
+        if patches_due:
+            self._patch_signal.finished.emit(
+                self._fetch_or_kind(fetch_news, api_key, PATCH_NOTES_BOARD_TYPE, PATCH_NOTES_LIMIT)
+            )
         # Reset e boss: l'API accetta il nome della regione con il trattino basso.
         api_region = region.replace("-", "_")
         resets = self._fetch_or_kind(fetch_reset_timers, api_key, api_region)
@@ -583,6 +600,13 @@ class MainWindow(FluentWindow):
             if not (item.url == primary_url and item.maintenance_date == primary_day)
         ][:2]
 
+    def _on_patch_notes(self, result) -> None:
+        if isinstance(result, str):
+            self.bdo_page.show_patch_error(result)  # si riprova al prossimo giro (5 minuti)
+        else:
+            self._patch_last_fetch = datetime.now(timezone.utc)
+            self.bdo_page.show_patch_notes(result)
+
     def _on_news(self, result) -> None:
         self._news_items = [] if isinstance(result, str) else result
         if isinstance(result, str):
@@ -620,6 +644,7 @@ class MainWindow(FluentWindow):
             self.bdo_page.show_error(result)
             if result == ERROR_NO_KEY:
                 self.bdo_page.show_news_error(result)
+                self.bdo_page.show_patch_error(result)
         else:
             self._server_error = None
             now = datetime.now(timezone.utc)
@@ -750,6 +775,8 @@ class MainWindow(FluentWindow):
                 self.bdo_page.show_status(effective)
         self.bdo_page.set_region(label)
         self._update_estimate_controls()
+        schedule = self._published_schedule()
+        self.bdo_page.set_maintenance_reason(schedule.reason if schedule is not None and schedule.reason else None)
         self._update_dashboard_bdo()
 
     def _on_footer_clicked(self) -> None:

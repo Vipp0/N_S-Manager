@@ -10,6 +10,9 @@ from gilda_app.utils.bdoalerts_api import ERROR_BAD_RESPONSE, ApiError, api_get
 
 NOTICES_BOARD_TYPE = 1
 NEWS_LIMIT = 10
+# Bacheca "Updates" del sito: le patch notes, cioè cosa cambia a ogni manutenzione.
+PATCH_NOTES_BOARD_TYPE = 2
+PATCH_NOTES_LIMIT = 3
 
 _MONTHS = {
     name: index
@@ -120,5 +123,5 @@ def upcoming_maintenance(items: list[NewsItem], today: date) -> NewsItem | None:
     return candidates[0] if candidates else None
 
 
-def fetch_news(api_key: str) -> list[NewsItem]:
-    return parse_news(api_get("/api/news", api_key, {"board_type": NOTICES_BOARD_TYPE, "limit": NEWS_LIMIT}))
+def fetch_news(api_key: str, board_type: int = NOTICES_BOARD_TYPE, limit: int = NEWS_LIMIT) -> list[NewsItem]:
+    return parse_news(api_get("/api/news", api_key, {"board_type": board_type, "limit": limit}))

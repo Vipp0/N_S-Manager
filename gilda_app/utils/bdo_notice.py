@@ -27,6 +27,7 @@ class PublishedSchedule:
     day: date
     start: datetime
     end: datetime
+    reason: str = ""  # "Maintenance Reason" dell'avviso (nelle temporanee), nel testo originale
 
 
 def _text_lines(html: str) -> list[str]:
@@ -34,6 +35,26 @@ def _text_lines(html: str) -> list[str]:
     html = re.sub(r"<[^>]+>", "\n", html)
     text = re.sub(r"&nbsp;|&#160;", " ", html)
     return [line.strip() for line in re.sub(r"[ \t\r\f\v]+", " ", text).split("\n") if line.strip()]
+
+
+MAX_REASON_CHARS = 500
+
+
+def parse_reason(lines: list[str]) -> str:
+    """Il motivo scritto nell'avviso ("■ Maintenance Reason:" seguito da una o più frasi), nel testo
+    originale in inglese. Vuoto se la sezione non c'è (le manutenzioni ordinarie non la hanno)."""
+    try:
+        index = next(i for i, line in enumerate(lines) if "maintenance reason" in line.lower())
+    except StopIteration:
+        return ""
+    parts: list[str] = []
+    for line in lines[index + 1 : index + 12]:
+        lowered = line.lower()
+        if line.startswith("■") or "maintenance impact" in lowered or "we appreciate" in lowered or "thank you" in lowered:
+            break
+        parts.append(line.lstrip("-•· ").strip())
+    text = " ".join(part for part in parts if part)
+    return text[: MAX_REASON_CHARS - 1] + "…" if len(text) > MAX_REASON_CHARS else text
 
 
 def parse_schedule(html: str, day: date) -> PublishedSchedule | None:
@@ -64,7 +85,7 @@ def parse_schedule(html: str, day: date) -> PublishedSchedule | None:
     end = datetime(day.year, day.month, day.day, eh, em, tzinfo=timezone.utc)
     if end <= start:  # a cavallo della mezzanotte
         end += timedelta(days=1)
-    return PublishedSchedule(day, start, end)
+    return PublishedSchedule(day, start, end, parse_reason(lines))
 
 
 def is_official_url(url: str) -> bool:

@@ -106,6 +106,12 @@ class BdoPage(QWidget):
         self._message = CaptionLabel("", status_card)
         self._message.setWordWrap(True)
         card_layout.addWidget(self._message)
+        # Motivo della manutenzione (dall'avviso ufficiale): solo se l'avviso lo dà, di solito nelle temporanee.
+        self._reason = QLabel(status_card)
+        self._reason.setWordWrap(True)
+        self._reason.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        self._reason.hide()
+        card_layout.addWidget(self._reason)
         # Visibile solo durante (e poco dopo) la manutenzione stimata: vedi MainWindow._update_estimate_controls.
         self._estimate_box = QWidget(status_card)
         estimate_layout = QVBoxLayout(self._estimate_box)
@@ -165,6 +171,18 @@ class BdoPage(QWidget):
         guild_layout.addWidget(CaptionLabel(tr("bdo.guild_hint"), guild_card))
         layout.addWidget(guild_card)
         self.show_guild_message(describe_error("no_key")[0])
+
+        patch_card = CardWidget(self)
+        patch_layout = QVBoxLayout(patch_card)
+        patch_layout.addWidget(StrongBodyLabel(tr("bdo.patch_title"), patch_card))
+        self._patch_list = QLabel(patch_card)
+        self._patch_list.setWordWrap(True)
+        self._patch_list.setTextFormat(Qt.RichText)
+        self._patch_list.setOpenExternalLinks(True)
+        patch_layout.addWidget(self._patch_list)
+        patch_layout.addWidget(CaptionLabel(tr("bdo.patch_hint"), patch_card))
+        layout.addWidget(patch_card)
+        self.show_patch_error("no_key")
 
         news_card = CardWidget(self)
         news_layout = QVBoxLayout(news_card)
@@ -232,6 +250,26 @@ class BdoPage(QWidget):
             posted = item.posted.strftime("%d-%m-%Y") if item.posted else ""
             lines.append(f"{posted} &nbsp; {title}")
         self._news_list.setText("<br>".join(lines))
+
+    def set_maintenance_reason(self, reason: str | None) -> None:
+        """Motivo della manutenzione in corso o annunciata (testo dell'avviso); None lo nasconde."""
+        self._reason.setVisible(bool(reason))
+        if reason:
+            self._reason.setText(tr("bdo.maintenance_reason", reason=reason))
+
+    def show_patch_notes(self, items: list[NewsItem]) -> None:
+        """Le ultime patch notes: titolo, data e link al sito (il contenuto non si riassume: è lungo e cambia formato)."""
+        lines = []
+        for item in items:
+            title = html.escape(item.title)
+            if item.url:
+                title = f'<a href="{html.escape(item.url, quote=True)}">{title}</a>'
+            posted = item.posted.strftime("%d-%m-%Y") if item.posted else ""
+            lines.append(f"{posted} &nbsp; {title}")
+        self._patch_list.setText("<br>".join(lines) if lines else html.escape(tr("bdo.patch_none")))
+
+    def show_patch_error(self, kind: str) -> None:
+        self._patch_list.setText(html.escape(describe_error(kind)[0]))
 
     def show_news_error(self, kind: str) -> None:
         self._upcoming.setText(describe_error(kind)[0])
