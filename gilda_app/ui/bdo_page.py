@@ -212,8 +212,8 @@ class BdoPage(QWidget):
             self._set_value(region, tr("server.unknown"), COLOR_UNKNOWN)
         self._message.setText(describe_error(kind)[0])
 
-    def show_news(self, items: list[NewsItem]) -> None:
-        upcoming = upcoming_maintenance(items, date.today())
+    def show_news(self, items: list[NewsItem], upcoming: NewsItem | None) -> None:
+        """upcoming: l'annuncio da mettere in evidenza (lo sceglie MainWindow: vedi pick_current)."""
         if upcoming is not None:
             when = upcoming.maintenance_date.strftime("%d-%m-%Y")
             key = "bdo.news_upcoming_temp" if upcoming.is_temporary else "bdo.news_upcoming"

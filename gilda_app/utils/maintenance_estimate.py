@@ -125,6 +125,31 @@ def recently_finished(estimate: Estimate | None, now: datetime) -> bool:
     return estimate is not None and estimate.phase == OVER and timedelta(0) <= now - estimate.end < BACK_ONLINE_BANNER
 
 
+def pick_current(
+    candidates,
+    now: datetime,
+    start_hour_pt: int,
+    duration_hours: int,
+    temporary_hours: int,
+    published_for=None,
+    adjust_for=None,
+):
+    """Tra gli annunci (già in ordine di data) il primo che interessa ancora: quelli la cui manutenzione
+    è finita da più di BACK_ONLINE_BANNER si saltano. Senza questo, il giovedì sera restava
+    "l'annuncio" quello della manutenzione ordinaria già finita, e l'avviso del giorno dopo
+    (una temporanea) non compariva fino a mezzanotte.
+    published_for(item) -> orario letto dall'avviso o None; adjust_for(giorno) -> (proroga, fine segnalata)."""
+    for item in candidates:
+        extra, ended_at = adjust_for(item.maintenance_date) if adjust_for else (timedelta(0), None)
+        published = published_for(item) if published_for else None
+        hours = temporary_hours if item.is_temporary else duration_hours
+        estimate = estimate_for(item.maintenance_date, now, start_hour_pt, hours, extra, ended_at, published)
+        if estimate is not None and estimate.phase == OVER and now - estimate.end >= BACK_ONLINE_BANNER:
+            continue
+        return item
+    return None
+
+
 def adjustable(estimate: Estimate | None, now: datetime) -> bool:
     """Se ha senso offrire "+1 ora" / "È già finita": dall'inizio stimato fino a poco dopo la fine."""
     return estimate is not None and estimate.start <= now < estimate.end + GRACE_AFTER_END

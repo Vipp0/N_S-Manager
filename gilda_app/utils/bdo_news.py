@@ -104,12 +104,20 @@ def parse_news(payload: dict) -> list[NewsItem]:
     return items
 
 
-def upcoming_maintenance(items: list[NewsItem], today: date) -> NewsItem | None:
-    """L'annuncio di manutenzione più vicino tra oggi e il futuro, se ce n'è uno."""
+def upcoming_maintenances(items: list[NewsItem], today: date) -> list[NewsItem]:
+    """Gli annunci di manutenzione dei server da oggi in poi, dal più vicino (a parità di giorno,
+    nell'ordine delle news: il più recente per primo)."""
     candidates = [
         i for i in items if i.maintenance_date is not None and i.maintenance_date >= today and i.affects_servers
     ]
-    return min(candidates, key=lambda i: i.maintenance_date) if candidates else None
+    return sorted(candidates, key=lambda i: i.maintenance_date)
+
+
+def upcoming_maintenance(items: list[NewsItem], today: date) -> NewsItem | None:
+    """L'annuncio di manutenzione più vicino tra oggi e il futuro, se ce n'è uno. Non sa se è già
+    finito: per scegliere quello da mostrare vedi maintenance_estimate.pick_current."""
+    candidates = upcoming_maintenances(items, today)
+    return candidates[0] if candidates else None
 
 
 def fetch_news(api_key: str) -> list[NewsItem]:

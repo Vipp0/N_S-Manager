@@ -82,7 +82,7 @@ from gilda_app.version import __version__
 from gilda_app.utils.icons import ban_icon
 from gilda_app.utils.paths import app_dir, backups_dir
 from gilda_app.utils.bdo_guild import compare_guild, fetch_guild
-from gilda_app.utils.bdo_news import fetch_news, upcoming_maintenance
+from gilda_app.utils.bdo_news import fetch_news, upcoming_maintenances
 from gilda_app.utils.bdo_notice import PublishedSchedule, fetch_schedule
 from gilda_app.utils.bdo_timers import fetch_boss_timers, fetch_reset_timers
 from gilda_app.utils.bdoalerts_api import ERROR_BAD_RESPONSE, ERROR_NO_KEY, ApiError
@@ -97,6 +97,7 @@ from gilda_app.utils.maintenance_estimate import (
     estimate_for,
     parse_config,
     parse_temporary_hours,
+    pick_current,
     recently_finished,
 )
 from gilda_app.utils.error_log import LOG_NAME, write_entry
@@ -545,6 +546,27 @@ class MainWindow(FluentWindow):
             lines = [describe_error(self._timers_error)[0]]
         self.dashboard_page.set_timers(lines)
 
+    def _pick_upcoming(self, items):
+        """L'annuncio di manutenzione da mostrare: il primo non ancora finito da più di mezz'ora."""
+        start, hours = parse_config(
+            get_setting(self.conn, MAINT_START_SETTING), get_setting(self.conn, MAINT_HOURS_SETTING)
+        )
+
+        def published_for(item):
+            cached = self._notice_cache.get(item.url)
+            schedule = cached[1] if cached else None
+            return schedule if schedule is not None and schedule.day == item.maintenance_date else None
+
+        return pick_current(
+            upcoming_maintenances(items, date.today()),
+            datetime.now(timezone.utc),
+            start,
+            hours,
+            parse_temporary_hours(get_setting(self.conn, MAINT_TEMP_HOURS_SETTING)),
+            published_for,
+            lambda day: self._estimate_adjust.get(day, (timedelta(0), None)),
+        )
+
     def _on_news(self, result) -> None:
         if isinstance(result, str):
             self.bdo_page.show_news_error(result)
@@ -553,8 +575,8 @@ class MainWindow(FluentWindow):
             self._upcoming_maintenance_temporary = False
             self._upcoming_notice_url = ""
         else:
-            self.bdo_page.show_news(result)
-            upcoming = upcoming_maintenance(result, date.today())
+            upcoming = self._pick_upcoming(result)
+            self.bdo_page.show_news(result, upcoming)
             new_date = upcoming.maintenance_date if upcoming else None
             if new_date != self._upcoming_maintenance_date:
                 self._maintenance_seen_live = False  # è un nuovo annuncio, si riparte da "annunciata"

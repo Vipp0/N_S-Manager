@@ -153,3 +153,61 @@ def test_temporary_window_is_two_hours_from_the_same_start():
     est_mid = me.estimate_for(date(2026, 10, 16), utc(9, 5, day=16), 1, 2)
     assert (est_mid.phase, est_mid.start, est_mid.end) == (me.ACTIVE, utc(8, day=16), utc(10, day=16))
     assert me.estimate_for(date(2026, 10, 16), utc(10, 0, day=16), 1, 2).phase == me.OVER
+
+
+# -- scelta dell'avviso da mostrare (giovedì sera con un avviso temporaneo per il giorno dopo) --------
+from types import SimpleNamespace
+
+
+def _item(day, temporary=False):
+    return SimpleNamespace(maintenance_date=day, is_temporary=temporary, url="")
+
+
+THURSDAY = _item(date(2026, 10, 22))
+FRIDAY_TEMP = _item(date(2026, 10, 23), temporary=True)
+CANDIDATES = [THURSDAY, FRIDAY_TEMP]  # già in ordine di data, come li dà upcoming_maintenances
+
+
+def at(day, hour, minute=0):
+    return datetime(2026, 10, day, hour, minute, tzinfo=timezone.utc)
+
+
+def test_thursday_evening_shows_tomorrows_temporary_notice_not_the_finished_regular_one():
+    # ieri sera: la manutenzione di giovedì (08-12 UTC) è finita da ore, quella temporanea del venerdì è annunciata
+    assert me.pick_current(CANDIDATES, at(22, 18), 1, 4, 2) is FRIDAY_TEMP
+
+
+def test_the_regular_notice_stays_while_it_is_upcoming_active_or_just_finished():
+    assert me.pick_current(CANDIDATES, at(22, 7), 1, 4, 2) is THURSDAY  # non ancora iniziata
+    assert me.pick_current(CANDIDATES, at(22, 10), 1, 4, 2) is THURSDAY  # in corso
+    assert me.pick_current(CANDIDATES, at(22, 12, 10), 1, 4, 2) is THURSDAY  # finita da 10 minuti: serve al banner verde
+    assert me.pick_current(CANDIDATES, at(22, 12, 29), 1, 4, 2) is THURSDAY
+    assert me.pick_current(CANDIDATES, at(22, 12, 31), 1, 4, 2) is FRIDAY_TEMP  # passati i 30 minuti: avanti il prossimo
+
+
+def test_an_extension_keeps_the_notice_current_past_the_planned_end():
+    from datetime import timedelta
+
+    adjust = lambda day: (timedelta(hours=1), None) if day == date(2026, 10, 22) else (timedelta(0), None)
+    assert me.pick_current(CANDIDATES, at(22, 12, 40), 1, 4, 2, adjust_for=adjust) is THURSDAY  # fine slittata alle 13
+
+
+def test_temporary_notice_uses_its_own_duration_when_deciding_if_it_is_over():
+    # temporanea del venerdì 08-10 UTC: alle 10:20 è finita da 20 minuti (resta), alle 10:40 no
+    assert me.pick_current([FRIDAY_TEMP], at(23, 10, 20), 1, 4, 2) is FRIDAY_TEMP
+    assert me.pick_current([FRIDAY_TEMP], at(23, 10, 40), 1, 4, 2) is None
+    # con la durata ordinaria (4 ore) alle 10:40 sarebbe ancora in corso: conta quella delle temporanee
+    assert me.pick_current([_item(date(2026, 10, 23))], at(23, 10, 40), 1, 4, 2) is not None
+
+
+def test_nothing_to_pick_when_everything_is_long_finished_or_empty():
+    assert me.pick_current([THURSDAY], at(22, 20), 1, 4, 2) is None
+    assert me.pick_current([], at(22, 20), 1, 4, 2) is None
+
+
+def test_official_schedule_decides_when_a_notice_is_over():
+    from gilda_app.utils.bdo_notice import PublishedSchedule
+
+    short = PublishedSchedule(date(2026, 10, 22), at(22, 8), at(22, 9))  # durata vera: 1 ora
+    published = lambda item: short if item is THURSDAY else None
+    assert me.pick_current(CANDIDATES, at(22, 9, 40), 1, 4, 2, published_for=published) is FRIDAY_TEMP

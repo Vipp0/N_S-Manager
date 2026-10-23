@@ -6,6 +6,13 @@ usa il programma, non i dettagli tecnici del come."""
 
 CHANGELOG: list[dict] = [
     {
+        "version": "2.7.1",
+        "date": "23-10-2026",
+        "notes": [
+            "Avvisi di manutenzione: il giovedì sera, dopo la fine della manutenzione ordinaria, il programma continuava a considerare \"l'avviso\" quello di giovedì (già finito) e non mostrava il banner di un'altra manutenzione annunciata per il giorno dopo (per esempio una temporanea), fino a mezzanotte. Ora, passata mezz'ora dalla fine (il tempo del banner verde), passa all'avviso successivo, e lo stesso vale per la scheda BDO.",
+        ],
+    },
+    {
         "version": "2.7",
         "date": "19-10-2026",
         "notes": [
