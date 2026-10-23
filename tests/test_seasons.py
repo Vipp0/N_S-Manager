@@ -101,6 +101,7 @@ def test_real_halloween_decorations_exist_and_are_transparent():
         assert path.exists(), name
         assert QImage(str(path)).hasAlphaChannel()
     assert not HALLOWEEN.decor_path("inesistente").exists()
+    assert HALLOWEEN.icon_path.exists()  # icona del programma nel periodo
 
 
 def test_real_halloween_images_are_the_expected_size():

@@ -19,6 +19,7 @@ a = Analysis(
         *[(f, "gilda_app/resources") for f in glob.glob("gilda_app/resources/splash_*.png")],
         *[(f, "gilda_app/resources") for f in glob.glob("gilda_app/resources/wordmark_*.png")],
         *[(f, "gilda_app/resources") for f in glob.glob("gilda_app/resources/deco_*.png")],
+        *[(f, "gilda_app/resources") for f in glob.glob("gilda_app/resources/icon_*.png")],
     ],
     hiddenimports=[],
     hookspath=[],

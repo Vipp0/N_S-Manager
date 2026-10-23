@@ -35,7 +35,8 @@ class UpdateProgressWindow(QWidget):
         self._background = QPixmap(str(splash_path if splash_path is not None and splash_path.exists() else SPLASH_PATH))
         self.setFixedSize(self._background.size())
         self.setWindowTitle("Night_Shade Manager")
-        self.setWindowIcon(QIcon(str(APP_ICON_PATH)))
+        icon = QApplication.windowIcon()  # quella del tema in corso, se c'è (vedi apply_season)
+        self.setWindowIcon(icon if not icon.isNull() else QIcon(str(APP_ICON_PATH)))
 
         width, height = self.width(), self.height()
         self._title = QLabel(tr("update.window.title"), self)
@@ -132,6 +133,8 @@ def run_apply_mode(args: list[str], close_splash=lambda: None) -> int:
     season = active_season(
         date.today(), read_setting(target / "gilda.db", SEASON_MODE_SETTING, MODE_AUTO)
     )
+    if season is not None and season.icon_path.exists():
+        app.setWindowIcon(QIcon(str(season.icon_path)))
     window = UpdateProgressWindow(season.splash_path if season is not None else None)
     window.set_progress(PREPARE_END, tr("update.step.wait"))
     window.show()

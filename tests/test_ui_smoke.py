@@ -139,6 +139,7 @@ def test_seasonal_theme_changes_logo_greeting_and_accent_and_restores_them(qapp,
     normal_accent = window._default_accent.name()
     _mode(window, "off")
     normal_logo = window.dashboard_page._wordmark.pixmap().toImage()
+    normal_icon = window.windowIcon().pixmap(32, 32).toImage()
     assert window.dashboard_page._greeting.isHidden()
 
     _mode(window, "halloween")  # prova fuori stagione
@@ -147,6 +148,7 @@ def test_seasonal_theme_changes_logo_greeting_and_accent_and_restores_them(qapp,
     assert window.dashboard_page._wordmark.pixmap().toImage() != normal_logo  # logo di Halloween
     assert window.pages["attivo"]._wordmark.pixmap().toImage() != normal_logo  # anche nelle liste
     assert themeColor().name() != normal_accent
+    assert window.windowIcon().pixmap(32, 32).toImage() != normal_icon  # icona della finestra/barra delle applicazioni
     dashboard = window.dashboard_page
     assert not dashboard._decor.isHidden() and dashboard._decor._pixmaps  # ragnatela e ragno degli angoli
     assert not dashboard._greeting_icon.isHidden()  # zucca accanto agli auguri
@@ -170,6 +172,7 @@ def test_seasonal_theme_changes_logo_greeting_and_accent_and_restores_them(qapp,
     _mode(window, "off")  # finita la festa: tutto com'era
     assert all(not p._decor._pixmaps for p in (window.notes_page, window.calendar_page, window.bdo_page,
                                                  window.stats_page, window.settings_page))
+    assert window.windowIcon().pixmap(32, 32).toImage() == normal_icon
     assert page._decor_left.pixmap().isNull() and page._decor_right.pixmap().isNull()
     assert window._season is None and window.dashboard_page._greeting.isHidden()
     assert dashboard._decor.isHidden() and dashboard._cluster.isHidden() and dashboard._greeting_icon.isHidden()

@@ -37,6 +37,11 @@ class Season:
     def wordmark_path(self) -> Path:
         return RESOURCES / f"wordmark_{self.key}.png"
 
+    @property
+    def icon_path(self) -> Path:
+        """Icona del programma nel periodo (finestra e barra delle applicazioni); se manca resta quella normale."""
+        return RESOURCES / f"icon_{self.key}.png"
+
     def decor_path(self, name: str) -> Path:
         """Una decorazione del tema (vedi ui/season_decor.py): può non esistere, e allora si salta."""
         return RESOURCES / f"deco_{self.key}_{name}.png"

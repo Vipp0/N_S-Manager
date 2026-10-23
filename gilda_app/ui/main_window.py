@@ -307,6 +307,9 @@ class MainWindow(FluentWindow):
             page.set_wordmark(wordmark)
             page.set_decor(season)
         self.dashboard_page.set_wordmark(wordmark)
+        icon = QIcon(str(season.icon_path if season is not None and season.icon_path.exists() else APP_ICON_PATH))
+        self.setWindowIcon(icon)  # angolo della barra del titolo e pulsante nella barra delle applicazioni
+        QApplication.setWindowIcon(icon)  # anche le finestre di dialogo
         self.dashboard_page.set_decor(season)
         for page in (self.notes_page, self.calendar_page, self.bdo_page, self.stats_page, self.settings_page):
             page.set_decor(season)
