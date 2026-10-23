@@ -15,7 +15,7 @@ from PySide6.QtWidgets import QApplication, QWidget
 
 from gilda_app.seasons import Season
 
-FADE_SECONDS = 0.3
+FADE_SECONDS = 0.5
 
 
 class SeasonalSplash(QWidget):

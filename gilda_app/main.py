@@ -25,6 +25,8 @@ if TYPE_CHECKING:  # MainWindow si importa dopo, a schermata di caricamento già
 
 APP_FONT_FAMILY = "Segoe UI"
 APP_FONT_POINT_SIZE = 11
+NORMAL_SPLASH_HOLD_SECONDS = 0.6  # quanto resta in vista la schermata normale dell'exe prima della dissolvenza
+DOTS_STEP_SECONDS = 0.15  # passo dei puntini di "Loading": più breve, per compensare la pausa qui sopra
 BOOTLOADER_SPLASH_TITLE = "tk"  # titolo della finestra della schermata di avvio dell'exe (PyInstaller)
 
 
@@ -63,6 +65,8 @@ def _start_seasonal_splash(db_file: Path) -> SeasonalSplash | None:
         greets = greeting_active(season, date.today(), mode)
         text_key = f"season.loading.{season.key}" if greets else "season.loading.plain"
         splash = SeasonalSplash(season, tr_in(language, text_key))
+        if _bootloader_splash_present():
+            time.sleep(NORMAL_SPLASH_HOLD_SECONDS)  # solo nell'exe: in sviluppo non c'è nulla da far vedere
         splash.fade_in()  # compare subito, prima del lavoro lungo, in dissolvenza sopra quella dell'exe
         _hide_bootloader_splash()
         return splash
@@ -80,7 +84,7 @@ def _animate_splash_dots(splash: SeasonalSplash | None = None) -> None:
         for _ in range(2):
             for dots in (1, 2, 3):
                 splash.set_dots(dots)
-                time.sleep(0.25)
+                time.sleep(DOTS_STEP_SECONDS)
         return
     try:
         import pyi_splash
@@ -119,6 +123,14 @@ def _hide_bootloader_splash() -> None:
         user32.EnumWindows(enum_proc(hide_if_splash), 0)
     except Exception:
         pass
+
+
+def _bootloader_splash_present() -> bool:
+    try:
+        import pyi_splash  # noqa: F401
+    except ImportError:
+        return False
+    return True
 
 
 def _close_splash() -> None:
