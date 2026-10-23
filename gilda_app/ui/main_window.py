@@ -305,6 +305,7 @@ class MainWindow(FluentWindow):
         wordmark = season.wordmark_path if season else WORDMARK_DEFAULT_PATH
         for page in self.pages.values():
             page.set_wordmark(wordmark)
+            page.set_decor(season)
         self.dashboard_page.set_wordmark(wordmark)
         self.dashboard_page.set_decor(season)
         if greeting:

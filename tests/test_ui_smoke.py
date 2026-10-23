@@ -156,7 +156,16 @@ def test_seasonal_theme_changes_logo_greeting_and_accent_and_restores_them(qapp,
     dashboard._reflow(1)  # su una colonna non c'è nessun vuoto
     assert dashboard._cluster.isHidden()
 
+    page = window.pages["attivo"]  # liste: zucca e corvo ai lati del logo, solo se la pagina è larga
+    page.resize(1400, 700)
+    page._update_decor_visibility()
+    assert not page._decor_left.isHidden() and not page._decor_right.isHidden()
+    page.resize(900, 700)
+    page._update_decor_visibility()
+    assert page._decor_left.isHidden() and page._decor_right.isHidden()
+
     _mode(window, "off")  # finita la festa: tutto com'era
+    assert page._decor_left.pixmap().isNull() and page._decor_right.pixmap().isNull()
     assert window._season is None and window.dashboard_page._greeting.isHidden()
     assert dashboard._decor.isHidden() and dashboard._cluster.isHidden() and dashboard._greeting_icon.isHidden()
     assert window.dashboard_page._wordmark.pixmap().toImage() == normal_logo

@@ -37,6 +37,10 @@ def _columns(status: str) -> list[str]:
     return cols
 
 
+HEADER_DECOR_HEIGHT = 70  # decorazioni ai lati del logo, nelle liste
+HEADER_DECOR_MIN_WIDTH = 1250  # sotto questa larghezza della pagina non c'è spazio ai lati del logo
+
+
 class MemberListPage(QWidget):
     """Tabella + ricerca per una singola lista (Attuali / Ex membri / Bannati)."""
 
@@ -77,7 +81,13 @@ class MemberListPage(QWidget):
             # spazio vuoto dell'intestazione. 86px riporta la larghezza (~290px) vicina
             # a quella del vecchio wordmark orizzontale, nonostante la forma più quadrata.
             wordmark.setPixmap(QPixmap(str(WORDMARK_PATH)).scaledToHeight(86, Qt.SmoothTransformation))
+            # Ai lati del logo, solo nei temi stagionali (vedi set_decor): nascosti se la finestra è stretta.
+            self._decor_left, self._decor_right = QLabel(self), QLabel(self)
+            for label in (self._decor_left, self._decor_right):
+                label.hide()
+            header.addWidget(self._decor_left)
             header.addWidget(wordmark)
+            header.addWidget(self._decor_right)
             header.addStretch(1)
         header.addWidget(self.search_box)
         header.addWidget(add_btn)
@@ -111,6 +121,28 @@ class MemberListPage(QWidget):
         self.table.doubleClicked.connect(self._on_double_click)
         widen_scrollbar_on_hover(self.table.scrollDelagate.vScrollBar)
         layout.addWidget(self.table)
+
+    def set_decor(self, season) -> None:
+        """Decorazioni ai lati del logo (None = nessuna); a ogni tema le sue, se ci sono i file."""
+        if self._wordmark is None:
+            return
+        for label, name in ((self._decor_left, "header_left"), (self._decor_right, "header_right")):
+            path = season.decor_path(name) if season is not None else None
+            if path is not None and path.exists():
+                label.setPixmap(QPixmap(str(path)).scaledToHeight(HEADER_DECOR_HEIGHT, Qt.SmoothTransformation))
+            else:
+                label.clear()
+        self._update_decor_visibility()
+
+    def _update_decor_visibility(self) -> None:
+        show = self.width() >= HEADER_DECOR_MIN_WIDTH
+        for label in (self._decor_left, self._decor_right):
+            label.setVisible(show and label.pixmap() is not None and not label.pixmap().isNull())
+
+    def resizeEvent(self, event) -> None:
+        super().resizeEvent(event)
+        if self._wordmark is not None:
+            self._update_decor_visibility()
 
     def set_wordmark(self, path: Path) -> None:
         """Cambia il logo dell'intestazione (tema stagionale); se il file manca non fa niente."""

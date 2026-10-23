@@ -33,6 +33,9 @@ BOXES = {
         "spider": ((470, 50, 190, 410), "height", 360),
         "cluster": ((45, 425, 615, 290), "width", 620),
         "icon": ((695, 440, 250, 260), "height", 220),
+        # ai lati del logo nelle liste: a sinistra una zucca, a destra il corvo (guarda verso il logo)
+        "header_left": ((695, 440, 250, 260), "height", 150),
+        "header_right": ((1205, 555, 185, 170), "height", 150),
     },
 }
 # rettangoli da cancellare (pezzi di altre decorazioni che cadono dentro quella ritagliata)
