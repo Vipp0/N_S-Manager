@@ -17,6 +17,7 @@ from qfluentwidgets import (
 from datetime import datetime, timezone
 
 from gilda_app.i18n import LANGUAGES, get_language, tr
+from gilda_app.ui.season_decor import DecorItem, DecorOverlay, OrnamentedPage
 from gilda_app.seasons import selectable_modes
 from gilda_app.utils.maintenance_estimate import (
     DEFAULT_DURATION_HOURS,
@@ -30,7 +31,7 @@ from gilda_app.utils.server_status import REGIONS
 from gilda_app.version import __version__
 
 
-class SettingsPage(QWidget):
+class SettingsPage(OrnamentedPage, QWidget):
     import_requested = Signal()
     export_requested = Signal()
     reset_requested = Signal()
@@ -70,6 +71,8 @@ class SettingsPage(QWidget):
         layout.setContentsMargins(24, 20, 24, 20)
         layout.setSpacing(16)
         layout.addWidget(SubtitleLabel(tr("settings.title"), self))
+        # Ornamento del tema stagionale: sul contenuto, così scorre via con la pagina.
+        self._decor = DecorOverlay(content, [DecorItem("page_b", height=56, right=24, top=14, min_page_width=800)])
 
         language_card = CardWidget(self)
         language_layout = QVBoxLayout(language_card)

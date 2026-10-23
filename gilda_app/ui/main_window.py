@@ -308,6 +308,8 @@ class MainWindow(FluentWindow):
             page.set_decor(season)
         self.dashboard_page.set_wordmark(wordmark)
         self.dashboard_page.set_decor(season)
+        for page in (self.notes_page, self.calendar_page, self.bdo_page, self.stats_page, self.settings_page):
+            page.set_decor(season)
         if greeting:
             self.dashboard_page.set_greeting(
                 tr(f"season.greeting.{season.key}"), season.accent or "", season.decor_path("icon")

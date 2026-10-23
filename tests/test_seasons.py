@@ -96,7 +96,7 @@ def test_read_setting_works_before_the_database_is_opened(tmp_path):
 def test_real_halloween_decorations_exist_and_are_transparent():
     from PySide6.QtGui import QImage
 
-    for name in ("web", "spider", "cluster", "icon", "header_left", "header_right"):  # i nomi che la dashboard cerca
+    for name in ("web", "spider", "cluster", "icon", "header_left", "header_right", "page_a", "page_b", "page_c"):  # i nomi che la dashboard cerca
         path = HALLOWEEN.decor_path(name)
         assert path.exists(), name
         assert QImage(str(path)).hasAlphaChannel()

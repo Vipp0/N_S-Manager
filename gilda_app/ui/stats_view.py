@@ -9,6 +9,7 @@ from qfluentwidgets import Action, CardWidget, FluentIcon as FIF, RoundMenu, Str
 from gilda_app.db import stats
 from gilda_app.db.database import get_members
 from gilda_app.i18n import tr
+from gilda_app.ui.season_decor import DecorItem, DecorOverlay, OrnamentedPage
 from gilda_app.models.member import STATUS_ATTIVO, STATUS_BANNATO, STATUS_EX_MEMBRO, Member
 from gilda_app.utils.date_format import iso_month_to_display, iso_to_display
 from gilda_app.utils.flags import display_nation
@@ -64,7 +65,7 @@ def _integer_value_axis(min_value: int, max_value: int) -> QValueAxis:
     return axis
 
 
-class StatsPage(QScrollArea):
+class StatsPage(OrnamentedPage, QScrollArea):
     """Dashboard statistiche sull'elenco membri."""
 
     def __init__(self, get_conn, on_open_nation_filter=None, parent=None):
@@ -101,6 +102,8 @@ class StatsPage(QScrollArea):
 
         self.content = QWidget()
         self.setWidget(self.content)
+        # Ornamento del tema stagionale: sul contenuto, così scorre via con la pagina.
+        self._decor = DecorOverlay(self.content, [DecorItem("page_a", height=56, right=24, top=14, min_page_width=800)])
         self.main_layout = QVBoxLayout(self.content)
         self.main_layout.setContentsMargins(24, 20, 24, 20)
         self.main_layout.setSpacing(16)

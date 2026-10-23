@@ -6,6 +6,7 @@ from PySide6.QtWidgets import QFrame, QGridLayout, QHBoxLayout, QLabel, QVBoxLay
 from qfluentwidgets import BodyLabel, CardWidget, CaptionLabel, FluentIcon as FIF, PushButton, ScrollArea, StrongBodyLabel, SubtitleLabel
 
 from gilda_app.i18n import tr
+from gilda_app.ui.season_decor import DecorItem, DecorOverlay, OrnamentedPage
 from gilda_app.ui.server_status_footer import (
     COLOR_MAINTENANCE,
     COLOR_UNKNOWN,
@@ -57,7 +58,7 @@ def timer_summary_lines(resets: ResetTimers | None, bosses: BossTimers | None, n
     return lines
 
 
-class BdoPage(QWidget):
+class BdoPage(OrnamentedPage, QWidget):
     """Scheda con i dati presi dall'API di bdoalerts.net. Costruita a blocchi (una card
     per funzione): oggi solo lo stato dei server, le prossime funzioni si aggiungono
     come nuove card sotto senza toccare le altre."""
@@ -88,6 +89,8 @@ class BdoPage(QWidget):
         layout.setContentsMargins(24, 20, 24, 20)
         layout.setSpacing(16)
         layout.addWidget(SubtitleLabel(tr("bdo.title"), self))
+        # Ornamento del tema stagionale: sul contenuto, così scorre via con la pagina.
+        self._decor = DecorOverlay(content, [DecorItem("page_c", height=56, right=24, top=14, min_page_width=800)])
 
         status_card = CardWidget(self)
         card_layout = QVBoxLayout(status_card)

@@ -36,6 +36,10 @@ BOXES = {
         # ai lati del logo nelle liste: a sinistra una zucca, a destra il corvo (guarda verso il logo)
         "header_left": ((695, 440, 250, 260), "height", 150),
         "header_right": ((1205, 555, 185, 170), "height", 150),
+        # piccoli ornamenti per l'intestazione delle altre schede (Note, Calendario, BDO, Statistiche, Impostazioni)
+        "page_a": ((1040, 50, 360, 190), "height", 130),  # pipistrello
+        "page_b": ((1160, 245, 115, 120), "height", 120),  # teschio dorato
+        "page_c": ((880, 305, 115, 125), "height", 130),  # teschio rosso
     },
 }
 # rettangoli da cancellare (pezzi di altre decorazioni che cadono dentro quella ritagliata)

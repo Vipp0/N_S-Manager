@@ -164,7 +164,12 @@ def test_seasonal_theme_changes_logo_greeting_and_accent_and_restores_them(qapp,
     page._update_decor_visibility()
     assert page._decor_left.isHidden() and page._decor_right.isHidden()
 
+    for other in (window.notes_page, window.calendar_page, window.bdo_page, window.stats_page, window.settings_page):
+        assert other._decor._pixmaps, other  # un ornamento per scheda
+
     _mode(window, "off")  # finita la festa: tutto com'era
+    assert all(not p._decor._pixmaps for p in (window.notes_page, window.calendar_page, window.bdo_page,
+                                                 window.stats_page, window.settings_page))
     assert page._decor_left.pixmap().isNull() and page._decor_right.pixmap().isNull()
     assert window._season is None and window.dashboard_page._greeting.isHidden()
     assert dashboard._decor.isHidden() and dashboard._cluster.isHidden() and dashboard._greeting_icon.isHidden()

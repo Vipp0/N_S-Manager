@@ -17,10 +17,21 @@ class DecorItem:
     name: str  # parte del nome del file: deco_<tema>_<name>.png
     height: int  # altezza a schermo in pixel (la larghezza segue le proporzioni)
     right: int = 0  # distanza dal bordo destro della pagina
+    left: int | None = None  # se indicata, distanza dal bordo sinistro al posto di quella dal destro
     top: int = 0  # distanza dal bordo alto della pagina
     mirror: bool = False  # specchiata in orizzontale (la ragnatela d'angolo è disegnata per l'angolo in alto a sinistra)
     min_page_width: int = 0  # sotto questa larghezza della pagina non si disegna: lascia spazio al contenuto
     opacity: float = 1.0
+
+
+class OrnamentedPage:
+    """Per le pagine con un solo ornamento di tema in self._decor: aggiunge set_decor(season), che il
+    programma chiama a ogni cambio di tema. Va messa prima di QWidget tra le classi base."""
+
+    _decor: "DecorOverlay"
+
+    def set_decor(self, season: Season | None) -> None:
+        self._decor.set_season(season)
 
 
 class DecorOverlay(QWidget):
@@ -68,4 +79,5 @@ class DecorOverlay(QWidget):
                 continue
             width = round(item.height * pixmap.width() / pixmap.height())
             painter.setOpacity(item.opacity)
-            painter.drawPixmap(QRect(self.width() - item.right - width, item.top, width, item.height), pixmap)
+            x = item.left if item.left is not None else self.width() - item.right - width
+            painter.drawPixmap(QRect(x, item.top, width, item.height), pixmap)

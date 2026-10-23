@@ -5,6 +5,7 @@ from qfluentwidgets import PlainTextEdit, SubtitleLabel
 
 from gilda_app.db.database import get_setting, set_setting
 from gilda_app.i18n import tr
+from gilda_app.ui.season_decor import DecorItem, DecorOverlay, OrnamentedPage
 
 NOTES_SETTING_KEY = "notes_content"
 # Ritardo dopo l'ultima battitura prima di salvare: evita una scrittura sul DB a ogni
@@ -13,7 +14,7 @@ NOTES_SETTING_KEY = "notes_content"
 AUTOSAVE_DELAY_MS = 800
 
 
-class NotesPage(QWidget):
+class NotesPage(OrnamentedPage, QWidget):
     """Blocco note libero della gilda: un'unica nota testuale condivisa, salvata in
     app_settings (stessa tabella già usata per la lingua), senza bisogno di una nuova
     tabella dedicata."""
@@ -26,6 +27,7 @@ class NotesPage(QWidget):
         layout.setContentsMargins(24, 20, 24, 20)
         layout.setSpacing(12)
         layout.addWidget(SubtitleLabel(tr("nav.notes"), self))
+        self._decor = DecorOverlay(self, [DecorItem("page_a", height=56, right=24, top=14, min_page_width=800)])  # tema stagionale
 
         self.editor = PlainTextEdit(self)
         self.editor.setPlaceholderText(tr("notes.placeholder"))
