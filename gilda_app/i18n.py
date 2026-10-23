@@ -207,6 +207,7 @@ STRINGS: dict[str, dict[str, str]] = {
     "season.greeting.halloween": {"it": "🎃 Buon Halloween!", "en": "🎃 Happy Halloween!"},
     "season.greeting.natale": {"it": "🎄 Buone Feste!", "en": "🎄 Happy Holidays!"},
     "season.loading.halloween": {"it": "Buon Halloween · Loading", "en": "Happy Halloween · Loading"},
+    "season.loading.plain": {"it": "Loading", "en": "Loading"},
     "season.loading.natale": {"it": "Buone Feste · Loading", "en": "Happy Holidays · Loading"},
     "season.mode.auto": {"it": "Automatico (cambia nelle feste)", "en": "Automatic (changes during holidays)"},
     "season.mode.off": {"it": "Sempre normale", "en": "Always normal"},

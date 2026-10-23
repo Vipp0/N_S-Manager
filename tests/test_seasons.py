@@ -29,6 +29,18 @@ def test_halloween_runs_from_21_october_to_2_november_inclusive():
     assert not HALLOWEEN.contains(date(2026, 11, 3))
 
 
+def test_halloween_greeting_only_on_31_october_and_1_november():
+    assert not HALLOWEEN.greets(date(2026, 10, 30)) and HALLOWEEN.greets(date(2026, 10, 31))
+    assert HALLOWEEN.greets(date(2026, 11, 1)) and not HALLOWEEN.greets(date(2026, 11, 2))
+    assert not NATALE.greets(date(2026, 12, 7)) and NATALE.greets(date(2026, 12, 25))  # senza date: tutto il periodo
+
+
+def test_forced_preview_always_shows_the_greeting():
+    assert not seasons.greeting_active(HALLOWEEN, date(2026, 10, 25))
+    assert seasons.greeting_active(HALLOWEEN, date(2026, 10, 31))
+    assert seasons.greeting_active(HALLOWEEN, date(2026, 6, 15), "halloween")
+
+
 def test_christmas_runs_from_8_december_to_6_january_across_the_new_year():
     assert not NATALE.contains(date(2026, 12, 7))
     assert NATALE.contains(date(2026, 12, 8)) and NATALE.contains(date(2026, 12, 31))

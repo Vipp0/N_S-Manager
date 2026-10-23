@@ -11,7 +11,7 @@ from PySide6.QtWidgets import QApplication
 from gilda_app.db.backup import daily_backup_if_needed
 from gilda_app.db.database import connect, get_setting
 from gilda_app.i18n import DEFAULT_LANGUAGE, set_language, tr, tr_in
-from gilda_app.seasons import MODE_AUTO, SEASON_MODE_SETTING, active_season, read_setting
+from gilda_app.seasons import MODE_AUTO, SEASON_MODE_SETTING, active_season, greeting_active, read_setting
 from gilda_app.ui.seasonal_splash import SeasonalSplash
 from gilda_app.ui.update_window import run_apply_mode
 from gilda_app.utils.error_log import LOG_NAME, install as install_error_log
@@ -59,7 +59,10 @@ def _start_seasonal_splash(db_file: Path) -> SeasonalSplash | None:
         if season is None:
             return None
         language = read_setting(db_file, "language", DEFAULT_LANGUAGE)
-        splash = SeasonalSplash(season, tr_in(language, f"season.loading.{season.key}"))
+        # Gli auguri solo nei giorni di festa; negli altri giorni del periodo c'è il tema ma la scritta è quella normale.
+        greets = greeting_active(season, date.today(), mode)
+        text_key = f"season.loading.{season.key}" if greets else "season.loading.plain"
+        splash = SeasonalSplash(season, tr_in(language, text_key))
         splash.show()
         QApplication.processEvents()  # la fa comparire subito, prima del lavoro lungo
         _hide_bootloader_splash()

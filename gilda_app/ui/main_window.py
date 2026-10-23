@@ -47,7 +47,7 @@ from gilda_app.db.database import (
     update_member,
 )
 from gilda_app.i18n import get_language, tr
-from gilda_app.seasons import MODE_AUTO, SEASON_MODE_SETTING, active_season
+from gilda_app.seasons import MODE_AUTO, SEASON_MODE_SETTING, active_season, greeting_active
 from gilda_app.importer.excel_export import export_workbook
 from gilda_app.importer.excel_import import find_intra_file_duplicates, import_row, parse_workbook
 from gilda_app.models.member import STATUS_ATTIVO, STATUS_BANNATO, STATUS_EX_MEMBRO, Member, status_label
@@ -188,6 +188,7 @@ class MainWindow(FluentWindow):
         # già costruita fa ridisegnare gli stili di tutti i widget (da mezzo secondo a due di avvio in più).
         self._default_accent = themeColor()  # il colore normale, da rimettere finita la festa
         self._season = None
+        self._season_state = None  # (tema, auguri sì/no): serve a capire a mezzanotte se qualcosa è cambiato
         early = active_season(date.today(), get_setting(self.conn, SEASON_MODE_SETTING, MODE_AUTO))
         if early is not None and early.accent:
             setThemeColor(QColor(early.accent))
@@ -293,9 +294,11 @@ class MainWindow(FluentWindow):
         il tema deve cominciare e finire da solo."""
         mode = get_setting(self.conn, SEASON_MODE_SETTING, MODE_AUTO)
         season = active_season(date.today(), mode)
-        if not force and (season.key if season else None) == (self._season.key if self._season else None):
+        greeting = season is not None and greeting_active(season, date.today(), mode)
+        state = (season.key if season else None, greeting)
+        if not force and state == self._season_state:
             return
-        self._season = season
+        self._season, self._season_state = season, state
         # Prima il colore d'accento: cambiandolo la libreria ridisegna gli stili dei widget, e sovrascriverebbe
         # il colore della scritta di auguri impostato prima.
         setThemeColor(QColor(season.accent) if season is not None and season.accent else self._default_accent)
@@ -303,7 +306,7 @@ class MainWindow(FluentWindow):
         for page in self.pages.values():
             page.set_wordmark(wordmark)
         self.dashboard_page.set_wordmark(wordmark)
-        if season is not None:
+        if greeting:
             self.dashboard_page.set_greeting(tr(f"season.greeting.{season.key}"), season.accent or "")
         else:
             self.dashboard_page.set_greeting(None)
