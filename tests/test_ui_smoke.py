@@ -147,9 +147,18 @@ def test_seasonal_theme_changes_logo_greeting_and_accent_and_restores_them(qapp,
     assert window.dashboard_page._wordmark.pixmap().toImage() != normal_logo  # logo di Halloween
     assert window.pages["attivo"]._wordmark.pixmap().toImage() != normal_logo  # anche nelle liste
     assert themeColor().name() != normal_accent
+    dashboard = window.dashboard_page
+    assert not dashboard._decor.isHidden() and dashboard._decor._pixmaps  # ragnatela e ragno degli angoli
+    assert not dashboard._greeting_icon.isHidden()  # zucca accanto agli auguri
+    window.resize(1100, 720)
+    dashboard._reflow(3)  # 5 schede informative su 3 colonne: resta una cella libera per il gruppo di zucche
+    assert not dashboard._cluster.isHidden()
+    dashboard._reflow(1)  # su una colonna non c'è nessun vuoto
+    assert dashboard._cluster.isHidden()
 
     _mode(window, "off")  # finita la festa: tutto com'era
     assert window._season is None and window.dashboard_page._greeting.isHidden()
+    assert dashboard._decor.isHidden() and dashboard._cluster.isHidden() and dashboard._greeting_icon.isHidden()
     assert window.dashboard_page._wordmark.pixmap().toImage() == normal_logo
     assert themeColor().name() == normal_accent
 

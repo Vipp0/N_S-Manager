@@ -23,6 +23,7 @@ from gilda_app.db import stats
 from gilda_app.db.database import get_members
 from gilda_app.i18n import tr
 from gilda_app.models.member import STATUS_ATTIVO, STATUS_BANNATO, STATUS_EX_MEMBRO, status_label
+from gilda_app.ui.season_decor import DecorItem, DecorOverlay
 from gilda_app.utils.date_format import iso_to_display, relative_day_label
 from gilda_app.utils.flags import display_nation
 from gilda_app.utils.icons import ban_icon
@@ -30,6 +31,13 @@ from gilda_app.version import __version__
 
 TILE_MIN_WIDTH = 300
 MAX_COLUMNS = 4
+# Decorazioni del tema stagionale sopra la dashboard: negli angoli alti, dove le schede sono vuote.
+DASHBOARD_DECOR = [
+    DecorItem("web", height=150, mirror=True, min_page_width=700, opacity=0.95),
+    DecorItem("spider", height=135, right=170, min_page_width=900, opacity=0.95),
+]
+CLUSTER_WIDTH = 240  # larghezza del gruppo di decorazioni nel vuoto in fondo alla griglia delle informazioni
+GREETING_ICON_SIZE = 26
 NOTES_PREVIEW_LINES = 3
 
 # Chiavi dei riquadri diversi dalle tre liste membri (le liste usano il loro status).
@@ -248,10 +256,17 @@ class DashboardPage(QWidget):
         title_box = QVBoxLayout()
         title_box.setSpacing(2)
         title_box.addWidget(SubtitleLabel(tr("nav.dashboard"), self))
-        # Scritta di auguri, solo nei periodi di festa (vedi set_greeting).
+        # Scritta di auguri (con una piccola icona), solo nei giorni di festa (vedi set_greeting).
+        greeting_row = QHBoxLayout()
+        greeting_row.setSpacing(6)
+        self._greeting_icon = QLabel(self)
+        self._greeting_icon.hide()
+        greeting_row.addWidget(self._greeting_icon)
         self._greeting = StrongBodyLabel("", self)
         self._greeting.hide()
-        title_box.addWidget(self._greeting)
+        greeting_row.addWidget(self._greeting)
+        greeting_row.addStretch(1)
+        title_box.addLayout(greeting_row)
         header.addLayout(title_box)
         header.addStretch(1)
         # Wordmark al centro dell'intestazione, come nelle liste dei membri.
@@ -327,6 +342,12 @@ class DashboardPage(QWidget):
             self._info_cards[key] = InfoCard(icon, title, self)
         layout.addLayout(self._info_grid)
         layout.addStretch(1)
+        # Tema stagionale: gruppo di decorazioni nella cella vuota in fondo alle informazioni (se c'è) e
+        # strato con le decorazioni degli angoli. Senza tema restano nascosti.
+        self._cluster = QLabel(self)
+        self._cluster.hide()
+        self._decor = DecorOverlay(content, DASHBOARD_DECOR)  # sul contenuto: scorre via con la pagina
+        self._info_columns = 1
         self._reflow(1)
         self.set_bdo("", None, [tr("server.error.no_key")])
         self.set_timers([])
@@ -336,12 +357,40 @@ class DashboardPage(QWidget):
         if self._wordmark is not None and path.exists():
             self._wordmark.setPixmap(QPixmap(str(path)).scaledToHeight(WORDMARK_HEIGHT, Qt.SmoothTransformation))
 
-    def set_greeting(self, text: str | None, color: str = "") -> None:
-        """Scritta sotto il titolo "Dashboard"; None la nasconde."""
+    def set_greeting(self, text: str | None, color: str = "", icon_path: Path | None = None) -> None:
+        """Scritta sotto il titolo "Dashboard", con una piccola icona se c'è; None la nasconde."""
         self._greeting.setVisible(bool(text))
+        has_icon = bool(text) and icon_path is not None and icon_path.exists()
+        self._greeting_icon.setVisible(has_icon)
+        if has_icon:
+            size = GREETING_ICON_SIZE
+            self._greeting_icon.setPixmap(
+                QPixmap(str(icon_path)).scaled(size, size, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+            )
         if text:
             self._greeting.setText(text)
             self._greeting.setStyleSheet(f"color: {color};" if color else "")
+
+    def set_decor(self, season) -> None:
+        """Decorazioni del tema (None = nessuna): angoli sopra la pagina e gruppo nel vuoto della griglia."""
+        self._decor.set_season(season)
+        path = season.decor_path("cluster") if season is not None else None
+        if path is not None and path.exists():
+            self._cluster.setPixmap(QPixmap(str(path)).scaledToWidth(CLUSTER_WIDTH, Qt.SmoothTransformation))
+        else:
+            self._cluster.clear()
+        self._place_cluster()
+
+    def _place_cluster(self) -> None:
+        """Mette il gruppo di decorazioni nella prima cella libera dopo l'ultima scheda di informazioni, se la
+        riga non è piena (con una sola colonna o riga piena non c'è vuoto: resta nascosto)."""
+        self._info_grid.removeWidget(self._cluster)
+        count, columns = len(self._info_cards), self._info_columns
+        free = count % columns != 0 and self._cluster.pixmap() is not None and not self._cluster.pixmap().isNull()
+        self._cluster.setVisible(free)
+        if free:
+            self._cluster.setAlignment(Qt.AlignCenter)
+            self._info_grid.addWidget(self._cluster, count // columns, count % columns)
 
     # -- layout -----------------------------------------------------------
     def _reflow(self, columns: int) -> None:
@@ -361,6 +410,8 @@ class DashboardPage(QWidget):
             self._info_grid.addWidget(card, index // info_columns, index % info_columns)
         for col in range(MAX_COLUMNS):
             self._info_grid.setColumnStretch(col, 1 if col < info_columns else 0)
+        self._info_columns = info_columns
+        self._place_cluster()
 
     def resizeEvent(self, event) -> None:
         super().resizeEvent(event)

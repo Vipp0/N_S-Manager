@@ -93,6 +93,16 @@ def test_read_setting_works_before_the_database_is_opened(tmp_path):
     assert seasons.read_setting(broken, "season_mode", "auto") == "auto"  # nessuna eccezione
 
 
+def test_real_halloween_decorations_exist_and_are_transparent():
+    from PySide6.QtGui import QImage
+
+    for name in ("web", "spider", "cluster", "icon"):  # i nomi che la dashboard cerca
+        path = HALLOWEEN.decor_path(name)
+        assert path.exists(), name
+        assert QImage(str(path)).hasAlphaChannel()
+    assert not HALLOWEEN.decor_path("inesistente").exists()
+
+
 def test_real_halloween_images_are_the_expected_size():
     from PySide6.QtGui import QImage
 

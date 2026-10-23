@@ -37,6 +37,10 @@ class Season:
     def wordmark_path(self) -> Path:
         return RESOURCES / f"wordmark_{self.key}.png"
 
+    def decor_path(self, name: str) -> Path:
+        """Una decorazione del tema (vedi ui/season_decor.py): può non esistere, e allora si salta."""
+        return RESOURCES / f"deco_{self.key}_{name}.png"
+
     @property
     def available(self) -> bool:
         return self.splash_path.exists() and self.wordmark_path.exists()
