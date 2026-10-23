@@ -69,8 +69,10 @@ class MemberListPage(QWidget):
         header.addStretch(1)
         # Wordmark della gilda al centro dell'intestazione, tra il nome della lista
         # (a sinistra) e la barra di ricerca (a destra).
+        self._wordmark = None  # il logo può cambiare nei periodi di festa: vedi set_wordmark
         if WORDMARK_PATH.exists():
             wordmark = QLabel(self)
+            self._wordmark = wordmark
             # 86 invece di 56: a schermo intero restava troppo piccolo rispetto allo
             # spazio vuoto dell'intestazione. 86px riporta la larghezza (~290px) vicina
             # a quella del vecchio wordmark orizzontale, nonostante la forma più quadrata.
@@ -109,6 +111,11 @@ class MemberListPage(QWidget):
         self.table.doubleClicked.connect(self._on_double_click)
         widen_scrollbar_on_hover(self.table.scrollDelagate.vScrollBar)
         layout.addWidget(self.table)
+
+    def set_wordmark(self, path: Path) -> None:
+        """Cambia il logo dell'intestazione (tema stagionale); se il file manca non fa niente."""
+        if self._wordmark is not None and path.exists():
+            self._wordmark.setPixmap(QPixmap(str(path)).scaledToHeight(86, Qt.SmoothTransformation))
 
     def set_members(self, members: list[Member], old_names: dict[int, list[str]] | None = None) -> None:
         self._members = members

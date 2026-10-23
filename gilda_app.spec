@@ -1,4 +1,6 @@
 # -*- mode: python ; coding: utf-8 -*-
+import glob
+
 # Build a onedir (cartella) distribution, non onefile: avvio più veloce e la
 # cartella dist/Night_Shade Manager/ può ospitare gilda.db e backups/ accanto all'exe.
 
@@ -13,6 +15,9 @@ a = Analysis(
         ("gilda_app/resources/app_icon.png", "gilda_app/resources"),
         ("gilda_app/resources/wordmark.png", "gilda_app/resources"),
         ("gilda_app/resources/splash.png", "gilda_app/resources"),
+        # Immagini dei temi stagionali (splash_<tema>.png, wordmark_<tema>.png): un tema nuovo non richiede di toccare questo file.
+        *[(f, "gilda_app/resources") for f in glob.glob("gilda_app/resources/splash_*.png")],
+        *[(f, "gilda_app/resources") for f in glob.glob("gilda_app/resources/wordmark_*.png")],
     ],
     hiddenimports=[],
     hookspath=[],

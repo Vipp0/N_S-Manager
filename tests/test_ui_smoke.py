@@ -19,9 +19,13 @@ def window(qapp, tmp_path, monkeypatch):
     monkeypatch.setattr(mw, "refresh_holidays_if_needed", lambda path: False)
     monkeypatch.setattr(mw, "fetch_latest_release", lambda: None)
     db = tmp_path / "gilda.db"
+    from qfluentwidgets import setThemeColor, themeColor
+
+    original_accent = themeColor()  # il colore d'accento è globale: va rimesso com'era dopo ogni prova
     win = mw.MainWindow(connect(db), db)
     yield win
     win.close()
+    setThemeColor(original_accent)
 
 
 def test_main_window_builds_and_every_page_opens(qapp, window):
@@ -120,3 +124,73 @@ def test_midnight_moves_the_calendar_to_the_new_day_and_rechecks_holidays(qapp, 
     window.calendar_page.calendar.setSelectedDate(QDate(other.year, other.month, other.day))
     window._check_day_change()
     assert window.calendar_page.calendar.selectedDate() == QDate(other.year, other.month, other.day)
+
+
+def _mode(window, mode):
+    from gilda_app.db.database import set_setting
+
+    set_setting(window.conn, "season_mode", mode)
+    window.apply_season()
+
+
+def test_seasonal_theme_changes_logo_greeting_and_accent_and_restores_them(qapp, window):
+    from qfluentwidgets import themeColor
+
+    normal_accent = window._default_accent.name()
+    _mode(window, "off")
+    normal_logo = window.dashboard_page._wordmark.pixmap().toImage()
+    assert window.dashboard_page._greeting.isHidden()
+
+    _mode(window, "halloween")  # prova fuori stagione
+    assert window._season is not None and window._season.key == "halloween"
+    assert not window.dashboard_page._greeting.isHidden() and "Halloween" in window.dashboard_page._greeting.text()
+    assert window.dashboard_page._wordmark.pixmap().toImage() != normal_logo  # logo di Halloween
+    assert window.pages["attivo"]._wordmark.pixmap().toImage() != normal_logo  # anche nelle liste
+    assert themeColor().name() != normal_accent
+
+    _mode(window, "off")  # finita la festa: tutto com'era
+    assert window._season is None and window.dashboard_page._greeting.isHidden()
+    assert window.dashboard_page._wordmark.pixmap().toImage() == normal_logo
+    assert themeColor().name() == normal_accent
+
+
+def test_midnight_checks_whether_a_theme_starts_or_ends(qapp, window, monkeypatch):
+    from datetime import date, timedelta
+
+    _mode(window, "auto")
+    calls = []
+    monkeypatch.setattr(window, "apply_season", lambda force=False: calls.append(1))
+    monkeypatch.setattr(window, "_start_holiday_refresh", lambda: None)
+    window._current_day = date.today() - timedelta(days=1)
+    window._check_day_change()
+    assert calls == [1]
+
+
+def test_season_choice_is_remembered_and_shown_in_settings(qapp, window):
+    window.settings_page.season_combo.setCurrentIndex(window.settings_page.season_combo.findData("halloween"))
+    assert window._season is not None and window._season.key == "halloween"
+    from gilda_app.db.database import get_setting
+
+    assert get_setting(window.conn, "season_mode") == "halloween"
+    window.settings_page.set_season_mode("off")  # caricare il valore salvato non deve cambiare niente
+    assert window._season is not None
+
+
+def test_seasonal_splash_and_startup_helper(qapp, tmp_path):
+    from gilda_app import main as app_main
+    from gilda_app.db.database import connect, set_setting
+    from gilda_app.seasons import SEASONS
+
+    db = tmp_path / "gilda.db"
+    conn = connect(db)
+    set_setting(conn, "season_mode", "halloween")
+    conn.close()
+    splash = app_main._start_seasonal_splash(db)
+    assert splash is not None and splash.pixmap().width() == 720
+    splash.set_dots(2)
+    splash.close()
+    conn = connect(db)
+    set_setting(conn, "season_mode", "off")
+    conn.close()
+    assert app_main._start_seasonal_splash(db) is None  # tema spento: resta la schermata normale
+    assert app_main._start_seasonal_splash(tmp_path / "nuovo.db") is None or SEASONS[0].contains(__import__("datetime").date.today())

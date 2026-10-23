@@ -245,11 +245,20 @@ class DashboardPage(QWidget):
         layout.setContentsMargins(24, 20, 24, 20)
         layout.setSpacing(16)
         header = QHBoxLayout()
-        header.addWidget(SubtitleLabel(tr("nav.dashboard"), self))
+        title_box = QVBoxLayout()
+        title_box.setSpacing(2)
+        title_box.addWidget(SubtitleLabel(tr("nav.dashboard"), self))
+        # Scritta di auguri, solo nei periodi di festa (vedi set_greeting).
+        self._greeting = StrongBodyLabel("", self)
+        self._greeting.hide()
+        title_box.addWidget(self._greeting)
+        header.addLayout(title_box)
         header.addStretch(1)
         # Wordmark al centro dell'intestazione, come nelle liste dei membri.
+        self._wordmark = None
         if WORDMARK_PATH.exists():
             wordmark = QLabel(self)
+            self._wordmark = wordmark
             wordmark.setPixmap(QPixmap(str(WORDMARK_PATH)).scaledToHeight(WORDMARK_HEIGHT, Qt.SmoothTransformation))
             header.addWidget(wordmark)
         header.addStretch(1)
@@ -321,6 +330,18 @@ class DashboardPage(QWidget):
         self._reflow(1)
         self.set_bdo("", None, [tr("server.error.no_key")])
         self.set_timers([])
+
+    # -- tema stagionale -----------------------------------------------------
+    def set_wordmark(self, path: Path) -> None:
+        if self._wordmark is not None and path.exists():
+            self._wordmark.setPixmap(QPixmap(str(path)).scaledToHeight(WORDMARK_HEIGHT, Qt.SmoothTransformation))
+
+    def set_greeting(self, text: str | None, color: str = "") -> None:
+        """Scritta sotto il titolo "Dashboard"; None la nasconde."""
+        self._greeting.setVisible(bool(text))
+        if text:
+            self._greeting.setText(text)
+            self._greeting.setStyleSheet(f"color: {color};" if color else "")
 
     # -- layout -----------------------------------------------------------
     def _reflow(self, columns: int) -> None:

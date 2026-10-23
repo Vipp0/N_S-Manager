@@ -5,9 +5,10 @@ from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 from PySide6.QtCore import QObject, Qt, QTimer, QUrl, Signal
-from PySide6.QtGui import QDesktopServices, QGuiApplication, QIcon, QKeySequence, QShortcut
+from PySide6.QtGui import QColor, QDesktopServices, QGuiApplication, QIcon, QKeySequence, QShortcut
 from PySide6.QtWidgets import QApplication, QFileDialog, QVBoxLayout
 from qfluentwidgets import FluentIcon as FIF
+from qfluentwidgets import setThemeColor, themeColor
 from qfluentwidgets import (
     FluentWindow,
     InfoBar,
@@ -46,6 +47,7 @@ from gilda_app.db.database import (
     update_member,
 )
 from gilda_app.i18n import get_language, tr
+from gilda_app.seasons import MODE_AUTO, SEASON_MODE_SETTING, active_season
 from gilda_app.importer.excel_export import export_workbook
 from gilda_app.importer.excel_import import find_intra_file_duplicates, import_row, parse_workbook
 from gilda_app.models.member import STATUS_ATTIVO, STATUS_BANNATO, STATUS_EX_MEMBRO, Member, status_label
@@ -117,6 +119,7 @@ from gilda_app.utils.update_check import RELEASES_PAGE_URL, ReleaseInfo, fetch_l
 
 STATUS_ORDER = [STATUS_ATTIVO, STATUS_EX_MEMBRO, STATUS_BANNATO]
 APP_ICON_PATH = Path(__file__).resolve().parent.parent / "resources" / "app_icon.png"
+WORDMARK_DEFAULT_PATH = Path(__file__).resolve().parent.parent / "resources" / "wordmark.png"
 UPDATE_NOTIFIED_SETTING = "update_notified_version"
 API_KEY_SETTING = "bdoalerts_api_key"
 SERVER_REGION_SETTING = "server_status_region"
@@ -246,6 +249,8 @@ class MainWindow(FluentWindow):
         self.settings_page.export_requested.connect(self._on_export)
         self.settings_page.reset_requested.connect(self._on_reset)
         self.settings_page.language_changed.connect(self._on_language_changed)
+        self.settings_page.season_mode_changed.connect(self._on_season_mode_changed)
+        self.settings_page.set_season_mode(get_setting(self.conn, SEASON_MODE_SETTING, MODE_AUTO))
         self.settings_page.backup_now_requested.connect(self._on_backup_now)
         self.settings_page.open_backups_requested.connect(self._on_open_backups)
         self.settings_page.restore_requested.connect(self._on_restore)
@@ -271,7 +276,36 @@ class MainWindow(FluentWindow):
         self._setup_server_status_footer()
         self.navigationInterface.setCurrentItem(self.dashboard_page.objectName())
         self.stackedWidget.currentChanged.connect(self._on_page_changed)
+        self._default_accent = themeColor()  # il colore d'accento normale, da rimettere finita la festa
+        self._season = None
+        self.apply_season(force=True)
         self.refresh_all()
+
+    # -- tema stagionale ---------------------------------------------------------------------------------
+    def apply_season(self, force: bool = False) -> None:
+        """Logo, auguri e colore d'accento del periodo (Halloween, Natale...), o l'aspetto normale. Si
+        richiama a mezzanotte e cambiando la scelta in Impostazioni: il programma sta aperto per giorni, e
+        il tema deve cominciare e finire da solo."""
+        mode = get_setting(self.conn, SEASON_MODE_SETTING, MODE_AUTO)
+        season = active_season(date.today(), mode)
+        if not force and (season.key if season else None) == (self._season.key if self._season else None):
+            return
+        self._season = season
+        # Prima il colore d'accento: cambiandolo la libreria ridisegna gli stili dei widget, e sovrascriverebbe
+        # il colore della scritta di auguri impostato prima.
+        setThemeColor(QColor(season.accent) if season is not None and season.accent else self._default_accent)
+        wordmark = season.wordmark_path if season else WORDMARK_DEFAULT_PATH
+        for page in self.pages.values():
+            page.set_wordmark(wordmark)
+        self.dashboard_page.set_wordmark(wordmark)
+        if season is not None:
+            self.dashboard_page.set_greeting(tr(f"season.greeting.{season.key}"), season.accent or "")
+        else:
+            self.dashboard_page.set_greeting(None)
+
+    def _on_season_mode_changed(self, mode: str) -> None:
+        set_setting(self.conn, SEASON_MODE_SETTING, mode)
+        self.apply_season()
 
     def closeEvent(self, event) -> None:
         # Il blocco note salva con un ritardo dopo l'ultima battitura: se si chiude
@@ -329,6 +363,7 @@ class MainWindow(FluentWindow):
         if today == self._current_day:
             return
         previous_day, self._current_day = self._current_day, today
+        self.apply_season()  # un tema stagionale può cominciare o finire con il nuovo giorno
         self.refresh_all()
         self.calendar_page.follow_new_day(previous_day, today)
         self.calendar_page.refresh()
@@ -1064,7 +1099,7 @@ class MainWindow(FluentWindow):
         except OSError:
             self._update_failed(tr("update.backup_failed"))
             return
-        self._update_window = UpdateProgressWindow()
+        self._update_window = UpdateProgressWindow(self._season.splash_path if self._season is not None else None)
         self._update_window.set_progress(0, "")
         self._update_window.show()
         self.hide()

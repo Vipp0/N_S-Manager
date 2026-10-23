@@ -202,6 +202,20 @@ STRINGS: dict[str, dict[str, str]] = {
     },
 
     # -- Impostazioni --------------------------------------------------------
+    "season.name.halloween": {"it": "Halloween", "en": "Halloween"},
+    "season.name.natale": {"it": "Natale", "en": "Christmas"},
+    "season.greeting.halloween": {"it": "🎃 Buon Halloween!", "en": "🎃 Happy Halloween!"},
+    "season.greeting.natale": {"it": "🎄 Buone Feste!", "en": "🎄 Happy Holidays!"},
+    "season.loading.halloween": {"it": "Buon Halloween · Loading", "en": "Happy Halloween · Loading"},
+    "season.loading.natale": {"it": "Buone Feste · Loading", "en": "Happy Holidays · Loading"},
+    "season.mode.auto": {"it": "Automatico (cambia nelle feste)", "en": "Automatic (changes during holidays)"},
+    "season.mode.off": {"it": "Sempre normale", "en": "Always normal"},
+    "season.mode.force": {"it": "Prova: {name}", "en": "Preview: {name}"},
+    "settings.season_title": {"it": "Tema stagionale", "en": "Seasonal theme"},
+    "settings.season_hint": {
+        "it": "Nei periodi di festa (Halloween, Natale) cambiano la schermata di caricamento, il logo e il colore dei pulsanti; finita la festa torna tutto normale da solo. Qui puoi spegnerlo o provare un tema fuori stagione.",
+        "en": "During holidays (Halloween, Christmas) the loading screen, the logo and the button colour change; when the holiday ends everything goes back to normal by itself. Here you can turn it off or preview a theme out of season.",
+    },
     "settings.title": {"it": "Impostazioni", "en": "Settings"},
     "settings.language_label": {"it": "Lingua", "en": "Language"},
     "dialog.restart.title": {"it": "Riavvia l'applicazione", "en": "Restart the application"},

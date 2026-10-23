@@ -1,16 +1,18 @@
 import sys
 import time
+from datetime import date
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from PySide6.QtCore import QTimer
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QApplication
-from qfluentwidgets import MessageBox
 
 from gilda_app.db.backup import daily_backup_if_needed
 from gilda_app.db.database import connect, get_setting
-from gilda_app.i18n import DEFAULT_LANGUAGE, set_language, tr
-from gilda_app.ui.main_window import MainWindow
+from gilda_app.i18n import DEFAULT_LANGUAGE, set_language, tr, tr_in
+from gilda_app.seasons import MODE_AUTO, SEASON_MODE_SETTING, active_season, read_setting
+from gilda_app.ui.seasonal_splash import SeasonalSplash
 from gilda_app.ui.update_window import run_apply_mode
 from gilda_app.utils.error_log import LOG_NAME, install as install_error_log
 from gilda_app.utils.paths import app_dir, db_path
@@ -18,17 +20,21 @@ from gilda_app.utils.single_instance import SingleInstance
 from gilda_app.utils.updater import APPLY_FLAG, cleanup_leftovers
 from gilda_app.version import __version__
 
+if TYPE_CHECKING:  # MainWindow si importa dopo, a schermata di caricamento già mostrata (è la parte lenta)
+    from gilda_app.ui.main_window import MainWindow
+
 APP_FONT_FAMILY = "Segoe UI"
 APP_FONT_POINT_SIZE = 11
 
 
-def _maybe_run_initial_import(conn, db_file: Path, parent: MainWindow) -> None:
+def _maybe_run_initial_import(conn, db_file: Path, parent: "MainWindow") -> None:
     """Se il DB è vuoto, propone di importare il file Excel esistente. Usa la stessa
     anteprima (con segnalazione dei doppioni) del menu Impostazioni → Importa, invece
     di un import automatico "alla cieca" con policy fissa."""
     row = conn.execute("SELECT COUNT(*) FROM members").fetchone()
     if row[0] > 0:
         return
+    from qfluentwidgets import MessageBox
 
     default_xlsx = db_file.parent / "List 2026.xlsx"
     if default_xlsx.exists():
@@ -41,11 +47,38 @@ def _maybe_run_initial_import(conn, db_file: Path, parent: MainWindow) -> None:
             parent.run_import(default_xlsx)
 
 
-def _animate_splash_dots() -> None:
+def _start_seasonal_splash(db_file: Path) -> SeasonalSplash | None:
+    """Nei periodi di festa mostra la schermata di caricamento a tema al posto di quella normale, che si
+    chiude. Il tema e la lingua si leggono dal database in sola lettura, perché il programma non l'ha
+    ancora aperto. Qualunque problema -> None: si prosegue con la schermata normale."""
+    try:
+        mode = read_setting(db_file, SEASON_MODE_SETTING, MODE_AUTO)
+        season = active_season(date.today(), mode)
+        if season is None:
+            return None
+        language = read_setting(db_file, "language", DEFAULT_LANGUAGE)
+        splash = SeasonalSplash(season, tr_in(language, f"season.loading.{season.key}"))
+        splash.show()
+        QApplication.processEvents()  # la fa comparire subito, prima del lavoro lungo
+        _close_splash()
+        return splash
+    except Exception:
+        return None
+
+
+def _animate_splash_dots(splash: SeasonalSplash | None = None) -> None:
     """Fa scorrere "Loading." / "Loading.." / "Loading..." sulla schermata di avvio,
     prima di chiuderla: senza questa pausa voluta la splash resta a schermo troppo poco
     perché l'animazione si veda. Il modulo pyi_splash esiste solo nell'eseguibile
-    costruito: in sviluppo l'import fallisce e non c'è nulla da animare."""
+    costruito: in sviluppo l'import fallisce e non c'è nulla da animare. Con la schermata
+    stagionale i puntini si animano su quella."""
+    if splash is not None:
+        for _ in range(2):
+            for dots in (1, 2, 3):
+                splash.set_dots(dots)
+                QApplication.processEvents()
+                time.sleep(0.25)
+        return
     try:
         import pyi_splash
     except ImportError:
@@ -67,7 +100,7 @@ def _close_splash() -> None:
     pyi_splash.close()
 
 
-def _bring_to_front(window: MainWindow) -> None:
+def _bring_to_front(window: "MainWindow") -> None:
     """Una seconda copia è stata lanciata: la finestra già aperta torna in primo piano. Se è
     nascosta (aggiornamento in corso) non la si tocca."""
     if not window.isVisible():
@@ -93,6 +126,9 @@ def main() -> None:
     if not instance.acquire():
         _close_splash()
         sys.exit(0)
+    # Nei periodi di festa compare subito la schermata a tema; il resto (importazioni pesanti, database,
+    # costruzione della finestra) si fa dopo, mentre l'utente la guarda.
+    splash = _start_seasonal_splash(db_file)
     # Prima di connect(): così la copia del giorno precede anche un'eventuale migrazione
     # dello schema fatta da una versione nuova del programma.
     try:
@@ -105,14 +141,19 @@ def main() -> None:
     conn = connect(db_file)
     set_language(get_setting(conn, "language", DEFAULT_LANGUAGE))
 
+    from gilda_app.ui.main_window import MainWindow
+
     window = MainWindow(conn, db_file)
     instance.activation_requested.connect(lambda: _bring_to_front(window))
     window.refresh_all()
-    _animate_splash_dots()
+    _animate_splash_dots(splash)
     # Finestra mostrata prima di chiudere lo splash: altrimenti Windows non ha una
     # finestra in primo piano da cui passare il focus e l'app parte in background.
     window.show()
-    _close_splash()
+    if splash is not None:
+        splash.finish(window)
+    else:
+        _close_splash()
     window.raise_()
     window.activateWindow()
     _maybe_run_initial_import(conn, db_file, window)

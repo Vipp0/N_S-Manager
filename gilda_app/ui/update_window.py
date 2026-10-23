@@ -7,6 +7,7 @@ import shutil
 import sys
 import threading
 import time
+from datetime import date
 from pathlib import Path
 
 from PySide6.QtCore import QObject, Qt, Signal
@@ -14,6 +15,7 @@ from PySide6.QtGui import QFont, QGuiApplication, QIcon, QPainter, QPixmap
 from PySide6.QtWidgets import QApplication, QLabel, QMessageBox, QProgressBar, QWidget
 
 from gilda_app.i18n import set_language, tr
+from gilda_app.seasons import MODE_AUTO, SEASON_MODE_SETTING, active_season, read_setting
 from gilda_app.utils import updater
 from gilda_app.utils.update_check import ReleaseInfo
 
@@ -27,9 +29,10 @@ INSTALL_END = 98  # % alla fine della copia dei file nuovi (fine della fase 2, p
 
 
 class UpdateProgressWindow(QWidget):
-    def __init__(self):
+    def __init__(self, splash_path: Path | None = None):
+        """splash_path: immagine di sfondo (quella del tema in corso nei periodi di festa); di default la normale."""
         super().__init__(None, Qt.Window | Qt.FramelessWindowHint)
-        self._background = QPixmap(str(SPLASH_PATH))
+        self._background = QPixmap(str(splash_path if splash_path is not None and splash_path.exists() else SPLASH_PATH))
         self.setFixedSize(self._background.size())
         self.setWindowTitle("Night_Shade Manager")
         self.setWindowIcon(QIcon(str(APP_ICON_PATH)))
@@ -125,7 +128,11 @@ def run_apply_mode(args: list[str], close_splash=lambda: None) -> int:
 
     app = QApplication(sys.argv)
     app.setFont(QFont("Segoe UI", 11))
-    window = UpdateProgressWindow()
+    # Il database sta nella cartella dell'app in uso (target): da lì si legge se c'è un tema stagionale.
+    season = active_season(
+        date.today(), read_setting(target / "gilda.db", SEASON_MODE_SETTING, MODE_AUTO)
+    )
+    window = UpdateProgressWindow(season.splash_path if season is not None else None)
     window.set_progress(PREPARE_END, tr("update.step.wait"))
     window.show()
     window.raise_()

@@ -17,6 +17,7 @@ from qfluentwidgets import (
 from datetime import datetime, timezone
 
 from gilda_app.i18n import LANGUAGES, get_language, tr
+from gilda_app.seasons import selectable_modes
 from gilda_app.utils.maintenance_estimate import (
     DEFAULT_DURATION_HOURS,
     DEFAULT_START_HOUR_PT,
@@ -45,6 +46,7 @@ class SettingsPage(QWidget):
     api_key_saved = Signal(str)
     guild_name_saved = Signal(str)
     server_region_changed = Signal(str)
+    season_mode_changed = Signal(str)
     maintenance_window_changed = Signal(int, int, int)  # inizio (a Los Angeles), durata, durata se temporanea
 
     def __init__(self, parent=None):
@@ -80,6 +82,22 @@ class SettingsPage(QWidget):
         self.language_combo.currentIndexChanged.connect(self._on_language_changed)
         language_layout.addWidget(self.language_combo)
         layout.addWidget(language_card)
+
+        # Tema stagionale: automatico (cambia da solo nei periodi di festa), spento, o un tema per provarlo.
+        season_card = CardWidget(self)
+        season_layout = QVBoxLayout(season_card)
+        season_layout.addWidget(StrongBodyLabel(tr("settings.season_title"), season_card))
+        season_hint = QLabel(tr("settings.season_hint"), season_card)
+        season_hint.setWordWrap(True)
+        season_layout.addWidget(season_hint)
+        self.season_combo = ComboBox(season_card)
+        for mode in selectable_modes():
+            self.season_combo.addItem(self._season_mode_label(mode), userData=mode)
+        self.season_combo.currentIndexChanged.connect(
+            lambda: self.season_mode_changed.emit(self.season_combo.currentData())
+        )
+        season_layout.addWidget(self.season_combo)
+        layout.addWidget(season_card)
 
         bdo_card = CardWidget(self)
         bdo_layout = QVBoxLayout(bdo_card)
@@ -230,6 +248,20 @@ class SettingsPage(QWidget):
     def _on_remove_key(self) -> None:
         self.api_key_edit.clear()
         self.api_key_saved.emit("")
+
+    @staticmethod
+    def _season_mode_label(mode: str) -> str:
+        if mode == "auto":
+            return tr("season.mode.auto")
+        if mode == "off":
+            return tr("season.mode.off")
+        return tr("season.mode.force", name=tr(f"season.name.{mode}"))
+
+    def set_season_mode(self, mode: str) -> None:
+        """Mostra la scelta salvata, senza che sembri una scelta dell'utente (nessun segnale)."""
+        self.season_combo.blockSignals(True)
+        self.season_combo.setCurrentIndex(max(0, self.season_combo.findData(mode)))
+        self.season_combo.blockSignals(False)
 
     def _update_maint_preview(self) -> None:
         """L'orario di Los Angeles tradotto nell'ora del PC (di oggi): è quello che si vede in dashboard."""

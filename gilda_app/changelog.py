@@ -6,6 +6,14 @@ usa il programma, non i dettagli tecnici del come."""
 
 CHANGELOG: list[dict] = [
     {
+        "version": "2.7.4",
+        "date": "23-10-2026",
+        "notes": [
+            "Temi stagionali: nei periodi di festa cambiano la schermata di caricamento (con la scritta \"Buon Halloween · Loading…\"), il logo nelle intestazioni, compare una scritta di auguri in dashboard e i pulsanti prendono un colore viola; finita la festa torna tutto normale da solo, anche a programma aperto (si controlla a mezzanotte). Per ora c'è Halloween, dal 21 ottobre al 2 novembre; Natale (dall'8 dicembre al 6 gennaio) si accende quando ci sono le sue immagini. La prima schermata dei primi secondi, disegnata dall'exe prima che parta il programma, resta quella normale; anche la schermata dell'aggiornamento automatico segue il tema.",
+            "Impostazioni → Tema stagionale: Automatico (default), Sempre normale, oppure \"Prova: Halloween\" per vederlo fuori stagione.",
+        ],
+    },
+    {
         "version": "2.7.3",
         "date": "23-10-2026",
         "notes": [
