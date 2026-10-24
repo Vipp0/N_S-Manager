@@ -9,8 +9,8 @@
     libera per "Loading..." e per la barra dell'aggiornamento.
 
 Uso (dalla cartella del progetto, con il venv):
-    python tools/make_seasonal_assets.py halloween "Logo Halloween Night_Shade Manager.png" \\
-        "Night_Shade Manager Halloween.png"
+    python tools/make_seasonal_assets.py halloween "immagini_originali/Logo Halloween Night_Shade Manager.png" \\
+        "immagini_originali/Night_Shade Manager Halloween.png"
 """
 import argparse
 import sys

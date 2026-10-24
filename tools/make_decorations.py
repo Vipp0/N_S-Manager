@@ -9,7 +9,7 @@ Ogni decorazione è un rettangolo del foglio (BOXES, in pixel dell'originale); i
 rettangolo si cancellano con CLEAR. Il risultato va in resources/deco_<tema>_<nome>.png.
 
 Uso (dalla cartella del progetto, con il venv):
-    python tools/make_decorations.py halloween "Accessori Halloween.jpg"
+    python tools/make_decorations.py halloween "immagini_originali/Accessori Halloween.jpg"
 """
 import argparse
 import sys

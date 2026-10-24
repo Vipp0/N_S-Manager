@@ -7,7 +7,7 @@ Due modi:
     diventa il colore del tema e il rosso degli occhi un ambra.
 
 Uso (dalla cartella del progetto, con il venv):
-    python tools/make_seasonal_icon.py halloween "Logo Night_Shade Halloween.png"
+    python tools/make_seasonal_icon.py halloween "immagini_originali/Logo Night_Shade Halloween.png"
     python tools/make_seasonal_icon.py halloween
 """
 import argparse
