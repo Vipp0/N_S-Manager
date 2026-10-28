@@ -72,7 +72,7 @@ class SettingsPage(OrnamentedPage, QWidget):
         layout.setSpacing(16)
         layout.addWidget(SubtitleLabel(tr("settings.title"), self))
         # Ornamento del tema stagionale: sul contenuto, così scorre via con la pagina.
-        self._decor = DecorOverlay(content, [DecorItem("page_b", height=56, right=24, top=14, min_page_width=800), *snow(right=110)])
+        self._decor = DecorOverlay(content, [DecorItem(("page_settings", "page_b"), height=56, right=24, top=14, min_page_width=800), *snow(right=110)])
 
         language_card = CardWidget(self)
         language_layout = QVBoxLayout(language_card)

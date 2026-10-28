@@ -90,7 +90,7 @@ class BdoPage(OrnamentedPage, QWidget):
         layout.setSpacing(16)
         layout.addWidget(SubtitleLabel(tr("bdo.title"), self))
         # Ornamento del tema stagionale: sul contenuto, così scorre via con la pagina.
-        self._decor = DecorOverlay(content, [DecorItem("page_c", height=56, right=24, top=14, min_page_width=800), *snow(right=110)])
+        self._decor = DecorOverlay(content, [DecorItem(("page_bdo", "page_c"), height=56, right=24, top=14, min_page_width=800), *snow(right=110)])
 
         status_card = CardWidget(self)
         card_layout = QVBoxLayout(status_card)

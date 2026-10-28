@@ -103,7 +103,7 @@ class StatsPage(OrnamentedPage, QScrollArea):
         self.content = QWidget()
         self.setWidget(self.content)
         # Ornamento del tema stagionale: sul contenuto, così scorre via con la pagina.
-        self._decor = DecorOverlay(self.content, [DecorItem("page_a", height=56, right=24, top=14, min_page_width=800), *snow(right=150)])
+        self._decor = DecorOverlay(self.content, [DecorItem(("page_stats", "page_a"), height=56, right=24, top=14, min_page_width=800), *snow(right=150)])
         self.main_layout = QVBoxLayout(self.content)
         self.main_layout.setContentsMargins(24, 20, 24, 20)
         self.main_layout.setSpacing(16)

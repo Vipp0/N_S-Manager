@@ -14,7 +14,9 @@ from gilda_app.seasons import Season
 
 @dataclass(frozen=True)
 class DecorItem:
-    name: str  # parte del nome del file: deco_<tema>_<name>.png
+    # parte del nome del file: deco_<tema>_<name>.png. Una tupla dà un ripiego: si usa il primo file che esiste
+    # (es. ("page_notes", "page_a"): l'ornamento proprio della scheda, se il tema lo ha, altrimenti uno comune).
+    name: "str | tuple[str, ...]"
     height: int  # altezza a schermo in pixel (la larghezza segue le proporzioni)
     right: int = 0  # distanza dal bordo destro della pagina
     left: int | None = None  # se indicata, distanza dal bordo sinistro al posto di quella dal destro
@@ -63,8 +65,9 @@ class DecorOverlay(QWidget):
         self._pixmaps = {}
         if season is not None:
             for item in self._items:
-                path = season.decor_path(item.name)
-                if path.exists():
+                names = (item.name,) if isinstance(item.name, str) else item.name
+                path = next((p for p in map(season.decor_path, names) if p.exists()), None)
+                if path is not None:
                     pixmap = QPixmap(str(path))
                     if item.mirror:
                         pixmap = pixmap.transformed(QTransform().scale(-1, 1))

@@ -300,7 +300,8 @@ def test_christmas_theme_decorates_the_whole_program_and_reverts(qapp, window):
     assert themeColor().name() != normal_accent
     assert window.windowIcon().pixmap(32, 32).toImage() != normal_icon
     dashboard = window.dashboard_page
-    assert {"web", "spider", "snow", "snow2"} <= set(dashboard._decor._pixmaps)  # angoli, pallina appesa e neve
+    # angoli, tre palline appese e neve
+    assert {"web", "spider", "spider2", "spider3", "snow", "snow2"} <= set(dashboard._decor._pixmaps)
     assert not dashboard._greeting.isHidden() and "Feste" in dashboard._greeting.text()
     assert not dashboard._greeting_icon.isHidden()
     page = window.pages["attivo"]
@@ -309,6 +310,8 @@ def test_christmas_theme_decorates_the_whole_program_and_reverts(qapp, window):
     assert not page._decor_left.isHidden() and not page._decor_right.isHidden()  # pupazzo e renna ai lati del logo
     for other in (window.notes_page, window.calendar_page, window.bdo_page, window.log_page, window.stats_page, window.settings_page):
         assert {"snow", "snow2"} <= set(other._decor._pixmaps), other  # un po' di neve in ogni intestazione
+        own = [key for key in other._decor._pixmaps if isinstance(key, tuple)]
+        assert own and other._decor._pixmaps[own[0]] is not None, other  # e un ornamento proprio della scheda
 
     _mode(window, "off")
     assert themeColor().name() == normal_accent

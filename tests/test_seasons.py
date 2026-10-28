@@ -110,7 +110,10 @@ def test_real_christmas_theme_is_ready_and_complete():
     assert NATALE.available and NATALE.accent and NATALE.icon_path.exists()
     assert (QImage(str(NATALE.splash_path)).width(), QImage(str(NATALE.splash_path)).height()) == (720, 540)
     assert QImage(str(NATALE.wordmark_path)).hasAlphaChannel()
-    for name in ("web", "spider", "cluster", "icon", "header_left", "header_right", "page_a", "page_b", "page_c", "snow", "snow2"):
+    for name in (
+        "web", "spider", "spider2", "spider3", "cluster", "icon", "header_left", "header_right", "snow", "snow2",
+        "page_notes", "page_calendar", "page_bdo", "page_log", "page_stats", "page_settings",  # uno per scheda
+    ):
         path = NATALE.decor_path(name)
         assert path.exists() and QImage(str(path)).hasAlphaChannel(), name
     assert QImage(str(NATALE.icon_path)).hasAlphaChannel()  # sfondo trasparente, non nero

@@ -141,7 +141,7 @@ class EventLogPage(OrnamentedPage, QWidget):
         header = QHBoxLayout()
         header.addWidget(SubtitleLabel(tr("nav.log"), self))
         # Ornamento del tema stagionale, accanto al titolo (a destra ci sono filtro e ricerca).
-        self._decor = DecorOverlay(self, [DecorItem("page_b", height=56, left=230, top=12, min_page_width=1000), *snow(left=300)])
+        self._decor = DecorOverlay(self, [DecorItem(("page_log", "page_b"), height=56, left=230, top=12, min_page_width=1000), *snow(left=300)])
         header.addStretch(1)
         self.show_all = CheckBox(tr("log.show_all", days=RECENT_DAYS), self)
         self.show_all.stateChanged.connect(self._apply_filter)

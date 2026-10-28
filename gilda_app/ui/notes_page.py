@@ -27,7 +27,7 @@ class NotesPage(OrnamentedPage, QWidget):
         layout.setContentsMargins(24, 20, 24, 20)
         layout.setSpacing(12)
         layout.addWidget(SubtitleLabel(tr("nav.notes"), self))
-        self._decor = DecorOverlay(self, [DecorItem("page_a", height=56, right=24, top=14, min_page_width=800), *snow(right=150)])  # tema stagionale
+        self._decor = DecorOverlay(self, [DecorItem(("page_notes", "page_a"), height=56, right=24, top=14, min_page_width=800), *snow(right=150)])  # tema stagionale
 
         self.editor = PlainTextEdit(self)
         self.editor.setPlaceholderText(tr("notes.placeholder"))

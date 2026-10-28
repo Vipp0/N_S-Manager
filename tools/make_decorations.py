@@ -64,14 +64,18 @@ NATALE_SHEETS = {
     "s3": ("Accessori natalizi3.jpg", 27.0),  # 1709x608, fondo grigio con ombre: palline, fiocchi, cornici d'angolo
 }
 # Una decorazione: sheet, box (x, y, larghezza, altezza), side/size come sopra, flip ("h"/"v") e clear opzionali.
-# Le composte hanno "row" (lista di pezzi messi in fila, alti tutti `piece_height`) oppure "hang" (pezzo + filo).
+# Le composte hanno "row" (lista di pezzi o di (pezzo, scala) messi in fila sul bordo basso, alti `piece_height` per
+# la scala 1) oppure "hang" (pezzo + filo).
 S1_SNOWMAN = {"sheet": "s1", "box": (618, 398, 300, 365)}
 S1_CANDLES = {"sheet": "s1", "box": (915, 450, 300, 330), "clear": [(1170, 690, 50, 95)]}  # la punta di un corno della renna
 S1_HOLLY = {"sheet": "s1", "box": (618, 38, 392, 350)}
 S1_DEER = {"sheet": "s1", "box": (1048, 636, 262, 362), "clear": [(1040, 628, 162, 80), (1040, 700, 125, 60)]}  # via gli avanzi delle candele
 S1_LANTERN = {"sheet": "s1", "box": (1022, 8, 335, 445)}
 S1_BOW = {"sheet": "s1", "box": (5, 385, 396, 326)}
-S1_ORNAMENT = {"sheet": "s1", "box": (360, 15, 245, 380)}
+S1_ORNAMENT = {"sheet": "s1", "box": (360, 15, 245, 380)}  # pallina blu con il fiocco rosso
+S1_ORNAMENT_RED = {"sheet": "s1", "box": (1248, 392, 250, 322)}  # pallina rossa con il fiocco blu
+S1_STAR = {"sheet": "s1", "box": (1300, 690, 226, 304)}  # stella a otto punte blu e oro
+S3_BAUBLE_GREEN = {"sheet": "s3", "box": (1244, 246, 116, 142)}  # pallina verde con gemma e cappuccio dorato
 S3_SNOWFLAKE_ICE_2 = {"sheet": "s3", "box": (1040, 402, 166, 185)}
 S3_BAUBLE_RED = {"sheet": "s3", "box": (698, 442, 106, 134)}
 S3_SNOWFLAKE_GEM = {"sheet": "s3", "box": (750, 155, 215, 272)}
@@ -83,15 +87,25 @@ NATALE = {
     # programma la specchia per metterla lì: qui si specchia prima, per averla "in alto a sinistra" come l'altra.
     "web": {**S3_CORNER_GOLD, "flip": "h", "side": "width", "size": 380},
     # il ragno appeso -> la pallina blu con il fiocco rosso appesa a un filo dorato
+    # Le due palline in più (spider2, spider3) sono per la dashboard di Natale: stessa scala della prima (370 px
+    # di immagine = 135 a schermo), fili di lunghezza diversa, così pendono ad altezze diverse.
     "spider": {"hang": S1_ORNAMENT, "ornament_height": 230, "thread": 140, "side": "height", "size": 370},
+    "spider2": {"hang": S1_ORNAMENT_RED, "ornament_height": 205, "thread": 55, "side": "height", "size": 260},
+    "spider3": {"hang": S3_BAUBLE_GREEN, "ornament_height": 185, "thread": 190, "side": "height", "size": 375},
     # il gruppo di zucche -> pupazzo di neve, candele e agrifoglio
     "cluster": {"row": [S1_SNOWMAN, S1_CANDLES, S1_HOLLY], "piece_height": 300, "gap": -14, "side": "width", "size": 620},
     "icon": {**S3_BAUBLE_RED, "side": "height", "size": 220},
-    "header_left": {**S1_SNOWMAN, "side": "height", "size": 150},
-    "header_right": {**S1_DEER, "flip": "h", "side": "height", "size": 150},  # guarda verso il logo
-    "page_a": {**S1_BOW, "side": "height", "size": 130},
-    "page_b": {**S1_LANTERN, "side": "height", "size": 130},
-    "page_c": {**S3_SNOWFLAKE_GEM, "side": "height", "size": 130},
+    # ai lati del logo nelle liste: a sinistra una pallina verde e il pupazzo, a destra la renna (guarda verso il
+    # logo, per questo è specchiata) e la lanterna
+    "header_left": {"row": [(S3_BAUBLE_GREEN, 0.5), S1_SNOWMAN], "piece_height": 300, "gap": 10, "side": "height", "size": 150},
+    "header_right": {"row": [{**S1_DEER, "flip": "h"}, (S1_LANTERN, 0.72)], "piece_height": 300, "gap": 4, "side": "height", "size": 150},
+    # un ornamento diverso per ogni scheda (a Halloween se ne alternano tre: page_a/b/c)
+    "page_notes": {**S1_CANDLES, "side": "height", "size": 130},
+    "page_calendar": {**S1_STAR, "side": "height", "size": 130},
+    "page_bdo": {**S3_SNOWFLAKE_GEM, "side": "height", "size": 130},
+    "page_log": {**S1_LANTERN, "side": "height", "size": 130},
+    "page_stats": {**S1_ORNAMENT_RED, "side": "height", "size": 130},
+    "page_settings": {**S1_BOW, "side": "height", "size": 130},
     # neve sparsa: fiocchi chiari, di due misure, che il programma mette qua e là nelle intestazioni
     "snow": {**S3_SNOWFLAKE_ICE, "side": "height", "size": 120},
     "snow2": {**S3_SNOWFLAKE_ICE_2, "side": "height", "size": 120},
@@ -339,14 +353,17 @@ def make_natale(folder: Path) -> dict[str, QImage]:
     for name, spec in NATALE.items():
         if "row" in spec:
             height = spec["piece_height"]
-            parts = [piece(p).scaledToHeight(height, Qt.SmoothTransformation) for p in spec["row"]]
+            parts = []
+            for entry in spec["row"]:
+                part_spec, scale = entry if isinstance(entry, tuple) else (entry, 1.0)
+                parts.append(piece(part_spec).scaledToHeight(round(height * scale), Qt.SmoothTransformation))
             width = sum(p.width() for p in parts) + spec["gap"] * (len(parts) - 1)
             canvas = QImage(width, height, QImage.Format_ARGB32)
             canvas.fill(0)
             painter = QPainter(canvas)
             x = 0
             for part in parts:
-                painter.drawImage(x, 0, part)
+                painter.drawImage(x, height - part.height(), part)  # tutti appoggiati sul bordo basso
                 x += part.width() + spec["gap"]
             painter.end()
             result = canvas

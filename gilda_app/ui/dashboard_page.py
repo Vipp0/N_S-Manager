@@ -35,7 +35,11 @@ MAX_COLUMNS = 4
 DASHBOARD_DECOR = [
     DecorItem("web", height=150, mirror=True, min_page_width=700, opacity=0.95),
     DecorItem("spider", height=135, right=170, min_page_width=900, opacity=0.95),
-    *snow(left=250),  # Natale: fiocchi di neve tra il titolo e il logo
+    # Natale: altre due palline appese a fili diversi (più a sinistra, solo se c'è posto accanto al logo) e fiocchi
+    # di neve tra il titolo e il logo. Mancano i file negli altri temi, e allora non si disegnano.
+    DecorItem("spider2", height=95, right=255, min_page_width=1150, opacity=0.95),
+    DecorItem("spider3", height=137, right=335, min_page_width=1300, opacity=0.95),
+    *snow(left=250),
 ]
 CLUSTER_WIDTH = 240  # larghezza del gruppo di decorazioni nel vuoto in fondo alla griglia delle informazioni
 GREETING_ICON_SIZE = 26
