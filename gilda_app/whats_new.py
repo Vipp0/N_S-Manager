@@ -33,6 +33,43 @@ class Highlight:
 
 # Chiave: versione della release (come in version.py, es. "2.6").
 WHATS_NEW: dict[str, list[Highlight]] = {
+    "2.9": [
+        Highlight(
+            "BOOK_SHELF",
+            "Nuova scheda: Registro eventi",
+            "Prima di Statistiche trovi lo storico di ciò che si fa nel programma, con data e ora: in verde chi entra "
+            "o rientra tra i membri attuali, in rosso chi esce o viene bannato, senza colore cambi di nome, "
+            "modifiche, eliminazioni e importazioni. Si può filtrare, cercare e, con un doppio click, andare al "
+            "membro. Parte da ora, più gli ultimi 90 giorni già presenti nello storico.",
+            "New tab: Event log",
+            "Before Statistics you find the history of what is done in the program, with date and time: green for "
+            "who joins or returns among the current members, red for who leaves or gets banned, no colour for name "
+            "changes, edits, deletions and imports. You can filter, search and, with a double click, go to the "
+            "member. It starts now, plus the last 90 days already in the history.",
+        ),
+        Highlight(
+            "ADD",
+            "Chi rientra compare tra gli ultimi ingressi",
+            "In dashboard, negli Ultimi ingressi, ora ci sono anche i membri che tornano da ex membri o da bannati, "
+            "con la data del rientro e la scritta \"rientrato\"; contano anche nel numero degli ingressi degli "
+            "ultimi 30 giorni. Prima non venivano segnalati.",
+            "Returning members show among the latest joins",
+            "On the dashboard, in Latest joins, members coming back from former or banned now appear too, with the "
+            "return date and the label \"rejoined\"; they also count in the number of joins of the last 30 days. "
+            "Before, they were not shown.",
+        ),
+        Highlight(
+            "BRUSH",
+            "Tema di Natale",
+            "Dall'8 dicembre al 6 gennaio il programma si veste a festa da solo, come a Halloween: nuova schermata di "
+            "caricamento, logo e icona, pulsanti blu e decorazioni natalizie in ogni scheda. Puoi provarlo subito da "
+            "Impostazioni → Tema stagionale.",
+            "Christmas theme",
+            "From 8 December to 6 January the program dresses up by itself, like at Halloween: new loading screen, "
+            "logo and icon, blue buttons and Christmas decorations in every tab. You can try it right now from "
+            "Settings → Seasonal theme.",
+        ),
+    ],
     "2.8": [
         Highlight(
             "BRUSH",

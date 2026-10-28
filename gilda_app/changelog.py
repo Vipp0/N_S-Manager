@@ -6,7 +6,7 @@ usa il programma, non i dettagli tecnici del come."""
 
 CHANGELOG: list[dict] = [
     {
-        "version": "2.8.1",
+        "version": "2.9",
         "date": "28-10-2026",
         "notes": [
             "Dashboard, Ultimi ingressi: chi torna tra i membri attuali da ex membro o da bannato ora compare anche lì, con la data del rientro e la scritta \"rientrato\"; prima, restando la sua data di ingresso quella originale, non veniva segnalato. Anche il conteggio \"Ingressi negli ultimi 30 giorni\" comprende i rientri.",
