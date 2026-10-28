@@ -57,23 +57,25 @@ HALLOWEEN_CLEAR = {
 }
 
 # -- Natale: tre fogli, modo "flood". Chiavi dei fogli -> file in immagini_originali/
+# (file, distanza massima dal fondo per attraversare un pixel dal bordo). Il foglio 3 ha sotto ogni oggetto
+# un'ombra morbida grigia: con una soglia più alta fa parte del fondo e non resta come alone.
 NATALE_SHEETS = {
-    "s1": "Accessori natalizi1.png",  # 1536x1024, fondo bianco sporco: pupazzo, candele, lanterna, renna, palline
-    "s3": "Accessori natalizi3.jpg",  # 1709x608, fondo grigio: palline, fiocchi, cornici d'angolo
+    "s1": ("Accessori natalizi1.png", FLOOD_BACKGROUND),  # 1536x1024, fondo bianco sporco: pupazzo, candele, lanterna, renna
+    "s3": ("Accessori natalizi3.jpg", 27.0),  # 1709x608, fondo grigio con ombre: palline, fiocchi, cornici d'angolo
 }
 # Una decorazione: sheet, box (x, y, larghezza, altezza), side/size come sopra, flip ("h"/"v") e clear opzionali.
 # Le composte hanno "row" (lista di pezzi messi in fila, alti tutti `piece_height`) oppure "hang" (pezzo + filo).
 S1_SNOWMAN = {"sheet": "s1", "box": (618, 398, 300, 365)}
-S1_CANDLES = {"sheet": "s1", "box": (915, 450, 300, 330)}
+S1_CANDLES = {"sheet": "s1", "box": (915, 450, 300, 330), "clear": [(1170, 690, 50, 95)]}  # la punta di un corno della renna
 S1_HOLLY = {"sheet": "s1", "box": (618, 38, 392, 350)}
 S1_DEER = {"sheet": "s1", "box": (1048, 636, 262, 362), "clear": [(1040, 628, 162, 80), (1040, 700, 125, 60)]}  # via gli avanzi delle candele
 S1_LANTERN = {"sheet": "s1", "box": (1022, 8, 335, 445)}
 S1_BOW = {"sheet": "s1", "box": (5, 385, 396, 326)}
 S1_ORNAMENT = {"sheet": "s1", "box": (360, 15, 245, 380)}
-S1_FLAKE_SMALL = {"sheet": "s1", "box": (406, 472, 155, 148)}
+S3_SNOWFLAKE_ICE_2 = {"sheet": "s3", "box": (1040, 402, 166, 185)}
 S3_BAUBLE_RED = {"sheet": "s3", "box": (698, 442, 106, 134)}
 S3_SNOWFLAKE_GEM = {"sheet": "s3", "box": (750, 155, 215, 272)}
-S3_SNOWFLAKE_ICE = {"sheet": "s3", "box": (1205, 25, 134, 218)}
+S3_SNOWFLAKE_ICE = {"sheet": "s3", "box": (1205, 22, 170, 200)}
 S3_CORNER_GOLD = {"sheet": "s3", "box": (1385, 2, 310, 262)}
 
 NATALE = {
@@ -92,7 +94,7 @@ NATALE = {
     "page_c": {**S3_SNOWFLAKE_GEM, "side": "height", "size": 130},
     # neve sparsa: fiocchi chiari, di due misure, che il programma mette qua e là nelle intestazioni
     "snow": {**S3_SNOWFLAKE_ICE, "side": "height", "size": 120},
-    "snow2": {**S1_FLAKE_SMALL, "side": "height", "size": 100},
+    "snow2": {**S3_SNOWFLAKE_ICE_2, "side": "height", "size": 120},
 }
 
 
@@ -177,7 +179,7 @@ def remove_background(source: QImage) -> QImage:
     return result
 
 
-def remove_background_flood(source: QImage) -> QImage:
+def remove_background_flood(source: QImage, threshold: float = FLOOD_BACKGROUND) -> QImage:
     """Modo "flood": fondo è solo ciò che, partendo dal bordo del foglio, si raggiunge passando per pixel
     simili al fondo; gli oggetti restano pieni anche dove sono chiari come lo sfondo."""
     image = source.convertToFormat(QImage.Format_RGB888)
@@ -203,7 +205,7 @@ def remove_background_flood(source: QImage) -> QImage:
             queue.append(y * width + x)
     while queue:
         p = queue.popleft()
-        if outside[p] or dist[p] > FLOOD_BACKGROUND:
+        if outside[p] or dist[p] > threshold:
             continue
         outside[p] = 1
         x, y = p % width, p // width
@@ -323,7 +325,10 @@ def _flip(piece: QImage, flip: str | None) -> QImage:
 
 
 def make_natale(folder: Path) -> dict[str, QImage]:
-    cuts = {key: remove_background_flood(QImage(str(folder / filename))) for key, filename in NATALE_SHEETS.items()}
+    cuts = {
+        key: remove_background_flood(QImage(str(folder / filename)), threshold)
+        for key, (filename, threshold) in NATALE_SHEETS.items()
+    }
 
     def piece(spec: dict) -> QImage:
         image = cuts[spec["sheet"]].copy(QRect(*spec["box"]))
