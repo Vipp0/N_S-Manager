@@ -142,25 +142,30 @@ def _db_before_the_log():
     return connection
 
 
-def test_the_migration_recovers_recent_dated_events_only():
+def test_the_migration_recovers_every_dated_event_but_not_bulk_imports():
     c = _db_before_the_log()
     today = date.today()
     recent = (today - timedelta(days=10)).isoformat()
-    old = (today - timedelta(days=200)).isoformat()
-    for i, name in enumerate(("Recente", "Vecchio", "Import", "Datato", "Rinominato"), start=1):
+    old = "2024-03-05"
+    names = ("Recente", "Vecchio", "Datato", "Rinominato", "Manuale", "Import1", "Import2", "Import3")
+    for i, name in enumerate(names, start=1):
         c.execute("INSERT INTO members (id, family_name, status) VALUES (?, ?, 'attivo')", (i, name))
     insert = "INSERT INTO status_history (member_id, previous_status, new_status, changed_at) VALUES (?, ?, ?, ?)"
     c.execute(insert, (1, "attivo", "ex_membro", f"{recent} 08:30:00"))  # passaggio recente, ora UTC
-    c.execute(insert, (2, "attivo", "ex_membro", f"{old} 08:30:00"))  # troppo vecchio
-    c.execute(insert, (3, None, "attivo", f"{recent} 11:11:11"))  # "ingresso" di un import: non è un evento
-    c.execute(insert, (4, None, "attivo", f"{recent} 00:00:00"))  # ingresso con data certa
+    c.execute(insert, (2, "attivo", "ex_membro", f"{old} 08:30:00"))  # vecchio: si recupera lo stesso
+    c.execute(insert, (3, None, "attivo", f"{recent} 00:00:00"))  # ingresso con data certa
+    c.execute(insert, (5, None, "attivo", f"{recent} 17:45:10"))  # aggiunto a mano: un solo ingresso in quel secondo
+    for member in (6, 7, 8):  # tre "ingressi" nello stesso istante: un import in blocco, non sono eventi
+        c.execute(insert, (member, None, "attivo", f"{recent} 11:11:11"))
     c.execute(
-        "INSERT INTO name_history (member_id, field, old_value, new_value, changed_at) VALUES (5, 'family_name', 'A', 'B', ?)",
-        (f"{recent} 00:00:00",),
+        "INSERT INTO name_history (member_id, field, old_value, new_value, changed_at) VALUES (4, 'family_name', 'A', 'B', ?)",
+        (f"{old} 00:00:00",),
     )
     migrations._upgrade_9(c)
     rows = {r["member_name"]: r for r in c.execute("SELECT * FROM event_log")}
-    assert set(rows) == {"Recente", "Datato", "Rinominato"}
+    assert set(rows) == {"Recente", "Vecchio", "Datato", "Rinominato", "Manuale"}
+    assert rows["Vecchio"]["at"][:10] in (old, "2024-03-05")
+    assert rows["Manuale"]["kind"] == "added"
     assert (rows["Recente"]["kind"], rows["Recente"]["from_status"], rows["Recente"]["to_status"]) == (
         "status", "attivo", "ex_membro"
     )

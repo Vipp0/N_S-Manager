@@ -61,8 +61,8 @@ STRINGS: dict[str, dict[str, str]] = {
     "log.filter.other": {"it": "Altre operazioni", "en": "Other operations"},
     "log.search": {"it": "Cerca nel registro...", "en": "Search the log..."},
     "log.hint": {
-        "it": "Le operazioni fatte nel programma, dalla più recente: in verde chi entra o rientra, in rosso chi esce o viene bannato. Doppio click su una riga per andare al membro. Il registro tiene traccia di ciò che succede da quando è stato introdotto, più gli eventi degli ultimi 90 giorni già presenti nello storico.",
-        "en": "What has been done in the program, newest first: green for who joins or returns, red for who leaves or gets banned. Double-click a row to go to the member. The log keeps track of what happens from when it was introduced, plus the events of the last 90 days already in the history.",
+        "it": "Le operazioni fatte nel programma, dalla più recente: in verde chi entra o rientra, in rosso chi esce o viene bannato. Doppio click su una riga per andare al membro. Il registro tiene traccia di ciò che succede da quando è stato introdotto, più gli eventi già presenti nello storico con una data (ingressi, passaggi di lista, cambi di nome); le modifiche fatte in passato ad altri dati non si possono recuperare.",
+        "en": "What has been done in the program, newest first: green for who joins or returns, red for who leaves or gets banned. Double-click a row to go to the member. The log keeps track of what happens from when it was introduced, plus the events already in the history with a date (joins, list changes, name changes); past changes to other data cannot be recovered.",
     },
     "log.gone.title": {"it": "Membro non trovato", "en": "Member not found"},
     "log.gone.body": {"it": "Questo membro è stato eliminato: la riga resta nel registro come testimonianza.", "en": "This member was deleted: the row stays in the log as a record."},

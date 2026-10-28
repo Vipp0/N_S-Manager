@@ -149,7 +149,8 @@ def _upgrade_8(conn: sqlite3.Connection) -> None:
     )
 
 
-BACKFILL_DAYS = 90  # fin dove si recuperano dallo storico esistente gli eventi già accaduti
+# Più "ingressi" senza data registrati nello stesso istante sono un import in blocco, non operazioni vere.
+IMPORT_BATCH_MIN_ENTRIES = 3
 
 
 def _upgrade_9(conn: sqlite3.Connection) -> None:
@@ -170,21 +171,24 @@ def _upgrade_9(conn: sqlite3.Connection) -> None:
         CREATE INDEX idx_event_log_at ON event_log(at);
         """
     )
-    # Dallo storico che già c'è si recuperano gli eventi con data certa degli ultimi giorni: passaggi di
-    # lista, ingressi con data di ingresso e cambi di nome. Gli "ingressi" di un import (tutti nello stesso
-    # istante, senza data) non sono eventi veri e restano fuori. L'orario dei passaggi è in UTC (ora del
-    # database) e si converte in locale; le date senza orario (00:00:00) restano com'erano.
-    since = f"-{BACKFILL_DAYS} days"
+    # Dallo storico che già c'è si recuperano tutti gli eventi con data certa: passaggi di lista, ingressi (con
+    # la data di ingresso, oppure registrati a mano nel momento in cui è stato aggiunto il membro) e cambi di
+    # nome. Restano fuori gli "ingressi" di un import in blocco (tanti nello stesso istante, senza data) e
+    # tutto ciò che non è mai stato registrato (modifiche ai dati, eliminazioni). L'orario dei passaggi è in
+    # UTC (ora del database) e si converte in locale; le date senza orario (00:00:00) restano com'erano.
     local = "CASE WHEN substr({c}, 12) = '00:00:00' THEN {c} ELSE datetime({c}, 'localtime') END"
     rows = conn.execute(
         f"""
         SELECT h.member_id, m.family_name, h.previous_status, h.new_status, h.note,
                {local.format(c='h.changed_at')} AS at
         FROM status_history h JOIN members m ON m.id = h.member_id
-        WHERE h.changed_at IS NOT NULL AND date(h.changed_at) >= date('now', ?)
-          AND (h.previous_status IS NOT NULL OR substr(h.changed_at, 12) = '00:00:00')
+        WHERE h.changed_at IS NOT NULL
+          AND (h.previous_status IS NOT NULL
+               OR substr(h.changed_at, 12) = '00:00:00'
+               OR (SELECT COUNT(*) FROM status_history x
+                   WHERE x.previous_status IS NULL AND x.changed_at = h.changed_at) < ?)
         """,
-        (since,),
+        (IMPORT_BATCH_MIN_ENTRIES,),
     ).fetchall()
     for row in rows:
         if row[2] is None:
@@ -201,9 +205,8 @@ def _upgrade_9(conn: sqlite3.Connection) -> None:
         SELECT n.member_id, m.family_name, n.field, n.old_value, n.new_value,
                {local.format(c='n.changed_at')} AS at
         FROM name_history n JOIN members m ON m.id = n.member_id
-        WHERE n.changed_at IS NOT NULL AND date(n.changed_at) >= date('now', ?)
-        """,
-        (since,),
+        WHERE n.changed_at IS NOT NULL
+        """
     ).fetchall()
     for row in rows:
         detail = {"changes": [{"field": row[2], "old": row[3], "new": row[4]}]}
