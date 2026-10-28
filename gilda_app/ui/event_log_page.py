@@ -14,7 +14,7 @@ from gilda_app.db import event_log
 from gilda_app.i18n import tr
 from gilda_app.models.member import STATUS_ATTIVO, STATUS_BANNATO, STATUS_EX_MEMBRO, status_label
 from gilda_app.ui.persistent_clear_search import PersistentClearSearchLineEdit
-from gilda_app.ui.season_decor import DecorItem, DecorOverlay, OrnamentedPage
+from gilda_app.ui.season_decor import DecorItem, DecorOverlay, snow, OrnamentedPage
 from gilda_app.utils.date_format import iso_to_display
 from gilda_app.utils.scrollbar import widen_scrollbar_on_hover
 
@@ -141,7 +141,7 @@ class EventLogPage(OrnamentedPage, QWidget):
         header = QHBoxLayout()
         header.addWidget(SubtitleLabel(tr("nav.log"), self))
         # Ornamento del tema stagionale, accanto al titolo (a destra ci sono filtro e ricerca).
-        self._decor = DecorOverlay(self, [DecorItem("page_b", height=56, left=230, top=12, min_page_width=1000)])
+        self._decor = DecorOverlay(self, [DecorItem("page_b", height=56, left=230, top=12, min_page_width=1000), *snow(left=300)])
         header.addStretch(1)
         self.show_all = CheckBox(tr("log.show_all", days=RECENT_DAYS), self)
         self.show_all.stateChanged.connect(self._apply_filter)

@@ -104,6 +104,25 @@ def test_real_halloween_decorations_exist_and_are_transparent():
     assert HALLOWEEN.icon_path.exists()  # icona del programma nel periodo
 
 
+def test_real_christmas_theme_is_ready_and_complete():
+    from PySide6.QtGui import QImage
+
+    assert NATALE.available and NATALE.accent and NATALE.icon_path.exists()
+    assert (QImage(str(NATALE.splash_path)).width(), QImage(str(NATALE.splash_path)).height()) == (720, 540)
+    assert QImage(str(NATALE.wordmark_path)).hasAlphaChannel()
+    for name in ("web", "spider", "cluster", "icon", "header_left", "header_right", "page_a", "page_b", "page_c", "snow", "snow2"):
+        path = NATALE.decor_path(name)
+        assert path.exists() and QImage(str(path)).hasAlphaChannel(), name
+    assert QImage(str(NATALE.icon_path)).hasAlphaChannel()  # sfondo trasparente, non nero
+
+
+def test_christmas_greeting_runs_from_24_december_to_1_january():
+    assert not NATALE.greets(date(2026, 12, 23)) and NATALE.greets(date(2026, 12, 24))
+    assert NATALE.greets(date(2026, 12, 31)) and NATALE.greets(date(2027, 1, 1))
+    assert not NATALE.greets(date(2027, 1, 2))
+    assert seasons.greeting_active(NATALE, date(2026, 12, 10), "natale")  # nella prova si vede sempre
+
+
 def test_real_halloween_images_are_the_expected_size():
     from PySide6.QtGui import QImage
 

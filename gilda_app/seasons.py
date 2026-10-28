@@ -71,7 +71,9 @@ class Season:
 SEASONS = [
     Season("halloween", start=(10, 21), end=(11, 2), accent="#e8650a", loading_color="#ffb36b",
            greeting_start=(10, 31), greeting_end=(11, 1)),
-    Season("natale", start=(12, 8), end=(1, 6), accent=None, loading_color="#d8ecff"),
+    # Blu zaffiro come il ghiaccio del logo: né rosso né verde, che negli avvisi e negli stati hanno già un significato.
+    Season("natale", start=(12, 8), end=(1, 6), accent="#2a6fdb", loading_color="#d8ecff",
+           greeting_start=(12, 24), greeting_end=(1, 1)),
 ]
 
 

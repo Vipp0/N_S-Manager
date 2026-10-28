@@ -24,6 +24,18 @@ class DecorItem:
     opacity: float = 1.0
 
 
+def snow(right: int | None = None, left: int | None = None, opacity: float = 0.9) -> list[DecorItem]:
+    """Qualche fiocco di neve sparso accanto all'ornamento di un'intestazione (solo nei temi che hanno i file
+    deco_<tema>_snow e _snow2: Natale). A destra se si indica `right` (distanza del primo fiocco dal bordo),
+    a sinistra con `left`."""
+    spots = ((0, 22, 30, "snow"), (48, 8, 18, "snow2"), (84, 38, 16, "snow"))  # distanza dal primo, alto, altezza
+    items = []
+    for step, top, height, name in spots:
+        position = {"right": right + step} if right is not None else {"left": left + step}
+        items.append(DecorItem(name, height=height, top=top, min_page_width=900, opacity=opacity, **position))
+    return items
+
+
 class OrnamentedPage:
     """Per le pagine con un solo ornamento di tema in self._decor: aggiunge set_decor(season), che il
     programma chiama a ogni cambio di tema. Va messa prima di QWidget tra le classi base."""

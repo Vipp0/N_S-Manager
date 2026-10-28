@@ -260,7 +260,7 @@ STRINGS: dict[str, dict[str, str]] = {
     "season.name.halloween": {"it": "Halloween", "en": "Halloween"},
     "season.name.natale": {"it": "Natale", "en": "Christmas"},
     "season.greeting.halloween": {"it": "Buon Halloween!", "en": "Happy Halloween!"},
-    "season.greeting.natale": {"it": "🎄 Buone Feste!", "en": "🎄 Happy Holidays!"},
+    "season.greeting.natale": {"it": "Buone Feste!", "en": "Happy Holidays!"},
     "season.loading.halloween": {"it": "Buon Halloween · Loading", "en": "Happy Halloween · Loading"},
     "season.loading.plain": {"it": "Loading", "en": "Loading"},
     "season.loading.natale": {"it": "Buone Feste · Loading", "en": "Happy Holidays · Loading"},

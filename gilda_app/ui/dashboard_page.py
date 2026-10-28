@@ -23,7 +23,7 @@ from gilda_app.db import stats
 from gilda_app.db.database import get_members
 from gilda_app.i18n import tr
 from gilda_app.models.member import STATUS_ATTIVO, STATUS_BANNATO, STATUS_EX_MEMBRO, status_label
-from gilda_app.ui.season_decor import DecorItem, DecorOverlay
+from gilda_app.ui.season_decor import DecorItem, DecorOverlay, snow
 from gilda_app.utils.date_format import iso_to_display, relative_day_label
 from gilda_app.utils.flags import display_nation
 from gilda_app.utils.icons import ban_icon
@@ -35,6 +35,7 @@ MAX_COLUMNS = 4
 DASHBOARD_DECOR = [
     DecorItem("web", height=150, mirror=True, min_page_width=700, opacity=0.95),
     DecorItem("spider", height=135, right=170, min_page_width=900, opacity=0.95),
+    *snow(left=250),  # Natale: fiocchi di neve tra il titolo e il logo
 ]
 CLUSTER_WIDTH = 240  # larghezza del gruppo di decorazioni nel vuoto in fondo alla griglia delle informazioni
 GREETING_ICON_SIZE = 26

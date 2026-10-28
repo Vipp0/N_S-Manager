@@ -4,13 +4,15 @@
     immagini di partenza hanno lo sfondo bianco: lo si toglie senza rovinare i bagliori, calcolando per
     ogni pixel quanto è lontano dal bianco (quel valore diventa la trasparenza) e togliendo il bianco
     dal colore.
-  - splash_<tema>.png: la schermata di caricamento, 720x540 come splash.png. L'originale è 16:9: si
+  - splash_<tema>.png: la schermata di caricamento, 720x540 come splash.png. L'originale è 16:9 o 3:2: si
     adatta alla larghezza su una tela nera 4:3, sfumando i bordi in nero, e in basso resta la fascia
-    libera per "Loading..." e per la barra dell'aggiornamento.
+    libera per "Loading..." e per la barra dell'aggiornamento (un'immagine più alta sale un po').
 
 Uso (dalla cartella del progetto, con il venv):
     python tools/make_seasonal_assets.py halloween "immagini_originali/Logo Halloween Night_Shade Manager.png" \\
         "immagini_originali/Night_Shade Manager Halloween.png"
+    python tools/make_seasonal_assets.py natale "immagini_originali/Logo Night_Shade Natale.png" \
+        "immagini_originali/Logo natalizio Night_Shade Manager con cappellino.png"
 """
 import argparse
 import sys
@@ -23,6 +25,7 @@ RESOURCES = Path(__file__).resolve().parent.parent / "gilda_app" / "resources"
 WORDMARK_HEIGHT = 220  # come wordmark.png
 SPLASH_SIZE = (720, 540)  # come splash.png
 SPLASH_TOP = 24  # margine nero sopra l'immagine: il logo resta più o meno dov'era in splash.png
+TEXT_BAND = 48  # altezza in basso lasciata libera per "Loading..." e per la barra dell'aggiornamento
 EDGE_FADE = 56  # altezza della sfumatura in nero ai bordi superiore/inferiore dell'immagine
 MIN_ALPHA = 10  # sotto questa opacità un pixel è alone residuo: si azzera
 
@@ -71,8 +74,10 @@ def make_splash(source_path: Path, target: Path) -> QImage:
     canvas = QImage(width, height, QImage.Format_RGB32)
     canvas.fill(QColor("#000000"))
     painter = QPainter(canvas)
-    painter.drawImage(QPoint(0, SPLASH_TOP), art)
-    top, bottom = SPLASH_TOP, SPLASH_TOP + art.height()
+    # Un'immagine più alta del 16:9 (es. 3:2) sale un po', per lasciare in basso la fascia del testo.
+    top = max(0, min(SPLASH_TOP, height - TEXT_BAND - art.height()))
+    painter.drawImage(QPoint(0, top), art)
+    bottom = top + art.height()
     for y0, y1, opaque_first in ((top, top + EDGE_FADE, True), (bottom - EDGE_FADE, bottom, False)):
         fade = QLinearGradient(0, y0, 0, y1)
         fade.setColorAt(0, QColor(0, 0, 0, 255 if opaque_first else 0))

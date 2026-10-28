@@ -10,6 +10,11 @@ questi file servono per rigenerarle (cambiare un ritaglio, un colore, una dimens
 | `Night_Shade Manager Halloween.png` | illustrazione 16:9 per il caricamento | `tools/make_seasonal_assets.py` | `splash_halloween.png` |
 | `Logo Night_Shade Halloween.png` | gatto del logo in versione Halloween, trasparente | `tools/make_seasonal_icon.py` | `icon_halloween.png` |
 | `Accessori Halloween.jpg` | foglio di accessori su sfondo grigio | `tools/make_decorations.py` | `deco_halloween_*.png` |
-| `Night_Shade Manager Christmas.png` | illustrazione per Natale (tema non ancora attivo) | `tools/make_seasonal_assets.py` | `splash_natale.png` (da fare) |
+| `Logo natalizio Night_Shade Manager con cappellino.png` | illustrazione 3:2 per il caricamento di Natale, con il cappellino (quella usata) | `tools/make_seasonal_assets.py` | `splash_natale.png` |
+| `Night_Shade Manager Christmas.png` | la stessa illustrazione senza cappellino (alternativa, non usata) | `tools/make_seasonal_assets.py` | |
+| `Logo Night_Shade Natale.png` | scritta "Night_Shade Manager" natalizia, sfondo bianco | `tools/make_seasonal_assets.py` | `wordmark_natale.png` |
+| `Gatto natalizio con occhi rossi luminosi.png` | gatto del logo con cappellino e agrifoglio, su sfondo nero | `tools/make_seasonal_icon.py` (con `--black-background`) | `icon_natale.png` |
+| `Accessori natalizi1.png`, `Accessori natalizi3.jpg` | fogli di accessori natalizi su sfondo chiaro | `tools/make_decorations.py natale immagini_originali` | `deco_natale_*.png` |
+| `Accessori natalizi2.png` | foglio di accessori in tinte viola/ghiaccio (non usato) | | |
 
 I comandi esatti sono nell'intestazione di ogni strumento.

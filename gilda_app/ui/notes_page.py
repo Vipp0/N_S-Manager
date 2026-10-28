@@ -5,7 +5,7 @@ from qfluentwidgets import PlainTextEdit, SubtitleLabel
 
 from gilda_app.db.database import get_setting, set_setting
 from gilda_app.i18n import tr
-from gilda_app.ui.season_decor import DecorItem, DecorOverlay, OrnamentedPage
+from gilda_app.ui.season_decor import DecorItem, DecorOverlay, snow, OrnamentedPage
 
 NOTES_SETTING_KEY = "notes_content"
 # Ritardo dopo l'ultima battitura prima di salvare: evita una scrittura sul DB a ogni
@@ -27,7 +27,7 @@ class NotesPage(OrnamentedPage, QWidget):
         layout.setContentsMargins(24, 20, 24, 20)
         layout.setSpacing(12)
         layout.addWidget(SubtitleLabel(tr("nav.notes"), self))
-        self._decor = DecorOverlay(self, [DecorItem("page_a", height=56, right=24, top=14, min_page_width=800)])  # tema stagionale
+        self._decor = DecorOverlay(self, [DecorItem("page_a", height=56, right=24, top=14, min_page_width=800), *snow(right=150)])  # tema stagionale
 
         self.editor = PlainTextEdit(self)
         self.editor.setPlaceholderText(tr("notes.placeholder"))

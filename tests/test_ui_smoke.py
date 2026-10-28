@@ -286,3 +286,30 @@ def test_event_log_shows_recent_days_unless_show_all_or_searching(qapp, window):
     page.search_box.setText("antichissimo")  # la ricerca arriva anche agli eventi vecchi
     assert names() == ["Antichissimo"]
 
+
+
+def test_christmas_theme_decorates_the_whole_program_and_reverts(qapp, window):
+    from qfluentwidgets import themeColor
+
+    normal_accent = window._default_accent.name()
+    _mode(window, "off")
+    normal_icon = window.windowIcon().pixmap(32, 32).toImage()
+
+    _mode(window, "natale")  # prova fuori stagione
+    assert window._season.key == "natale"
+    assert themeColor().name() != normal_accent
+    assert window.windowIcon().pixmap(32, 32).toImage() != normal_icon
+    dashboard = window.dashboard_page
+    assert {"web", "spider", "snow", "snow2"} <= set(dashboard._decor._pixmaps)  # angoli, pallina appesa e neve
+    assert not dashboard._greeting.isHidden() and "Feste" in dashboard._greeting.text()
+    assert not dashboard._greeting_icon.isHidden()
+    page = window.pages["attivo"]
+    page.resize(1400, 700)
+    page._update_decor_visibility()
+    assert not page._decor_left.isHidden() and not page._decor_right.isHidden()  # pupazzo e renna ai lati del logo
+    for other in (window.notes_page, window.calendar_page, window.bdo_page, window.log_page, window.stats_page, window.settings_page):
+        assert {"snow", "snow2"} <= set(other._decor._pixmaps), other  # un po' di neve in ogni intestazione
+
+    _mode(window, "off")
+    assert themeColor().name() == normal_accent
+    assert not dashboard._decor._pixmaps and page._decor_left.pixmap().isNull()

@@ -20,7 +20,7 @@ from gilda_app.db.calendar_events import (
 )
 from gilda_app.db.holidays import HOLIDAY_COLOR, get_holidays_in_range
 from gilda_app.i18n import get_language, tr
-from gilda_app.ui.season_decor import DecorItem, DecorOverlay, OrnamentedPage
+from gilda_app.ui.season_decor import DecorItem, DecorOverlay, snow, OrnamentedPage
 from gilda_app.ui.calendar_event_dialog import CalendarEventDialog
 from gilda_app.ui.event_calendar_widget import EventCalendarWidget
 from gilda_app.utils.date_format import DISPLAY_DATE_QT_FORMAT
@@ -52,7 +52,7 @@ class CalendarPage(OrnamentedPage, QWidget):
         title_row = QHBoxLayout()
         title_row.addWidget(SubtitleLabel(tr("nav.calendar"), self))
         # Ornamento del tema stagionale, accanto al titolo (la colonna è stretta: poco spazio a destra).
-        self._decor = DecorOverlay(self, [DecorItem("page_a", height=56, left=240, top=12, min_page_width=1000)])
+        self._decor = DecorOverlay(self, [DecorItem("page_a", height=56, left=240, top=12, min_page_width=1000), *snow(left=340)])
         title_row.addStretch(1)
         today_btn = PushButton(FIF.CALENDAR, tr("calendar.today"), self)
         today_btn.clicked.connect(self._go_to_today)

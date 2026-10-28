@@ -1,20 +1,23 @@
 """Ricava l'icona di un tema (icon_<tema>.png, 512x512).
 
-Due modi:
+Tre modi:
   - con il logo del tema (PNG trasparente): lo centra e gli mette attorno un contorno luminoso del colore
     del tema, perché a 16-32 px un logo scuro con linee sottili sparirebbe sulle barre scure;
+  - con --black-background e un'immagine su sfondo nero (già con il suo contorno chiaro): il nero esterno
+    diventa trasparente e l'immagine si centra nella tela;
   - senza logo: ricolora l'icona normale (gatto nero con occhi rossi e bagliore/simbolo bianchi): il bianco
     diventa il colore del tema e il rosso degli occhi un ambra.
 
 Uso (dalla cartella del progetto, con il venv):
     python tools/make_seasonal_icon.py halloween "immagini_originali/Logo Night_Shade Halloween.png"
+    python tools/make_seasonal_icon.py natale "immagini_originali/Gatto natalizio con occhi rossi luminosi.png" --black-background
     python tools/make_seasonal_icon.py halloween
 """
 import argparse
-import sys
-from pathlib import Path
-
 import math
+import sys
+from collections import deque
+from pathlib import Path
 
 from PySide6.QtCore import QPointF, Qt
 from PySide6.QtGui import QColor, QGuiApplication, QImage, QPainter
@@ -25,7 +28,10 @@ SIZE = 512
 # tema -> (colore dei dettagli chiari, colore degli occhi) come (r, g, b)
 THEMES = {
     "halloween": ((255, 128, 24), (255, 176, 20)),
+    "natale": ((200, 225, 255), (255, 60, 60)),
 }
+DARK = 28  # sotto questa luminosità un pixel è "nero" (sfondo, ma anche il corpo del gatto)
+GAP_CLOSING = 3  # il contorno chiaro può avere piccoli varchi: si chiudono per non svuotare il corpo del gatto
 
 
 def recolor(source: QImage, light: tuple[int, int, int], eyes: tuple[int, int, int]) -> QImage:
@@ -79,14 +85,67 @@ def with_glow_outline(logo: QImage, color: tuple[int, int, int], margin: int = 4
     return canvas.convertToFormat(QImage.Format_ARGB32)
 
 
+def transparent_outside_black(image: QImage, margin: int = 16) -> QImage:
+    """Immagine su sfondo nero con un contorno chiaro attorno al soggetto -> stesso soggetto su sfondo
+    trasparente. Il nero dentro il contorno (il corpo) resta pieno; solo quello raggiunto dal bordo
+    dell'immagine, senza attraversare il contorno, diventa trasparente."""
+    inner = SIZE - 2 * margin
+    image = image.scaled(inner, inner, Qt.KeepAspectRatio, Qt.SmoothTransformation).convertToFormat(QImage.Format_ARGB32)
+    width, height = image.width(), image.height()
+    light = [[max(image.pixelColor(x, y).getRgb()[:3]) >= DARK for x in range(width)] for y in range(height)]
+    # il contorno si ispessisce di GAP_CLOSING pixel: i varchi più piccoli non lasciano passare il fondo
+    barrier = [row[:] for row in light]
+    for _ in range(GAP_CLOSING):
+        grown = [row[:] for row in barrier]
+        for y in range(height):
+            for x in range(width):
+                if barrier[y][x]:
+                    for ny, nx in ((y - 1, x), (y + 1, x), (y, x - 1), (y, x + 1)):
+                        if 0 <= ny < height and 0 <= nx < width:
+                            grown[ny][nx] = True
+        barrier = grown
+    outside = [[False] * width for _ in range(height)]
+    queue = deque((y, x) for y in range(height) for x in (0, width - 1))
+    queue.extend((y, x) for y in (0, height - 1) for x in range(width))
+    while queue:
+        y, x = queue.popleft()
+        if outside[y][x] or barrier[y][x]:
+            continue
+        outside[y][x] = True
+        for ny, nx in ((y - 1, x), (y + 1, x), (y, x - 1), (y, x + 1)):
+            if 0 <= ny < height and 0 <= nx < width:
+                queue.append((ny, nx))
+    # il fondo vero arriva fino al contorno: si riprende la fascia ispessita, ma solo dove il pixel è nero
+    frontier = deque((y, x, 0) for y in range(height) for x in range(width) if outside[y][x])
+    while frontier:
+        y, x, depth = frontier.popleft()
+        if depth >= GAP_CLOSING:
+            continue
+        for ny, nx in ((y - 1, x), (y + 1, x), (y, x - 1), (y, x + 1)):
+            if 0 <= ny < height and 0 <= nx < width and not outside[ny][nx] and not light[ny][nx]:
+                outside[ny][nx] = True
+                frontier.append((ny, nx, depth + 1))
+    canvas = QImage(SIZE, SIZE, QImage.Format_ARGB32)
+    canvas.fill(0)
+    left, top = (SIZE - width) // 2, (SIZE - height) // 2
+    for y in range(height):
+        for x in range(width):
+            if not outside[y][x]:
+                canvas.setPixelColor(left + x, top + y, image.pixelColor(x, y))
+    return canvas
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("theme", choices=sorted(THEMES))
     parser.add_argument("logo", nargs="?", help="logo del tema, PNG trasparente (senza: ricolora l'icona normale)")
+    parser.add_argument("--black-background", action="store_true", help="il logo è su sfondo nero: lo rende trasparente")
     args = parser.parse_args()
     app = QGuiApplication.instance() or QGuiApplication(sys.argv)  # noqa: F841 - serve a QImage
     light, eyes = THEMES[args.theme]
-    if args.logo:
+    if args.logo and args.black_background:
+        icon = transparent_outside_black(QImage(args.logo))
+    elif args.logo:
         icon = with_glow_outline(QImage(args.logo), light)
     else:
         icon = recolor(QImage(str(RESOURCES / "app_icon.png")), light, eyes)
