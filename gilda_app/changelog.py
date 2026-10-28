@@ -6,6 +6,13 @@ usa il programma, non i dettagli tecnici del come."""
 
 CHANGELOG: list[dict] = [
     {
+        "version": "2.9.1",
+        "date": "28-10-2026",
+        "notes": [
+            "Avviso di nuova versione a programma aperto: invece della piccola finestrella grigia in alto (che finiva sopra la barra del titolo e si notava poco) ora compare una striscia a tutta larghezza, nel colore d'accento (segue anche i temi stagionali), subito sotto la barra del titolo, con il pulsante \"Vedi\" ben visibile. Sta sopra le schede senza coprire niente, si vede da qualunque scheda e resta finché non la chiudi con la X.",
+        ],
+    },
+    {
         "version": "2.9",
         "date": "28-10-2026",
         "notes": [

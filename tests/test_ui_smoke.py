@@ -83,8 +83,6 @@ def test_dashboard_stacks_maintenance_banners(qapp, window):
 
 
 def test_update_check_repeats_while_the_program_stays_open(qapp, window, monkeypatch):
-    from qfluentwidgets import InfoBar
-
     from gilda_app.ui.main_window import UPDATE_CHECK_INTERVAL_MS
     from gilda_app.utils.update_check import ReleaseInfo
 
@@ -95,10 +93,10 @@ def test_update_check_repeats_while_the_program_stays_open(qapp, window, monkeyp
     window._update_manual, window._update_periodic = False, True
     window._on_update_checked(ReleaseInfo("v99.0"))
     assert offered == []  # a programma aperto non compare una finestra che interrompe: solo una striscia
-    bars = window.findChildren(InfoBar)
-    assert len(bars) == 1
+    assert window.update_strip.isVisible()
+    window.update_strip.hide()
     window._on_update_checked(ReleaseInfo("v99.0"))  # la stessa versione non si segnala due volte
-    assert len(window.findChildren(InfoBar)) == 1
+    assert not window.update_strip.isVisible()
     # il controllo all'avvio resta quello di prima: finestra di proposta
     window._update_manual, window._update_periodic = False, False
     window._on_update_checked(ReleaseInfo("v99.1"))
@@ -316,3 +314,21 @@ def test_christmas_theme_decorates_the_whole_program_and_reverts(qapp, window):
     _mode(window, "off")
     assert themeColor().name() == normal_accent
     assert not dashboard._decor._pixmaps and page._decor_left.pixmap().isNull()
+
+
+def test_update_strip_announces_new_version_and_can_be_closed(qapp, window, monkeypatch):
+    from gilda_app.utils.update_check import ReleaseInfo
+
+    window.show()
+    assert not window.update_strip.isVisible()
+    info = ReleaseInfo(tag="v9.9")
+    window._announce_update(info)
+    assert window.update_strip.isVisible()
+    assert "9.9" in window.update_strip._text.text()
+    offered = []
+    monkeypatch.setattr(window, "_offer_update", offered.append)
+    window.update_strip._button.click()
+    assert offered == [info]
+    assert window.update_strip.isVisible()  # resta finché non la si chiude
+    window.update_strip._close.click()
+    assert not window.update_strip.isVisible()

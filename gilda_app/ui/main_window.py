@@ -84,6 +84,7 @@ from gilda_app.ui.server_status_footer import (
     describe_region_parts,
 )
 from gilda_app.ui.settings_page import SettingsPage
+from gilda_app.ui.update_strip import UpdateStrip
 from gilda_app.ui.update_window import UpdateDownloadWorker, UpdateProgressWindow
 from gilda_app.ui.whats_new_dialog import WhatsNewDialog
 from gilda_app.whats_new import latest_release, releases_to_show
@@ -486,11 +487,17 @@ class MainWindow(FluentWindow):
             column = QVBoxLayout()
             column.setContentsMargins(0, 0, 0, 0)
             column.setSpacing(0)
+            # Striscia "nuova versione": in cima alla colonna, sotto la barra del titolo, nascosta finché
+            # non serve. Se la struttura di qfluentwidgets cambiasse, resta l'avviso a comparsa (InfoBar).
+            self.update_strip = UpdateStrip(self)
+            self.update_strip.clicked.connect(lambda: self._offer_update(self._announced_update))
+            column.addWidget(self.update_strip)
             column.addWidget(self.stackedWidget, 1)
             column.addWidget(self.server_footer)
             self.widgetLayout.addLayout(column)
         except AttributeError:
             self.server_footer.hide()
+            self.update_strip = None
         self._update_server_footer()
         self._server_timer = QTimer(self)
         self._server_timer.timeout.connect(self._refresh_server_status)
@@ -1092,6 +1099,11 @@ class MainWindow(FluentWindow):
         proposta di installazione. Resta finché non la si chiude, senza bloccare niente."""
         if getattr(self, "_update_window", None) is not None and self._update_window.isVisible():
             return  # un aggiornamento è già in corso
+        strip = getattr(self, "update_strip", None)
+        if strip is not None:
+            self._announced_update = info
+            strip.show_version(info.tag.lstrip("vV"))
+            return
         bar = InfoBar.info(
             title=tr("update.available.title"),
             content=tr("update.available.notice", version=info.tag.lstrip("vV")),
