@@ -58,34 +58,50 @@ def upcoming_agenda(conn: sqlite3.Connection, today: date, days: int = AGENDA_DA
     return sorted(items, key=lambda item: (item[0], item[2]))
 
 
-def recent_joins(conn: sqlite3.Connection, limit: int = 5) -> list[dict]:
-    """Ultimi ingressi tra i membri attuali. Per ognuno vale la data più recente tra l'ingresso registrato
-    e l'ultimo rientro (da ex membro o da bannato): chi è rientrato compare con la data del rientro e
-    `rejoined` vero. Dict con family_name, main_name, joined_on (yyyy-mm-dd), rejoined."""
-    rows = conn.execute(
+MOVE_JOINED = "joined"
+MOVE_REJOINED = "rejoined"
+MOVE_LEFT = "left"
+MOVE_BANNED = "banned"
+
+
+def recent_movements(conn: sqlite3.Connection, limit: int = 5) -> list[dict]:
+    """Gli ultimi movimenti in gilda, uno per membro (il più recente): ingresso (data registrata, solo per chi
+    è tra i membri attuali), rientro (da ex membro o da bannato a membro attuale), uscita (da membro attuale a
+    ex membro) e ban. Gli altri passaggi, tra ex membro e bannato, non contano.
+    Dict con id, family_name, main_name, day (yyyy-mm-dd), kind (MOVE_*)."""
+    latest: dict[int, tuple[tuple, dict]] = {}
+
+    def consider(member_id, family_name, main_name, day, kind, order) -> None:
+        key = (day, order)
+        if member_id not in latest or key > latest[member_id][0]:
+            latest[member_id] = (
+                key,
+                {"id": member_id, "family_name": family_name, "main_name": main_name, "day": day, "kind": kind},
+            )
+
+    for row in conn.execute(
+        "SELECT id, family_name, main_name, data_inserimento FROM members "
+        "WHERE status = 'attivo' AND data_inserimento IS NOT NULL"
+    ):
+        consider(row["id"], row["family_name"], row["main_name"], row["data_inserimento"][:10], MOVE_JOINED, (0, 0))
+    for row in conn.execute(
         """
-        SELECT m.id, m.family_name, m.main_name, m.data_inserimento,
-               (SELECT MAX(h.changed_at) FROM status_history h
-                WHERE h.member_id = m.id AND h.new_status = 'attivo' AND h.previous_status IN ('ex_membro', 'bannato')
-                  AND h.changed_at IS NOT NULL) AS rejoined_at
-        FROM members m WHERE m.status = 'attivo'
+        SELECT h.id AS history_id, h.changed_at, h.previous_status, h.new_status,
+               m.id, m.family_name, m.main_name
+        FROM status_history h JOIN members m ON m.id = h.member_id
+        WHERE h.previous_status IS NOT NULL AND h.changed_at IS NOT NULL
         """
-    ).fetchall()
-    joins = []
-    for row in rows:
-        first = row["data_inserimento"][:10] if row["data_inserimento"] else None
-        rejoin = row["rejoined_at"][:10] if row["rejoined_at"] else None
-        if first is None and rejoin is None:
-            continue
-        rejoined = rejoin is not None and (first is None or rejoin >= first)
-        joins.append(
-            {
-                "id": row["id"],
-                "family_name": row["family_name"],
-                "main_name": row["main_name"],
-                "joined_on": rejoin if rejoined else first,
-                "rejoined": rejoined,
-            }
-        )
-    joins.sort(key=lambda j: (j["joined_on"], j["id"]), reverse=True)
-    return joins[:limit]
+    ):
+        if row["new_status"] == "attivo":
+            kind = MOVE_REJOINED if row["previous_status"] in ("ex_membro", "bannato") else None
+        elif row["previous_status"] == "attivo":
+            kind = MOVE_BANNED if row["new_status"] == "bannato" else MOVE_LEFT
+        else:
+            kind = None
+        if kind is not None:
+            consider(
+                row["id"], row["family_name"], row["main_name"], row["changed_at"][:10], kind, (1, row["history_id"])
+            )
+    movements = [entry for _, entry in latest.values()]
+    movements.sort(key=lambda m: (m["day"], m["id"]), reverse=True)
+    return movements[:limit]

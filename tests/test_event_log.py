@@ -5,7 +5,7 @@ from datetime import date, datetime, timedelta
 import pytest
 
 from gilda_app.db import event_log, migrations
-from gilda_app.db.dashboard import joined_recently, recent_joins
+from gilda_app.db.dashboard import MOVE_BANNED, MOVE_JOINED, MOVE_LEFT, MOVE_REJOINED, joined_recently, recent_movements
 from gilda_app.db.database import (
     add_member,
     add_name_change,
@@ -183,29 +183,52 @@ def test_the_migration_is_part_of_the_schema(conn):
     assert conn.execute("SELECT COUNT(*) FROM event_log").fetchone()[0] == 0
 
 
-# -- dashboard: i rientri sono ingressi -------------------------------------------------------------------
-def test_a_member_who_returns_shows_in_the_latest_joins(conn):
+# -- dashboard: ultimi movimenti (ingressi, rientri, uscite) -----------------------------------------------
+def _moves(conn):
+    return [(m["family_name"], m["kind"]) for m in recent_movements(conn)]
+
+
+def test_a_member_who_returns_shows_in_the_latest_movements(conn):
     old = add_member(conn, "Rientrato", "R", "", [], STATUS_ATTIVO, data_inserimento="2024-01-01")
     add_member(conn, "Nuovo", "N", "", [], STATUS_ATTIVO, data_inserimento=(date.today() - timedelta(days=5)).isoformat())
     move_member_status(conn, old, STATUS_EX_MEMBRO)
     move_member_status(conn, old, STATUS_ATTIVO)
-    joins = recent_joins(conn)
-    assert [(j["family_name"], j["rejoined"]) for j in joins] == [("Rientrato", True), ("Nuovo", False)]
-    assert joins[0]["joined_on"] == date.today().isoformat() or joins[0]["joined_on"] == datetime.utcnow().date().isoformat()
+    assert _moves(conn) == [("Rientrato", MOVE_REJOINED), ("Nuovo", MOVE_JOINED)]
+    first = recent_movements(conn)[0]
+    assert first["day"] in (date.today().isoformat(), datetime.utcnow().date().isoformat())
 
 
-def test_a_member_who_left_again_is_not_in_the_latest_joins(conn):
-    member = add_member(conn, "Uscito", "", "", [], STATUS_ATTIVO, data_inserimento="2024-01-01")
+def test_who_left_or_was_banned_shows_in_the_latest_movements(conn):
+    gone = add_member(conn, "Uscito", "", "", [], STATUS_ATTIVO, data_inserimento="2024-01-01")
+    banned = add_member(conn, "Bannato", "", "", [], STATUS_ATTIVO, data_inserimento="2024-01-01")
+    move_member_status(conn, gone, STATUS_EX_MEMBRO)
+    move_member_status(conn, banned, STATUS_BANNATO)
+    assert sorted(_moves(conn)) == [("Bannato", MOVE_BANNED), ("Uscito", MOVE_LEFT)]
+
+
+def test_only_the_latest_movement_of_each_member_counts(conn):
+    member = add_member(conn, "Va e viene", "", "", [], STATUS_ATTIVO, data_inserimento="2024-01-01")
     move_member_status(conn, member, STATUS_EX_MEMBRO)
     move_member_status(conn, member, STATUS_ATTIVO)
     move_member_status(conn, member, STATUS_EX_MEMBRO)
-    assert recent_joins(conn) == []
+    assert _moves(conn) == [("Va e viene", MOVE_LEFT)]
+
+
+def test_a_move_between_former_and_banned_is_not_a_movement(conn):
+    member = add_member(conn, "Cambia lista", "", "", [], STATUS_EX_MEMBRO)
+    move_member_status(conn, member, STATUS_BANNATO)
+    assert recent_movements(conn) == []
+
+
+def test_a_former_member_without_dated_history_is_not_a_movement(conn):
+    add_member(conn, "Vecchio ex", "", "", [], STATUS_EX_MEMBRO, data_inserimento="2020-01-01")
+    assert recent_movements(conn) == []
 
 
 def test_a_rejoin_without_a_registered_join_date_still_counts(conn):
     member = add_member(conn, "SenzaData", "", "", [], STATUS_EX_MEMBRO)
     move_member_status(conn, member, STATUS_ATTIVO)
-    assert [j["family_name"] for j in recent_joins(conn)] == ["SenzaData"]
+    assert _moves(conn) == [("SenzaData", MOVE_REJOINED)]
 
 
 def test_the_thirty_day_join_count_includes_returns(conn):
@@ -222,4 +245,4 @@ def test_an_old_return_is_not_in_the_recent_count(conn):
     move_member_status(conn, member, STATUS_ATTIVO)
     conn.execute("UPDATE status_history SET changed_at = '2025-01-01 10:00:00' WHERE previous_status IS NOT NULL")
     assert joined_recently(conn) == 0
-    assert recent_joins(conn)[0]["joined_on"] == "2025-01-01"
+    assert recent_movements(conn)[0]["day"] == "2025-01-01"

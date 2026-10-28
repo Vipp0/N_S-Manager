@@ -6,6 +6,13 @@ usa il programma, non i dettagli tecnici del come."""
 
 CHANGELOG: list[dict] = [
     {
+        "version": "2.9.2",
+        "date": "28-10-2026",
+        "notes": [
+            "Dashboard: il riquadro \"Ultimi ingressi\" diventa \"Ultimi movimenti\" e mostra, per ogni membro, il movimento più recente: \"entrato\" (data di ingresso registrata, per chi è tra i membri attuali), \"rientrato\" (da ex membro o bannato), \"uscito\" (passato a ex membro) o \"bannato\". Nessun colore, solo la scritta accanto al nome. I passaggi tra ex membro e bannato non compaiono. Il conteggio \"Ingressi negli ultimi 30 giorni\" non cambia.",
+        ],
+    },
+    {
         "version": "2.9.1",
         "date": "28-10-2026",
         "notes": [

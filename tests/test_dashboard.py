@@ -63,8 +63,8 @@ def test_history_row_colors():
     assert history_row_color(row(STATUS_EX_MEMBRO, STATUS_ATTIVO)) == HISTORY_COLOR_REJOIN
 
 
-def test_recent_joins_and_anniversaries(conn):
-    from gilda_app.db.dashboard import recent_joins
+def test_recent_movements_and_anniversaries(conn):
+    from gilda_app.db.dashboard import recent_movements
     from gilda_app.db.stats import upcoming_anniversaries
 
     add_member(conn, "Vecchio", "V", "", [], STATUS_ATTIVO, data_inserimento="2023-10-05")
@@ -73,7 +73,7 @@ def test_recent_joins_and_anniversaries(conn):
     add_member(conn, "Senza", "S", "", [], STATUS_ATTIVO)
     add_member(conn, "Ex", "E", "", [], STATUS_EX_MEMBRO, data_inserimento="2020-10-01")
 
-    assert [r["family_name"] for r in recent_joins(conn, 2)] == ["Nuovo", "Bisestile"]
+    assert [r["family_name"] for r in recent_movements(conn, 2)] == ["Nuovo", "Bisestile"]
 
     today = date(2026, 9, 24)
     result = upcoming_anniversaries(conn, today, days=30)

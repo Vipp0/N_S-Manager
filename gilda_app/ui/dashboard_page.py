@@ -338,7 +338,7 @@ class DashboardPage(QWidget):
         self._info_grid.setSpacing(16)
         self._info_cards: dict[str, InfoCard] = {}
         for key, icon, title in [
-            ("info_joins", FIF.ADD, tr("dash.recent_joins")),
+            ("info_joins", FIF.SYNC, tr("dash.recent_movements")),
             ("info_birthdays", FIF.HEART, tr("dash.birthdays")),
             ("info_anniversaries", FIF.CALENDAR, tr("dash.anniversaries")),
             ("info_nations", FIF.PIE_SINGLE, tr("dash.top_nations")),
@@ -462,17 +462,15 @@ class DashboardPage(QWidget):
         preview = [line if len(line) <= 60 else line[:57] + "..." for line in notes[:NOTES_PREVIEW_LINES]]
         self._tiles[TILE_NOTES].set_content("", preview or [tr("dash.notes_empty")])
 
-        joins = queries.recent_joins(conn)
+        activity = queries.recent_movements(conn)
         self._info_cards["info_joins"].set_content(
             "",
             [
                 (
-                    day_text(date.fromisoformat(r["joined_on"]), date.today(), iso_to_display(r["joined_on"])),
-                    r["family_name"]
-                    + (f" ({r['main_name']})" if r["main_name"] else "")
-                    + (tr("dash.rejoined") if r["rejoined"] else ""),
+                    day_text(date.fromisoformat(r["day"]), date.today(), iso_to_display(r["day"])),
+                    r["family_name"] + (f" ({r['main_name']})" if r["main_name"] else "") + tr(f"dash.move.{r['kind']}"),
                 )
-                for r in joins
+                for r in activity
             ]
             or [tr("dash.no_joins")],
         )
