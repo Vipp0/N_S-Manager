@@ -261,3 +261,28 @@ def test_opening_a_deleted_member_from_the_log_does_not_crash(qapp, window):
     window.refresh_all()
     window._open_member_from_log(member)  # solo un avviso, nessuna eccezione
     assert window.log_page.table.item(0, 1).text() == "Eliminato"
+
+
+def test_event_log_shows_recent_days_unless_show_all_or_searching(qapp, window):
+    from datetime import date, timedelta
+
+    from gilda_app.db import event_log
+    from gilda_app.db.database import add_member
+    from gilda_app.ui import event_log_page as elp
+
+    add_member(window.conn, "Recentissimo", "", "", [], "attivo")
+    old_day = (date.today() - timedelta(days=elp.RECENT_DAYS + 30)).isoformat()
+    event_log.log_event(window.conn, "added", 99, "Antichissimo", to_status="attivo", at=f"{old_day} 10:00:00", commit=True)
+    window.refresh_all()
+    page = window.log_page
+
+    names = lambda: [page.table.item(r, elp.MEMBER_COLUMN).text() for r in range(page.table.rowCount())]
+    assert names() == ["Recentissimo"]
+    assert not page._older_note.isHidden() and "1" in page._older_note.text()
+
+    page.show_all.setChecked(True)  # "Mostra tutto"
+    assert names() == ["Recentissimo", "Antichissimo"] and page._older_note.isHidden()
+    page.show_all.setChecked(False)
+    page.search_box.setText("antichissimo")  # la ricerca arriva anche agli eventi vecchi
+    assert names() == ["Antichissimo"]
+

@@ -3,10 +3,12 @@
 Verde chi entra in gilda o torna tra i membri attuali, rosso chi esce (ex membro o bannato); le altre
 operazioni (cambi di nome, modifiche, correzioni dello storico, import...) senza colore. I testi si
 costruiscono qui da tipo e dettagli salvati (vedi db/event_log.py), così seguono la lingua del programma."""
+from datetime import date, timedelta
+
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QColor, QFont
 from PySide6.QtWidgets import QAbstractItemView, QHBoxLayout, QHeaderView, QTableWidgetItem, QVBoxLayout, QWidget
-from qfluentwidgets import CaptionLabel, ComboBox, SubtitleLabel, TableWidget
+from qfluentwidgets import CaptionLabel, CheckBox, ComboBox, SubtitleLabel, TableWidget
 
 from gilda_app.db import event_log
 from gilda_app.i18n import tr
@@ -23,6 +25,7 @@ COLOR_BAD = QColor("#f8d4d4")  # come il ban nello storico del membro
 TEXT_COLOR = QColor("#1f1f1f")
 WHEN_COLUMN, EVENT_COLUMN, MEMBER_COLUMN, DETAIL_COLUMN = range(4)
 FILTER_ALL, FILTER_GOOD, FILTER_BAD, FILTER_OTHER = "all", "good", "bad", "other"
+RECENT_DAYS = 60  # di norma si vedono solo gli ultimi giorni: "Mostra tutto" e la ricerca arrivano a ogni evento
 MAX_VALUE_CHARS = 40  # i valori lunghi (una nota) si accorciano nel dettaglio di una modifica
 EMPTY = "—"
 
@@ -140,6 +143,9 @@ class EventLogPage(OrnamentedPage, QWidget):
         # Ornamento del tema stagionale, accanto al titolo (a destra ci sono filtro e ricerca).
         self._decor = DecorOverlay(self, [DecorItem("page_b", height=56, left=230, top=12, min_page_width=1000)])
         header.addStretch(1)
+        self.show_all = CheckBox(tr("log.show_all", days=RECENT_DAYS), self)
+        self.show_all.stateChanged.connect(self._apply_filter)
+        header.addWidget(self.show_all)
         self.filter_box = ComboBox(self)
         for mode, key in (
             (FILTER_ALL, "log.filter.all"),
@@ -160,6 +166,9 @@ class EventLogPage(OrnamentedPage, QWidget):
         hint = CaptionLabel(tr("log.hint"), self)
         hint.setWordWrap(True)
         layout.addWidget(hint)
+        self._older_note = CaptionLabel("", self)
+        layout.addWidget(self._older_note)
+        self._older_note.hide()
 
         self.table = TableWidget(self)
         self.table.setColumnCount(4)
@@ -198,8 +207,15 @@ class EventLogPage(OrnamentedPage, QWidget):
     def _apply_filter(self, *_args) -> None:
         mode = self.filter_box.currentData() or FILTER_ALL
         needle = self.search_box.text().strip().casefold()
+        # Di norma solo gli ultimi giorni, per tenere leggera la scheda; cercando, o con "Mostra tutto", ogni evento.
+        cutoff = (date.today() - timedelta(days=RECENT_DAYS)).isoformat()
+        limited = not self.show_all.isChecked() and not needle
+        older = 0
         rows = []
         for event in self._events:
+            if limited and event["at"][:10] < cutoff:
+                older += 1
+                continue
             if not filter_matches(event, mode):
                 continue
             label, details = event_label(event), event_details(event)
@@ -225,6 +241,8 @@ class EventLogPage(OrnamentedPage, QWidget):
                 self.table.setItem(index, column, item)
         self._empty.setVisible(not rows)
         self.table.setVisible(bool(rows))
+        self._older_note.setText(tr("log.older_hidden", n=older, days=RECENT_DAYS))
+        self._older_note.setVisible(older > 0)
 
     def _on_double_click(self, index) -> None:
         item = self.table.item(index.row(), WHEN_COLUMN)

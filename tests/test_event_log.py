@@ -142,7 +142,7 @@ def _db_before_the_log():
     return connection
 
 
-def test_the_migration_recovers_every_dated_event_but_not_bulk_imports():
+def test_the_migration_recovers_the_last_90_days_but_not_bulk_imports():
     c = _db_before_the_log()
     today = date.today()
     recent = (today - timedelta(days=10)).isoformat()
@@ -152,19 +152,23 @@ def test_the_migration_recovers_every_dated_event_but_not_bulk_imports():
         c.execute("INSERT INTO members (id, family_name, status) VALUES (?, ?, 'attivo')", (i, name))
     insert = "INSERT INTO status_history (member_id, previous_status, new_status, changed_at) VALUES (?, ?, ?, ?)"
     c.execute(insert, (1, "attivo", "ex_membro", f"{recent} 08:30:00"))  # passaggio recente, ora UTC
-    c.execute(insert, (2, "attivo", "ex_membro", f"{old} 08:30:00"))  # vecchio: si recupera lo stesso
+    c.execute(insert, (2, "attivo", "ex_membro", f"{old} 08:30:00"))  # più vecchio di 90 giorni: di prima del programma
     c.execute(insert, (3, None, "attivo", f"{recent} 00:00:00"))  # ingresso con data certa
     c.execute(insert, (5, None, "attivo", f"{recent} 17:45:10"))  # aggiunto a mano: un solo ingresso in quel secondo
     for member in (6, 7, 8):  # tre "ingressi" nello stesso istante: un import in blocco, non sono eventi
         c.execute(insert, (member, None, "attivo", f"{recent} 11:11:11"))
     c.execute(
         "INSERT INTO name_history (member_id, field, old_value, new_value, changed_at) VALUES (4, 'family_name', 'A', 'B', ?)",
+        (f"{recent} 00:00:00",),
+    )
+    c.execute(  # un cambio di nome di prima dei 90 giorni resta fuori
+        "INSERT INTO name_history (member_id, field, old_value, new_value, changed_at) VALUES (4, 'family_name', 'Z', 'A', ?)",
         (f"{old} 00:00:00",),
     )
     migrations._upgrade_9(c)
     rows = {r["member_name"]: r for r in c.execute("SELECT * FROM event_log")}
-    assert set(rows) == {"Recente", "Vecchio", "Datato", "Rinominato", "Manuale"}
-    assert rows["Vecchio"]["at"][:10] in (old, "2024-03-05")
+    assert set(rows) == {"Recente", "Datato", "Rinominato", "Manuale"}  # "Vecchio" e gli import in blocco restano fuori
+    assert c.execute("SELECT COUNT(*) FROM event_log WHERE kind = 'name'").fetchone()[0] == 1
     assert rows["Manuale"]["kind"] == "added"
     assert (rows["Recente"]["kind"], rows["Recente"]["from_status"], rows["Recente"]["to_status"]) == (
         "status", "attivo", "ex_membro"

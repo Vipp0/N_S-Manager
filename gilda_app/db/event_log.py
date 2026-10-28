@@ -29,7 +29,7 @@ TONE_GOOD = "good"  # entra in gilda o torna membro attuale
 TONE_BAD = "bad"  # esce dalla gilda (ex membro o bannato)
 TONE_NEUTRAL = "neutral"
 
-DEFAULT_LIMIT = 2000
+DEFAULT_LIMIT = 5000
 
 _ACTIVE = "attivo"
 
