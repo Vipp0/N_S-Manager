@@ -34,6 +34,7 @@ def test_main_window_builds_and_every_page_opens(qapp, window):
         window.calendar_page,
         window.notes_page,
         window.bdo_page,
+        window.log_page,
         window.stats_page,
         window.settings_page,
         *window.pages.values(),
@@ -220,3 +221,43 @@ def test_seasonal_splash_and_startup_helper(qapp, tmp_path):
     conn.close()
     assert app_main._start_seasonal_splash(db) is None  # tema spento: resta la schermata normale
     assert app_main._start_seasonal_splash(tmp_path / "nuovo.db") is None or SEASONS[0].contains(__import__("datetime").date.today())
+
+
+def test_event_log_page_lists_operations_with_colors_filter_and_search(qapp, window):
+    from gilda_app.db.database import add_member, move_member_status
+    from gilda_app.ui import event_log_page as elp
+
+    member = add_member(window.conn, "Registrato", "Main", "", [], "attivo")
+    move_member_status(window.conn, member, "ex_membro", note="inattivo")
+    move_member_status(window.conn, member, "attivo")
+    window.refresh_all()
+    page = window.log_page
+
+    labels = [page.table.item(row, elp.EVENT_COLUMN).text() for row in range(page.table.rowCount())]
+    assert labels[:3] == ["Rientro", "Uscita", "Ingresso"]  # il più recente in alto
+    backgrounds = [page.table.item(row, elp.EVENT_COLUMN).background().color() for row in range(3)]
+    assert backgrounds == [elp.COLOR_GOOD, elp.COLOR_BAD, elp.COLOR_GOOD]
+    assert "inattivo" in page.table.item(1, elp.DETAIL_COLUMN).text()
+
+    page.filter_box.setCurrentIndex(page.filter_box.findData(elp.FILTER_BAD))
+    assert [page.table.item(r, elp.EVENT_COLUMN).text() for r in range(page.table.rowCount())] == ["Uscita"]
+    page.filter_box.setCurrentIndex(page.filter_box.findData(elp.FILTER_ALL))
+    page.search_box.setText("nessuno-con-questo-nome")
+    assert page.table.rowCount() == 0 and not page._empty.isHidden()
+    page.search_box.setText("registrato")
+    assert page.table.rowCount() == 3
+
+    received = []
+    page.member_requested.connect(received.append)
+    page._on_double_click(page.table.model().index(0, 0))
+    assert received == [member]
+
+
+def test_opening_a_deleted_member_from_the_log_does_not_crash(qapp, window):
+    from gilda_app.db.database import add_member, delete_member
+
+    member = add_member(window.conn, "Sparito", "", "", [], "attivo")
+    delete_member(window.conn, member)
+    window.refresh_all()
+    window._open_member_from_log(member)  # solo un avviso, nessuna eccezione
+    assert window.log_page.table.item(0, 1).text() == "Eliminato"

@@ -169,6 +169,7 @@ def import_row(conn: sqlite3.Connection, row: ImportRow, on_duplicate: str = "sk
                 row.nations,
                 existing["note"],
                 commit=commit,
+                log=False,  # un import scrive un solo evento riassuntivo, non uno per riga
             )
             return "updated"
         # on_duplicate == "insert": inserisce comunque come nuova voce
@@ -183,6 +184,7 @@ def import_row(conn: sqlite3.Connection, row: ImportRow, on_duplicate: str = "sk
         data_inserimento=None,
         note=None,
         commit=commit,
+        log=False,
     )
     return "inserted"
 

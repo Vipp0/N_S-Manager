@@ -19,6 +19,7 @@ from qfluentwidgets import (
     TransparentToolButton,
 )
 
+from gilda_app.db import event_log
 from gilda_app.db.backup import (
     AUTO_REASON,
     EXTRA_DIR_SETTING,
@@ -86,6 +87,7 @@ from gilda_app.ui.settings_page import SettingsPage
 from gilda_app.ui.update_window import UpdateDownloadWorker, UpdateProgressWindow
 from gilda_app.ui.whats_new_dialog import WhatsNewDialog
 from gilda_app.whats_new import latest_release, releases_to_show
+from gilda_app.ui.event_log_page import EventLogPage
 from gilda_app.ui.stats_view import StatsPage
 from gilda_app.utils.discord_format import discord_copy_text
 from gilda_app.version import __version__
@@ -247,6 +249,11 @@ class MainWindow(FluentWindow):
         self.bdo_page.estimate_finished_requested.connect(self._finish_estimate)
         self.addSubInterface(self.bdo_page, FIF.GLOBE, tr("nav.bdo"))
 
+        self.log_page = EventLogPage(lambda: self.conn, self)
+        self.log_page.setObjectName("page_log")
+        self.log_page.member_requested.connect(self._open_member_from_log)
+        self.addSubInterface(self.log_page, FIF.BOOK_SHELF, tr("nav.log"))
+
         self.stats_page = StatsPage(lambda: self.conn, self._open_nation_in_current, self)
         self.stats_page.setObjectName("page_stats")
         self.addSubInterface(self.stats_page, FIF.PIE_SINGLE, tr("nav.stats"))
@@ -311,7 +318,9 @@ class MainWindow(FluentWindow):
         self.setWindowIcon(icon)  # angolo della barra del titolo e pulsante nella barra delle applicazioni
         QApplication.setWindowIcon(icon)  # anche le finestre di dialogo
         self.dashboard_page.set_decor(season)
-        for page in (self.notes_page, self.calendar_page, self.bdo_page, self.stats_page, self.settings_page):
+        for page in (
+            self.notes_page, self.calendar_page, self.bdo_page, self.log_page, self.stats_page, self.settings_page
+        ):
             page.set_decor(season)
         if greeting:
             self.dashboard_page.set_greeting(
@@ -371,6 +380,7 @@ class MainWindow(FluentWindow):
         for status, page in self.pages.items():
             page.set_members(get_members(self.conn, status), old_names)
         self.stats_page.refresh()
+        self.log_page.refresh()
         self.dashboard_page.refresh()
         if getattr(self, "_guild", None) is not None:
             self._update_guild_comparison()
@@ -1284,6 +1294,15 @@ class MainWindow(FluentWindow):
             self.refresh_all()
             self._notify(tr("notify.member_deleted.title"), tr("notify.member_deleted.body", name=member.family_name))
 
+    def _open_member_from_log(self, member_id: int) -> None:
+        """Doppio click su una riga del registro: apre la lista del membro e lo seleziona (se esiste ancora)."""
+        row = self.conn.execute("SELECT status FROM members WHERE id = ?", (member_id,)).fetchone()
+        if row is None:
+            self._notify(tr("log.gone.title"), tr("log.gone.body"), error=True)
+            return
+        self.switchTo(self.pages[row["status"]])
+        self.pages[row["status"]].select_member_by_id(member_id)
+
     def _on_move(self, member: Member) -> None:
         dialog = MoveDialog(self, member=member)
         if dialog.exec():
@@ -1333,6 +1352,10 @@ class MainWindow(FluentWindow):
         result = self._backup("manual")
         if result.path is None:
             return
+        event_log.log_event(
+            self.conn, event_log.KIND_SYSTEM, detail={"what": "backup", "name": result.path.name}, commit=True
+        )
+        self.log_page.refresh()
         self._notify(tr("backup.notify.created.title"), tr("backup.notify.created.body", name=result.path.name))
         if result.extra_error:
             self._notify(
@@ -1397,6 +1420,14 @@ class MainWindow(FluentWindow):
                 error=True,
             )
             return
+        try:  # il registro vive nel database ripristinato: l'evento si scrive lì, prima di riavviare
+            restored = connect(self.db_path)
+            event_log.log_event(
+                restored, event_log.KIND_SYSTEM, detail={"what": "restore", "backup": chosen.path.name}, commit=True
+            )
+            restored.close()
+        except sqlite3.Error:
+            pass
         restart_app()
 
     # -- Import / Export / Reset ---------------------------------------
@@ -1445,6 +1476,7 @@ class MainWindow(FluentWindow):
         finally:
             progress.close()
 
+        event_log.log_event(self.conn, event_log.KIND_SYSTEM, detail={"what": "import", **outcome}, commit=True)
         self.refresh_all()
         self._notify(
             tr("notify.import_done.title"),
@@ -1478,5 +1510,6 @@ class MainWindow(FluentWindow):
 
         self._backup("reset")
         reset_database(self.conn)
+        event_log.log_event(self.conn, event_log.KIND_SYSTEM, detail={"what": "reset"}, commit=True)
         self.refresh_all()
         self._notify(tr("notify.reset_done.title"), tr("notify.reset_done.body"))

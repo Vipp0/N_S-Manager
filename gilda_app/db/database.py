@@ -1,6 +1,8 @@
 import sqlite3
+from datetime import date
 from pathlib import Path
 
+from gilda_app.db import event_log
 from gilda_app.db.migrations import migrate
 from gilda_app.models.member import Member
 
@@ -50,7 +52,10 @@ def add_member(
     still_on_discord: bool = False,
     commit: bool = True,
     birthday: str | None = None,
+    log: bool = True,
 ) -> int:
+    """log=False (usato dall'import, che scrive un solo evento riassuntivo) non registra l'ingresso nel
+    registro eventi."""
     cur = conn.execute(
         """
         INSERT INTO members (family_name, main_name, discord_name, status, data_inserimento, note, still_on_discord, birthday)
@@ -84,6 +89,12 @@ def add_member(
             """,
             (member_id, status),
         )
+    if log:
+        joined = data_inserimento if data_inserimento and data_inserimento != date.today().isoformat() else None
+        event_log.log_event(
+            conn, event_log.KIND_ADDED, member_id, family_name, to_status=status,
+            detail={"joined": joined} if joined else None,
+        )
     if commit:
         conn.commit()
     return member_id
@@ -104,6 +115,7 @@ def update_member(
     record_name_changes: bool = False,
     update_birthday: bool = False,
     birthday: str | None = None,
+    log: bool = True,
 ) -> None:
     """update_date=False (default, usato dall'import) lascia invariato data_inserimento;
     update_date=True (usato dal form di modifica) lo imposta al valore passato, anche None.
@@ -112,9 +124,14 @@ def update_member(
     record_name_changes=True (form di modifica) registra nello storico nomi i cambi dei
     campi in TRACKED_NAME_FIELDS; l'import lo lascia False per non riempirlo di rumore.
     update_birthday=True (form di modifica) imposta il compleanno al valore passato, anche
-    None; l'import lo lascia False per non cancellare quelli già inseriti."""
+    None; l'import lo lascia False per non cancellare quelli già inseriti.
+    log=False (usato dall'import) non scrive le modifiche nel registro eventi."""
+    old = conn.execute("SELECT * FROM members WHERE id = ?", (member_id,)).fetchone()
+    old_nations = [
+        r["nation"]
+        for r in conn.execute("SELECT nation FROM member_nations WHERE member_id = ? ORDER BY ord", (member_id,))
+    ]
     if record_name_changes:
-        old = conn.execute("SELECT * FROM members WHERE id = ?", (member_id,)).fetchone()
         new_values = {"family_name": family_name}
         for field in TRACKED_NAME_FIELDS:
             if old is not None and old[field] and old[field] != new_values[field]:
@@ -149,8 +166,43 @@ def update_member(
             "INSERT INTO member_nations (member_id, nation, ord) VALUES (?, ?, ?)",
             (member_id, nation, ord_idx),
         )
+    if log and old is not None:
+        _log_member_changes(
+            conn, member_id, old, old_nations, family_name, main_name, discord_name, nations, note,
+            data_inserimento if update_date else old["data_inserimento"],
+            birthday if update_birthday else old["birthday"],
+            still_on_discord if still_on_discord is not None else bool(old["still_on_discord"]),
+        )
     if commit:
         conn.commit()
+
+
+def _log_member_changes(
+    conn, member_id, old, old_nations, family_name, main_name, discord_name, nations, note, data_inserimento,
+    birthday, still_on_discord,
+) -> None:
+    """Scrive nel registro cosa è cambiato in una modifica: il cambio di Family Name come evento a sé, gli
+    altri campi insieme in un solo evento "modifica". Nessuna riga se non è cambiato niente."""
+    def changed(old_value, new_value) -> bool:
+        return (old_value or "") != (new_value or "")
+
+    if changed(old["family_name"], family_name):
+        event_log.log_event(
+            conn, event_log.KIND_NAME, member_id, family_name,
+            detail={"changes": [{"field": "family_name", "old": old["family_name"], "new": family_name}]},
+        )
+    candidates = [
+        ("main_name", old["main_name"], main_name),
+        ("discord_name", old["discord_name"], discord_name),
+        ("nations", ", ".join(old_nations), ", ".join(nations)),
+        ("note", old["note"], note),
+        ("data_inserimento", old["data_inserimento"], data_inserimento),
+        ("birthday", old["birthday"], birthday),
+        ("still_on_discord", "1" if old["still_on_discord"] else "", "1" if still_on_discord else ""),
+    ]
+    changes = [{"field": f, "old": o or "", "new": n or ""} for f, o, n in candidates if changed(o, n)]
+    if changes:
+        event_log.log_event(conn, event_log.KIND_EDIT, member_id, family_name, detail={"changes": changes})
 
 
 def add_name_change(
@@ -161,8 +213,12 @@ def add_name_change(
     new_value: str,
     date: str | None = None,
     commit: bool = True,
+    log: bool = False,
 ) -> None:
-    """date (yyyy-mm-dd) None = adesso."""
+    """date (yyyy-mm-dd) None = adesso. log=True (inserimento a mano nello storico nomi) lo scrive anche nel
+    registro eventi; la modifica di un membro lo lascia False, perché registra già il cambio di nome."""
+    if log:
+        _log_history(conn, member_id, "name_added")
     if date:
         conn.execute(
             "INSERT INTO name_history (member_id, field, old_value, new_value, changed_at) VALUES (?, ?, ?, ?, ?)",
@@ -184,6 +240,9 @@ def get_name_history(conn: sqlite3.Connection, member_id: int) -> list[sqlite3.R
 
 
 def update_name_change(conn: sqlite3.Connection, entry_id: int, old_value: str | None, new_value: str, date: str) -> None:
+    row = conn.execute("SELECT member_id FROM name_history WHERE id = ?", (entry_id,)).fetchone()
+    if row is not None:
+        _log_history(conn, row["member_id"], "name_edited")
     conn.execute(
         "UPDATE name_history SET old_value = ?, new_value = ?, changed_at = ? WHERE id = ?",
         (old_value, new_value, f"{date} 00:00:00", entry_id),
@@ -192,6 +251,9 @@ def update_name_change(conn: sqlite3.Connection, entry_id: int, old_value: str |
 
 
 def delete_name_change(conn: sqlite3.Connection, entry_id: int) -> None:
+    row = conn.execute("SELECT member_id FROM name_history WHERE id = ?", (entry_id,)).fetchone()
+    if row is not None:
+        _log_history(conn, row["member_id"], "name_deleted")
     conn.execute("DELETE FROM name_history WHERE id = ?", (entry_id,))
     conn.commit()
 
@@ -205,7 +267,17 @@ def old_names_by_member(conn: sqlite3.Connection) -> dict[int, list[str]]:
     return result
 
 
+def _log_history(conn: sqlite3.Connection, member_id: int, what: str) -> None:
+    """Correzione dello storico di un membro (movimenti o nomi), non un'operazione sul membro in sé."""
+    event_log.log_event(
+        conn, event_log.KIND_HISTORY, member_id, event_log.member_name(conn, member_id), detail={"what": what}
+    )
+
+
 def delete_member(conn: sqlite3.Connection, member_id: int) -> None:
+    row = conn.execute("SELECT family_name, status FROM members WHERE id = ?", (member_id,)).fetchone()
+    if row is not None:
+        event_log.log_event(conn, event_log.KIND_DELETE, member_id, row["family_name"], from_status=row["status"])
     conn.execute("DELETE FROM members WHERE id = ?", (member_id,))
     conn.commit()
 
@@ -240,6 +312,10 @@ def move_member_status(
         VALUES (?, ?, ?, ?)
         """,
         (member_id, previous_status, new_status, note),
+    )
+    event_log.log_event(
+        conn, event_log.KIND_STATUS, member_id, event_log.member_name(conn, member_id),
+        from_status=previous_status, to_status=new_status, detail={"note": note} if note else None,
     )
     conn.commit()
 
@@ -298,6 +374,7 @@ def update_status_history_entry(conn: sqlite3.Connection, history_id: int, date:
     )
     if row["previous_status"] is None:
         conn.execute("UPDATE members SET data_inserimento = ? WHERE id = ?", (date, row["member_id"]))
+    _log_history(conn, row["member_id"], "status_entry")
     conn.commit()
 
 
@@ -330,6 +407,7 @@ def rebuild_status_history(conn: sqlite3.Connection, member_id: int, entries: li
         "UPDATE members SET status = ?, data_inserimento = ?, updated_at = datetime('now') WHERE id = ?",
         (entries[-1]["status"], entries[0]["date"], member_id),
     )
+    _log_history(conn, member_id, "status_rebuilt")
     conn.commit()
 
 

@@ -6,6 +6,14 @@ usa il programma, non i dettagli tecnici del come."""
 
 CHANGELOG: list[dict] = [
     {
+        "version": "2.8.1",
+        "date": "28-10-2026",
+        "notes": [
+            "Dashboard, Ultimi ingressi: chi torna tra i membri attuali da ex membro o da bannato ora compare anche lì, con la data del rientro e la scritta \"rientrato\"; prima, restando la sua data di ingresso quella originale, non veniva segnalato. Anche il conteggio \"Ingressi negli ultimi 30 giorni\" comprende i rientri.",
+            "Nuova scheda Registro eventi (prima di Statistiche): tiene lo storico delle operazioni fatte nel programma, con data e ora, dalla più recente. In verde chi entra in gilda o torna tra i membri attuali, in rosso chi passa da membro a ex membro o bannato; senza colore le altre operazioni: cambi di nome, modifiche ai dati, correzioni dello storico, eliminazioni, importazioni, azzeramenti, ripristini e backup fatti a mano. Si può filtrare per tipo e cercare per nome, e un doppio click su una riga porta al membro. Registra da ora in poi; all'aggiornamento recupera dallo storico già presente gli eventi con data certa degli ultimi 90 giorni (passaggi di lista, ingressi con data, cambi di nome). Le righe restano anche se il membro viene eliminato.",
+        ],
+    },
+    {
         "version": "2.8",
         "date": "23-10-2026",
         "notes": [

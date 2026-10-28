@@ -466,7 +466,9 @@ class MemberDialog(MessageBoxBase):
         dialog = NameChangeDialog(self, tr(f"label.{field}_field"), new_value=self.member.family_name)
         if dialog.exec():
             values = dialog.values()
-            add_name_change(self.conn, self.member.id, field, values["old_value"], values["new_value"], values["date"])
+            add_name_change(
+                self.conn, self.member.id, field, values["old_value"], values["new_value"], values["date"], log=True
+            )
             self._refresh_name_history()
 
     def _on_name_double_click(self, index) -> None:

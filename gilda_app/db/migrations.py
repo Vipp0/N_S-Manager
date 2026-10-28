@@ -1,4 +1,5 @@
 """Schema versionato: ogni funzione upgrade_N porta dalla versione N-1 alla N."""
+import json
 import sqlite3
 
 
@@ -148,6 +149,70 @@ def _upgrade_8(conn: sqlite3.Connection) -> None:
     )
 
 
+BACKFILL_DAYS = 90  # fin dove si recuperano dallo storico esistente gli eventi già accaduti
+
+
+def _upgrade_9(conn: sqlite3.Connection) -> None:
+    # Registro eventi (vedi db/event_log.py). member_id non è una chiave esterna: le righe devono restare
+    # anche quando il membro viene eliminato, per questo il nome si copia nella riga.
+    conn.executescript(
+        """
+        CREATE TABLE event_log (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            at TEXT NOT NULL,
+            kind TEXT NOT NULL,
+            member_id INTEGER,
+            member_name TEXT,
+            from_status TEXT,
+            to_status TEXT,
+            detail TEXT
+        );
+        CREATE INDEX idx_event_log_at ON event_log(at);
+        """
+    )
+    # Dallo storico che già c'è si recuperano gli eventi con data certa degli ultimi giorni: passaggi di
+    # lista, ingressi con data di ingresso e cambi di nome. Gli "ingressi" di un import (tutti nello stesso
+    # istante, senza data) non sono eventi veri e restano fuori. L'orario dei passaggi è in UTC (ora del
+    # database) e si converte in locale; le date senza orario (00:00:00) restano com'erano.
+    since = f"-{BACKFILL_DAYS} days"
+    local = "CASE WHEN substr({c}, 12) = '00:00:00' THEN {c} ELSE datetime({c}, 'localtime') END"
+    rows = conn.execute(
+        f"""
+        SELECT h.member_id, m.family_name, h.previous_status, h.new_status, h.note,
+               {local.format(c='h.changed_at')} AS at
+        FROM status_history h JOIN members m ON m.id = h.member_id
+        WHERE h.changed_at IS NOT NULL AND date(h.changed_at) >= date('now', ?)
+          AND (h.previous_status IS NOT NULL OR substr(h.changed_at, 12) = '00:00:00')
+        """,
+        (since,),
+    ).fetchall()
+    for row in rows:
+        if row[2] is None:
+            kind, detail = "added", None
+        else:
+            kind, detail = "status", ({"note": row[4]} if row[4] else None)
+        conn.execute(
+            "INSERT INTO event_log (at, kind, member_id, member_name, from_status, to_status, detail) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (row[5], kind, row[0], row[1], row[2], row[3], json.dumps(detail, ensure_ascii=False) if detail else None),
+        )
+    rows = conn.execute(
+        f"""
+        SELECT n.member_id, m.family_name, n.field, n.old_value, n.new_value,
+               {local.format(c='n.changed_at')} AS at
+        FROM name_history n JOIN members m ON m.id = n.member_id
+        WHERE n.changed_at IS NOT NULL AND date(n.changed_at) >= date('now', ?)
+        """,
+        (since,),
+    ).fetchall()
+    for row in rows:
+        detail = {"changes": [{"field": row[2], "old": row[3], "new": row[4]}]}
+        conn.execute(
+            "INSERT INTO event_log (at, kind, member_id, member_name, detail) VALUES (?, 'name', ?, ?, ?)",
+            (row[5], row[0], row[1], json.dumps(detail, ensure_ascii=False)),
+        )
+
+
 MIGRATIONS = [
     _upgrade_1,
     _upgrade_2,
@@ -157,6 +222,7 @@ MIGRATIONS = [
     _upgrade_6,
     _upgrade_7,
     _upgrade_8,
+    _upgrade_9,
 ]
 
 

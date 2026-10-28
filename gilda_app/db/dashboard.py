@@ -4,6 +4,7 @@ from datetime import date, timedelta
 
 from gilda_app.db.calendar_events import get_all_events, occurrences_in_range
 from gilda_app.db.holidays import get_holidays_in_range
+from gilda_app.models.member import STATUS_ATTIVO
 
 RECENT_DAYS = 30
 AGENDA_DAYS = 7
@@ -34,12 +35,14 @@ def transitions_to(conn: sqlite3.Connection, status: str, days: int = RECENT_DAY
 
 
 def joined_recently(conn: sqlite3.Connection, days: int = RECENT_DAYS) -> int:
-    """Ingressi negli ultimi `days` giorni, dalla data di ingresso registrata."""
-    return conn.execute(
+    """Ingressi negli ultimi `days` giorni: la data di ingresso registrata e i rientri (da ex membro o
+    da bannato a membro attuale), che sono ingressi a tutti gli effetti."""
+    first = conn.execute(
         "SELECT COUNT(*) FROM members WHERE data_inserimento IS NOT NULL "
         "AND data_inserimento >= date('now', ?)",
         (f"-{days} days",),
     ).fetchone()[0]
+    return first + transitions_to(conn, STATUS_ATTIVO, days)
 
 
 def upcoming_agenda(conn: sqlite3.Connection, today: date, days: int = AGENDA_DAYS) -> list[tuple[date, str, bool]]:
@@ -55,13 +58,34 @@ def upcoming_agenda(conn: sqlite3.Connection, today: date, days: int = AGENDA_DA
     return sorted(items, key=lambda item: (item[0], item[2]))
 
 
-def recent_joins(conn: sqlite3.Connection, limit: int = 5) -> list[sqlite3.Row]:
-    """Ultimi membri attuali entrati, dalla data di ingresso registrata."""
-    return conn.execute(
+def recent_joins(conn: sqlite3.Connection, limit: int = 5) -> list[dict]:
+    """Ultimi ingressi tra i membri attuali. Per ognuno vale la data più recente tra l'ingresso registrato
+    e l'ultimo rientro (da ex membro o da bannato): chi è rientrato compare con la data del rientro e
+    `rejoined` vero. Dict con family_name, main_name, joined_on (yyyy-mm-dd), rejoined."""
+    rows = conn.execute(
         """
-        SELECT family_name, main_name, data_inserimento FROM members
-        WHERE status = 'attivo' AND data_inserimento IS NOT NULL
-        ORDER BY data_inserimento DESC, id DESC LIMIT ?
-        """,
-        (limit,),
+        SELECT m.id, m.family_name, m.main_name, m.data_inserimento,
+               (SELECT MAX(h.changed_at) FROM status_history h
+                WHERE h.member_id = m.id AND h.new_status = 'attivo' AND h.previous_status IN ('ex_membro', 'bannato')
+                  AND h.changed_at IS NOT NULL) AS rejoined_at
+        FROM members m WHERE m.status = 'attivo'
+        """
     ).fetchall()
+    joins = []
+    for row in rows:
+        first = row["data_inserimento"][:10] if row["data_inserimento"] else None
+        rejoin = row["rejoined_at"][:10] if row["rejoined_at"] else None
+        if first is None and rejoin is None:
+            continue
+        rejoined = rejoin is not None and (first is None or rejoin >= first)
+        joins.append(
+            {
+                "id": row["id"],
+                "family_name": row["family_name"],
+                "main_name": row["main_name"],
+                "joined_on": rejoin if rejoined else first,
+                "rejoined": rejoined,
+            }
+        )
+    joins.sort(key=lambda j: (j["joined_on"], j["id"]), reverse=True)
+    return joins[:limit]

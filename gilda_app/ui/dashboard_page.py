@@ -462,10 +462,10 @@ class DashboardPage(QWidget):
             "",
             [
                 (
-                    day_text(
-                        date.fromisoformat(r["data_inserimento"][:10]), date.today(), iso_to_display(r["data_inserimento"])
-                    ),
-                    r["family_name"] + (f" ({r['main_name']})" if r["main_name"] else ""),
+                    day_text(date.fromisoformat(r["joined_on"]), date.today(), iso_to_display(r["joined_on"])),
+                    r["family_name"]
+                    + (f" ({r['main_name']})" if r["main_name"] else "")
+                    + (tr("dash.rejoined") if r["rejoined"] else ""),
                 )
                 for r in joins
             ]
