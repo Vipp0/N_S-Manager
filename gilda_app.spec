@@ -1,8 +1,48 @@
 # -*- mode: python ; coding: utf-8 -*-
 import glob
+import re
+
+from PyInstaller.utils.win32.versioninfo import (
+    FixedFileInfo,
+    StringFileInfo,
+    StringStruct,
+    StringTable,
+    VarFileInfo,
+    VarStruct,
+    VSVersionInfo,
+)
 
 # Build a onedir (cartella) distribution, non onefile: avvio più veloce e la
 # cartella dist/Night_Shade Manager/ può ospitare gilda.db e backups/ accanto all'exe.
+
+# "Carta d'identità" dell'exe (Proprietà -> Dettagli): nome, autore, descrizione, versione. Un exe anonimo, senza
+# queste informazioni, è visto con più sospetto dagli antivirus. La versione si legge da gilda_app/version.py (unico
+# punto da aggiornare a ogni rilascio): "2.9.2" -> 2.9.2.0.
+_version = re.search(r'__version__ = "([^"]+)"', open("gilda_app/version.py", encoding="utf-8").read()).group(1)
+_numbers = ([int(n) for n in _version.split(".")] + [0, 0, 0, 0])[:4]
+version_info = VSVersionInfo(
+    ffi=FixedFileInfo(filevers=tuple(_numbers), prodvers=tuple(_numbers), mask=0x3F, flags=0x0, OS=0x40004, fileType=0x1, subtype=0x0),
+    kids=[
+        StringFileInfo(
+            [
+                StringTable(
+                    "040904B0",  # inglese (USA), Unicode
+                    [
+                        StringStruct("CompanyName", "Vipp0"),
+                        StringStruct("FileDescription", "Night_Shade Manager - gestionale dei membri della gilda"),
+                        StringStruct("FileVersion", _version),
+                        StringStruct("InternalName", "Night_Shade Manager"),
+                        StringStruct("LegalCopyright", "Copyright (c) 2026 Vipp0 - MIT License"),
+                        StringStruct("OriginalFilename", "Night_Shade Manager.exe"),
+                        StringStruct("ProductName", "Night_Shade Manager"),
+                        StringStruct("ProductVersion", _version),
+                    ],
+                )
+            ]
+        ),
+        VarFileInfo([VarStruct("Translation", [0x0409, 1200])]),
+    ],
+)
 
 a = Analysis(
     ["gilda_app/main.py"],
@@ -66,6 +106,7 @@ exe = EXE(
     upx=False,
     console=False,
     icon="gilda_app/resources/app_icon.ico",
+    version=version_info,
 )
 
 coll = COLLECT(

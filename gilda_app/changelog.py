@@ -10,6 +10,7 @@ CHANGELOG: list[dict] = [
         "date": "28-10-2026",
         "notes": [
             "Dashboard: il riquadro \"Ultimi ingressi\" diventa \"Ultimi movimenti\" e mostra, per ogni membro, il movimento più recente: \"entrato\" (data di ingresso registrata, per chi è tra i membri attuali), \"rientrato\" (da ex membro o bannato), \"uscito\" (passato a ex membro) o \"bannato\". Nessun colore, solo la scritta accanto al nome. I passaggi tra ex membro e bannato non compaiono. Il conteggio \"Ingressi negli ultimi 30 giorni\" non cambia.",
+            "Il file .exe ora ha le sue informazioni di identità (Proprietà → Dettagli: nome del prodotto, autore, descrizione, versione, licenza), prese dal numero di versione del programma. Un eseguibile che si presenta viene sospettato meno dagli antivirus, e con l'aggiornamento automatico serve a evitare i falsi allarmi.",
         ],
     },
     {
