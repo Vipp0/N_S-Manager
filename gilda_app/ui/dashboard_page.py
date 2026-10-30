@@ -62,7 +62,10 @@ _VALUE_STYLE = "font-size: 28px; font-weight: 600;"
 TODAY_COLOR = "#15803d"
 # Come TODAY_COLOR, ma per chi non è più un membro attuale (compleanno degli ex membri).
 FORMER_TODAY_COLOR = "#b45309"
+# La lista è sempre piena: i prossimi BIRTHDAY_ROWS compleanni, anche se il più vicino è fra mesi
+# (un anno di giorni basta a trovare il prossimo di chiunque).
 BIRTHDAY_ROWS = 8
+BIRTHDAY_DAYS = 366
 
 
 def day_text(day: date, today: date, fallback: str) -> str:
@@ -479,7 +482,7 @@ class DashboardPage(QWidget):
         birthday_today = set()
         birthday_colors: dict[int, str] = {}
         for day, family, main, age, status in stats.upcoming_birthdays(
-            conn, today, days=14, limit=BIRTHDAY_ROWS, include_former=True
+            conn, today, days=BIRTHDAY_DAYS, limit=BIRTHDAY_ROWS, include_former=True
         ):
             name = family + (f" ({main})" if main else "")
             if status == STATUS_EX_MEMBRO:

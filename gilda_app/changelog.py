@@ -6,6 +6,14 @@ usa il programma, non i dettagli tecnici del come."""
 
 CHANGELOG: list[dict] = [
     {
+        "version": "2.9.3",
+        "date": "30-10-2026",
+        "notes": [
+            "Interfaccia in inglese: \"Former members\" diventa \"Ex members\" ovunque compaia (liste, statistiche, ricerca, dashboard, scheda BDO). In italiano non cambia niente.",
+            "Dashboard, Compleanni: la lista è sempre piena. Mostra i prossimi otto compleanni anche se il più vicino è fra qualche mese (prima si guardava solo ai 14 giorni successivi e il riquadro poteva restare vuoto). Cambiano solo i giorni controllati: gli ex membri restano indicati e le righe di oggi restano evidenziate; i compleanni lontani si leggono come giorno-mese.",
+        ],
+    },
+    {
         "version": "2.9.2",
         "date": "28-10-2026",
         "notes": [

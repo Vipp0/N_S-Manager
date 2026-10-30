@@ -11,7 +11,7 @@ _current_language = DEFAULT_LANGUAGE
 STRINGS: dict[str, dict[str, str]] = {
     # -- Stati membro --------------------------------------------------
     "status.attivo": {"it": "Membri attuali", "en": "Current members"},
-    "status.ex_membro": {"it": "Ex membri", "en": "Former members"},
+    "status.ex_membro": {"it": "Ex membri", "en": "Ex members"},
     "status.bannato": {"it": "Bannati", "en": "Banned"},
 
     # -- Finestra principale / navigazione ------------------------------
@@ -40,8 +40,8 @@ STRINGS: dict[str, dict[str, str]] = {
         "en": "Invalid birthday: check day, month and year (or leave everything empty).",
     },
     "dash.birthdays": {"it": "Compleanni", "en": "Birthdays"},
-    "dash.no_birthdays": {"it": "Nessun compleanno nei prossimi 14 giorni.", "en": "No birthdays in the next 14 days."},
-    "dash.birthday_former": {"it": " (ex membro)", "en": " (former member)"},
+    "dash.no_birthdays": {"it": "Nessun compleanno registrato.", "en": "No birthdays recorded."},
+    "dash.birthday_former": {"it": " (ex membro)", "en": " (ex member)"},
     "dash.birthday_age": {"it": " — compie {age} anni", "en": " — turns {age}"},
     "dash.today": {"it": "Oggi", "en": "Today"},
     "dash.tomorrow": {"it": "Domani", "en": "Tomorrow"},
@@ -146,7 +146,7 @@ STRINGS: dict[str, dict[str, str]] = {
     "search.global.title": {"it": "Cerca in tutte le liste", "en": "Search across all lists"},
     "search.global.placeholder": {
         "it": "Cerca per nome, nazione, discord in Attuali, Ex membri e Bannati...",
-        "en": "Search by name, nation, discord across Current, Former and Banned...",
+        "en": "Search by name, nation, discord across Current, Ex members and Banned...",
     },
     "search.global.column.status": {"it": "Lista", "en": "List"},
     "search.global.go": {"it": "Vai al membro", "en": "Go to member"},
@@ -506,7 +506,7 @@ STRINGS: dict[str, dict[str, str]] = {
     # -- Statistiche -----------------------------------------------------------
     "stats.title": {"it": "Statistiche", "en": "Statistics"},
     "stats.current_members": {"it": "Membri attuali", "en": "Current members"},
-    "stats.former_members": {"it": "Ex membri", "en": "Former members"},
+    "stats.former_members": {"it": "Ex membri", "en": "Ex members"},
     "stats.banned": {"it": "Bannati", "en": "Banned"},
     "stats.total_history": {"it": "Totale storico", "en": "Total history"},
     "stats.avg_tenure": {"it": "Permanenza media prima di uscire", "en": "Average tenure before leaving"},
@@ -682,7 +682,7 @@ STRINGS: dict[str, dict[str, str]] = {
     },
     "bdo.guild_all_match": {"it": "Nessuna differenza con i Membri attuali.", "en": "No differences with the current members."},
     "bdo.guild_not_in_app": {"it": "In gioco ma non nel programma ({n}):", "en": "In game but not in the program ({n}):"},
-    "bdo.guild_ex_banned": {"it": "In gioco ma registrati come ex/bannati ({n}):", "en": "In game but recorded as former/banned ({n}):"},
+    "bdo.guild_ex_banned": {"it": "In gioco ma registrati come ex/bannati ({n}):", "en": "In game but recorded as ex members/banned ({n}):"},
     "bdo.guild_not_in_game": {"it": "Membri attuali non trovati in gioco ({n}):", "en": "Current members not found in game ({n}):"},
     "bdo.guild_hint": {
         "it": "Solo un confronto tra i nomi: il programma non modifica nulla da solo. I dati arrivano da un servizio esterno e possono avere qualche ora di ritardo.",

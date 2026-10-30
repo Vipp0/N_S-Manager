@@ -54,7 +54,7 @@ WHATS_NEW: dict[str, list[Highlight]] = {
             "con la data del rientro e la scritta \"rientrato\"; contano anche nel numero degli ingressi degli "
             "ultimi 30 giorni. Prima non venivano segnalati.",
             "Returning members show among the latest joins",
-            "On the dashboard, in Latest joins, members coming back from former or banned now appear too, with the "
+            "On the dashboard, in Latest joins, members coming back from ex members or banned now appear too, with the "
             "return date and the label \"rejoined\"; they also count in the number of joins of the last 30 days. "
             "Before, they were not shown.",
         ),

@@ -73,3 +73,14 @@ def test_upcoming_birthdays_can_include_former_members_but_never_banned(conn):
     assert result[0][3] == 36  # l'età si calcola anche per gli ex membri
     # col limite stretto, a parità di data non si scarta l'attuale a favore dell'ex
     assert [r[1] for r in upcoming_birthdays(conn, today, days=14, limit=2, include_former=True)] == ["ExOggi", "Attivo"]
+
+
+def test_a_year_window_always_finds_the_next_birthdays_even_months_away(conn):
+    from gilda_app.ui.dashboard_page import BIRTHDAY_DAYS
+
+    today = date(2026, 9, 24)
+    add_member(conn, "Lontano", "L", "", [], "attivo", birthday="1990-03-10")
+    add_member(conn, "Quasiunanno", "Q", "", [], "attivo", birthday="09-23")  # ieri: il prossimo è fra 364 giorni
+    assert upcoming_birthdays(conn, today, days=14) == []
+    found = upcoming_birthdays(conn, today, days=BIRTHDAY_DAYS)
+    assert [(r[0], r[1]) for r in found] == [(date(2027, 3, 10), "Lontano"), (date(2027, 9, 23), "Quasiunanno")]

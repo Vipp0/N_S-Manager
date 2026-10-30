@@ -332,3 +332,10 @@ def test_update_strip_announces_new_version_and_can_be_closed(qapp, window, monk
     assert window.update_strip.isVisible()  # resta finché non la si chiude
     window.update_strip._close.click()
     assert not window.update_strip.isVisible()
+
+
+def test_english_interface_says_ex_members_not_former():
+    from gilda_app.i18n import STRINGS
+
+    assert STRINGS["status.ex_membro"]["en"] == "Ex members"
+    assert not [key for key, texts in STRINGS.items() if "former" in texts["en"].lower() and key != "search.formerly"]
