@@ -286,6 +286,54 @@ def test_event_log_shows_recent_days_unless_show_all_or_searching(qapp, window):
 
 
 
+def test_accent_colour_defaults_to_violet_is_saved_and_yields_to_a_seasonal_theme(qapp, window):
+    from qfluentwidgets import themeColor
+
+    from gilda_app.accent import ACCENT_COLORS, ACCENT_SETTING
+    from gilda_app.db.database import get_setting
+
+    _mode(window, "off")
+    assert themeColor().name() == ACCENT_COLORS["violet"]  # il predefinito
+    assert window.settings_page._accent_swatches["violet"].isChecked()
+
+    window.settings_page._accent_swatches["fuchsia"].click()  # la scelta in Impostazioni
+    assert get_setting(window.conn, ACCENT_SETTING) == "fuchsia"
+    assert themeColor().name() == ACCENT_COLORS["fuchsia"]
+
+    _mode(window, "halloween")  # in festa vince il colore del tema...
+    assert themeColor().name() != ACCENT_COLORS["fuchsia"]
+    window.settings_page._accent_swatches["slate"].click()  # ...anche se si cambia scelta intanto
+    assert themeColor().name() != ACCENT_COLORS["slate"]
+    _mode(window, "off")  # ...e finita la festa torna la scelta fatta
+    assert themeColor().name() == ACCENT_COLORS["slate"]
+
+    window.settings_page.set_accent("sconosciuto")  # chiave di un'altra versione: si mostra il predefinito
+    assert window.settings_page._accent_swatches["violet"].isChecked()
+
+
+def test_the_saved_accent_colour_is_used_at_startup(qapp, tmp_path, monkeypatch):
+    from qfluentwidgets import setThemeColor, themeColor
+
+    from gilda_app.accent import ACCENT_COLORS, ACCENT_SETTING
+    from gilda_app.db.database import connect, set_setting
+    from gilda_app.ui import main_window as mw
+
+    monkeypatch.setattr(mw, "refresh_holidays_if_needed", lambda path: False)
+    monkeypatch.setattr(mw, "fetch_latest_release", lambda: None)
+    db = tmp_path / "gilda.db"
+    conn = connect(db)
+    set_setting(conn, "season_mode", "off")
+    set_setting(conn, ACCENT_SETTING, "blue")
+    original = themeColor()
+    win = mw.MainWindow(conn, db)
+    try:
+        assert themeColor().name() == ACCENT_COLORS["blue"]
+        assert win.settings_page._accent_swatches["blue"].isChecked()
+    finally:
+        win.close()
+        setThemeColor(original)
+
+
 def test_christmas_theme_decorates_the_whole_program_and_reverts(qapp, window):
     from qfluentwidgets import themeColor
 

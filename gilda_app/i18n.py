@@ -270,6 +270,16 @@ STRINGS: dict[str, dict[str, str]] = {
     "season.mode.auto": {"it": "Automatico (cambia nelle feste)", "en": "Automatic (changes during holidays)"},
     "season.mode.off": {"it": "Sempre normale", "en": "Always normal"},
     "season.mode.force": {"it": "Prova: {name}", "en": "Preview: {name}"},
+    "settings.accent_title": {"it": "Colore d'accento", "en": "Accent colour"},
+    "settings.accent_hint": {
+        "it": "Il colore di pulsanti ed evidenziazioni. Nei periodi di festa lo cambia il tema stagionale, poi torna quello che hai scelto.",
+        "en": "The colour of buttons and highlights. During holidays the seasonal theme changes it, then your choice comes back.",
+    },
+    "accent.violet": {"it": "Viola Night Shade", "en": "Night Shade violet"},
+    "accent.teal": {"it": "Turchese", "en": "Teal"},
+    "accent.blue": {"it": "Blu", "en": "Blue"},
+    "accent.fuchsia": {"it": "Fucsia", "en": "Fuchsia"},
+    "accent.slate": {"it": "Ardesia", "en": "Slate"},
     "settings.season_title": {"it": "Tema stagionale", "en": "Seasonal theme"},
     "settings.season_hint": {
         "it": "Nei periodi di festa (Halloween, Natale) cambiano la schermata di caricamento, il logo e il colore dei pulsanti; finita la festa torna tutto normale da solo. Qui puoi spegnerlo o provare un tema fuori stagione.",

@@ -14,7 +14,6 @@ RESOURCES = Path(__file__).resolve().parent / "resources"
 SEASON_MODE_SETTING = "season_mode"
 MODE_AUTO = "auto"
 MODE_OFF = "off"
-DEFAULT_ACCENT = "#009faa"  # colore d'accento normale (quello predefinito di qfluentwidgets)
 
 
 @dataclass(frozen=True)

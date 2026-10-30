@@ -1,5 +1,6 @@
-from PySide6.QtCore import Qt, Signal
-from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QVBoxLayout, QWidget
+from PySide6.QtCore import QPointF, Qt, Signal
+from PySide6.QtGui import QColor, QPainter, QPen
+from PySide6.QtWidgets import QButtonGroup, QFrame, QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget
 from qfluentwidgets import (
     CaptionLabel,
     CardWidget,
@@ -16,6 +17,7 @@ from qfluentwidgets import (
 
 from datetime import datetime, timezone
 
+from gilda_app.accent import ACCENT_COLORS
 from gilda_app.i18n import LANGUAGES, get_language, tr
 from gilda_app.ui.season_decor import DecorItem, DecorOverlay, snow, OrnamentedPage
 from gilda_app.seasons import selectable_modes
@@ -29,6 +31,37 @@ from gilda_app.utils.maintenance_estimate import (
 )
 from gilda_app.utils.server_status import REGIONS
 from gilda_app.version import __version__
+
+
+class AccentSwatch(QPushButton):
+    """Pastiglia tonda di un colore d'accento; quella scelta ha l'anello e la spunta (non solo il colore)."""
+
+    SIZE = 38
+
+    def __init__(self, key: str, color: str, name: str, parent=None):
+        super().__init__(parent)
+        self.key = key
+        self._color = QColor(color)
+        self.setCheckable(True)
+        self.setFixedSize(self.SIZE, self.SIZE)
+        self.setCursor(Qt.PointingHandCursor)
+        self.setToolTip(name)
+        self.setAccessibleName(name)
+
+    def paintEvent(self, event) -> None:
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+        center = QPointF(self.width() / 2, self.height() / 2)
+        radius = self.SIZE / 2 - (6 if self.isChecked() else 3)
+        painter.setPen(Qt.NoPen)
+        painter.setBrush(self._color)
+        painter.drawEllipse(center, radius, radius)
+        if self.isChecked():
+            painter.setBrush(Qt.NoBrush)
+            painter.setPen(QPen(self._color, 2))
+            painter.drawEllipse(center, self.SIZE / 2 - 1.5, self.SIZE / 2 - 1.5)
+            painter.setPen(QPen(QColor("white"), 2.2, Qt.SolidLine, Qt.RoundCap, Qt.RoundJoin))
+            painter.drawPolyline([center + QPointF(-5, 0.5), center + QPointF(-1.5, 4), center + QPointF(5, -3.5)])
 
 
 class SettingsPage(OrnamentedPage, QWidget):
@@ -48,6 +81,7 @@ class SettingsPage(OrnamentedPage, QWidget):
     guild_name_saved = Signal(str)
     server_region_changed = Signal(str)
     season_mode_changed = Signal(str)
+    accent_changed = Signal(str)
     maintenance_window_changed = Signal(int, int, int)  # inizio (a Los Angeles), durata, durata se temporanea
 
     def __init__(self, parent=None):
@@ -85,6 +119,27 @@ class SettingsPage(OrnamentedPage, QWidget):
         self.language_combo.currentIndexChanged.connect(self._on_language_changed)
         language_layout.addWidget(self.language_combo)
         layout.addWidget(language_card)
+
+        # Colore d'accento: il viola Night Shade di base e quattro alternative.
+        accent_card = CardWidget(self)
+        accent_layout = QVBoxLayout(accent_card)
+        accent_layout.addWidget(StrongBodyLabel(tr("settings.accent_title"), accent_card))
+        accent_hint = QLabel(tr("settings.accent_hint"), accent_card)
+        accent_hint.setWordWrap(True)
+        accent_layout.addWidget(accent_hint)
+        swatch_row = QHBoxLayout()
+        swatch_row.setSpacing(8)
+        self._accent_group = QButtonGroup(self)
+        self._accent_swatches: dict[str, AccentSwatch] = {}
+        for key, color in ACCENT_COLORS.items():
+            swatch = AccentSwatch(key, color, tr(f"accent.{key}"), accent_card)
+            self._accent_group.addButton(swatch)
+            self._accent_swatches[key] = swatch
+            swatch_row.addWidget(swatch)
+        swatch_row.addStretch(1)
+        accent_layout.addLayout(swatch_row)
+        self._accent_group.buttonClicked.connect(lambda button: self.accent_changed.emit(button.key))
+        layout.addWidget(accent_card)
 
         # Tema stagionale: automatico (cambia da solo nei periodi di festa), spento, o un tema per provarlo.
         season_card = CardWidget(self)
@@ -259,6 +314,11 @@ class SettingsPage(OrnamentedPage, QWidget):
         if mode == "off":
             return tr("season.mode.off")
         return tr("season.mode.force", name=tr(f"season.name.{mode}"))
+
+    def set_accent(self, key: str) -> None:
+        """Mostra il colore salvato (quello predefinito se la chiave non si conosce), senza emettere il segnale."""
+        swatch = self._accent_swatches.get(key) or next(iter(self._accent_swatches.values()))
+        swatch.setChecked(True)
 
     def set_season_mode(self, mode: str) -> None:
         """Mostra la scelta salvata, senza che sembri una scelta dell'utente (nessun segnale)."""

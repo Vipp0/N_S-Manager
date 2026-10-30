@@ -8,7 +8,7 @@ from PySide6.QtCore import QObject, Qt, QTimer, QUrl, Signal
 from PySide6.QtGui import QColor, QDesktopServices, QGuiApplication, QIcon, QKeySequence, QShortcut
 from PySide6.QtWidgets import QApplication, QFileDialog, QVBoxLayout
 from qfluentwidgets import FluentIcon as FIF
-from qfluentwidgets import setThemeColor, themeColor
+from qfluentwidgets import setThemeColor
 from qfluentwidgets import (
     FluentWindow,
     InfoBar,
@@ -47,6 +47,7 @@ from gilda_app.db.database import (
     set_setting,
     update_member,
 )
+from gilda_app.accent import ACCENT_SETTING, DEFAULT_ACCENT_KEY, accent_hex
 from gilda_app.i18n import get_language, tr
 from gilda_app.seasons import MODE_AUTO, SEASON_MODE_SETTING, active_season, greeting_active
 from gilda_app.importer.excel_export import export_workbook
@@ -189,12 +190,12 @@ class MainWindow(FluentWindow):
         self.db_path = db_path
         # Il colore d'accento del tema stagionale si imposta PRIMA di costruire le schede: cambiarlo a finestra
         # già costruita fa ridisegnare gli stili di tutti i widget (da mezzo secondo a due di avvio in più).
-        self._default_accent = themeColor()  # il colore normale, da rimettere finita la festa
+        # Il colore scelto in Impostazioni (viola Night Shade di base): da rimettere finita la festa.
+        self._default_accent = QColor(accent_hex(get_setting(self.conn, ACCENT_SETTING, DEFAULT_ACCENT_KEY)))
         self._season = None
         self._season_state = None  # (tema, auguri sì/no): serve a capire a mezzanotte se qualcosa è cambiato
         early = active_season(date.today(), get_setting(self.conn, SEASON_MODE_SETTING, MODE_AUTO))
-        if early is not None and early.accent:
-            setThemeColor(QColor(early.accent))
+        setThemeColor(QColor(early.accent) if early is not None and early.accent else self._default_accent)
 
         self.setWindowTitle(f"{tr('window.title')} v{__version__}")
         self.resize(1100, 720)
@@ -267,6 +268,8 @@ class MainWindow(FluentWindow):
         self.settings_page.language_changed.connect(self._on_language_changed)
         self.settings_page.season_mode_changed.connect(self._on_season_mode_changed)
         self.settings_page.set_season_mode(get_setting(self.conn, SEASON_MODE_SETTING, MODE_AUTO))
+        self.settings_page.accent_changed.connect(self._on_accent_changed)
+        self.settings_page.set_accent(get_setting(self.conn, ACCENT_SETTING, DEFAULT_ACCENT_KEY))
         self.settings_page.backup_now_requested.connect(self._on_backup_now)
         self.settings_page.open_backups_requested.connect(self._on_open_backups)
         self.settings_page.restore_requested.connect(self._on_restore)
@@ -333,6 +336,12 @@ class MainWindow(FluentWindow):
     def _on_season_mode_changed(self, mode: str) -> None:
         set_setting(self.conn, SEASON_MODE_SETTING, mode)
         self.apply_season()
+
+    def _on_accent_changed(self, key: str) -> None:
+        set_setting(self.conn, ACCENT_SETTING, key)
+        self._default_accent = QColor(accent_hex(key))
+        # Se è in corso una festa il suo colore resta; la scelta si vede finita la festa.
+        self.apply_season(force=True)
 
     def closeEvent(self, event) -> None:
         # Il blocco note salva con un ritardo dopo l'ultima battitura: se si chiude

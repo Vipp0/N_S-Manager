@@ -6,6 +6,13 @@ usa il programma, non i dettagli tecnici del come."""
 
 CHANGELOG: list[dict] = [
     {
+        "version": "2.9.5",
+        "date": "30-10-2026",
+        "notes": [
+            "Colore d'accento: quello di base diventa il viola Night Shade (era il turchese). In Impostazioni → Colore d'accento si sceglie tra cinque colori: viola Night Shade, turchese (quello di prima), blu, fucsia e ardesia; il cambio è immediato e resta salvato. Nei periodi di festa (Halloween, Natale) vince il colore del tema stagionale, poi torna quello scelto.",
+        ],
+    },
+    {
         "version": "2.9.4",
         "date": "30-10-2026",
         "notes": [
