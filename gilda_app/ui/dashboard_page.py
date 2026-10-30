@@ -68,6 +68,8 @@ INFO_ROWS = 6
 # I compleanni sono sempre INFO_ROWS, anche se il più vicino è fra mesi (un anno di giorni basta a trovare
 # il prossimo di chiunque).
 BIRTHDAY_DAYS = 366
+# Lo stesso per gli anniversari: si cercano nell'anno intero, così il riquadro è pieno quanto gli altri.
+ANNIVERSARY_DAYS = 366
 
 
 def day_text(day: date, today: date, fallback: str) -> str:
@@ -502,7 +504,7 @@ class DashboardPage(QWidget):
             today_colors=birthday_colors,
         )
 
-        anniversaries = stats.upcoming_anniversaries(conn, today, days=30, limit=INFO_ROWS)
+        anniversaries = stats.upcoming_anniversaries(conn, today, days=ANNIVERSARY_DAYS, limit=INFO_ROWS)
         self._info_cards["info_anniversaries"].set_content(
             "",
             [

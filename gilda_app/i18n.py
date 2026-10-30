@@ -24,7 +24,7 @@ STRINGS: dict[str, dict[str, str]] = {
     "dash.move.banned": {"it": " · bannato", "en": " · banned"},
     "dash.no_joins": {"it": "Nessun movimento con data registrata.", "en": "No movements with a recorded date."},
     "dash.anniversaries": {"it": "Anniversari in gilda", "en": "Guild anniversaries"},
-    "dash.no_anniversaries": {"it": "Nessun anniversario nei prossimi 30 giorni.", "en": "No anniversaries in the next 30 days."},
+    "dash.no_anniversaries": {"it": "Nessun anniversario in vista.", "en": "No upcoming anniversaries."},
     "dash.anniversary_line": {"it": "{date}  {name} — {years} {unit}", "en": "{date}  {name} — {years} {unit}"},
     "dash.year_one": {"it": "anno", "en": "year"},
     "dash.year_many": {"it": "anni", "en": "years"},

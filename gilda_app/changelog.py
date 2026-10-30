@@ -6,6 +6,13 @@ usa il programma, non i dettagli tecnici del come."""
 
 CHANGELOG: list[dict] = [
     {
+        "version": "2.9.4",
+        "date": "30-10-2026",
+        "notes": [
+            "Dashboard, Anniversari in gilda: la lista è sempre piena, come i compleanni. Mostra i prossimi sei anniversari anche se il più vicino è fra qualche mese (prima si guardava solo ai 30 giorni successivi e il riquadro poteva restare vuoto).",
+        ],
+    },
+    {
         "version": "2.9.3",
         "date": "30-10-2026",
         "notes": [

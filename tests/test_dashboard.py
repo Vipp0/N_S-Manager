@@ -83,6 +83,23 @@ def test_recent_movements_and_anniversaries(conn):
     assert result == [(date(2027, 2, 28), "Bisestile", "B", 3)]
 
 
+def test_a_year_window_always_finds_the_next_anniversaries_even_months_away(conn):
+    from gilda_app.db.stats import upcoming_anniversaries
+    from gilda_app.ui.dashboard_page import ANNIVERSARY_DAYS
+
+    today = date(2026, 9, 24)
+    add_member(conn, "Lontano", "L", "", [], STATUS_ATTIVO, data_inserimento="2023-03-10")
+    add_member(conn, "Quasiunanno", "Q", "", [], STATUS_ATTIVO, data_inserimento="2023-09-23")  # ieri: fra 364 giorni
+    add_member(conn, "Recente", "R", "", [], STATUS_ATTIVO, data_inserimento="2026-08-01")  # primo anno fra 10 mesi
+    assert upcoming_anniversaries(conn, today, days=30) == []
+    found = upcoming_anniversaries(conn, today, days=ANNIVERSARY_DAYS)
+    assert [(r[0], r[1], r[3]) for r in found] == [
+        (date(2027, 3, 10), "Lontano", 4),
+        (date(2027, 8, 1), "Recente", 1),
+        (date(2027, 9, 23), "Quasiunanno", 4),
+    ]
+
+
 def test_relative_day_label():
     from gilda_app.utils.date_format import relative_day_label
 
