@@ -10,7 +10,8 @@ CHANGELOG: list[dict] = [
         "date": "30-10-2026",
         "notes": [
             "Interfaccia in inglese: \"Former members\" diventa \"Ex members\" ovunque compaia (liste, statistiche, ricerca, dashboard, scheda BDO). In italiano non cambia niente.",
-            "Dashboard, Compleanni: la lista è sempre piena. Mostra i prossimi cinque compleanni (quante righe hanno gli altri riquadri della fila, così non lo allunga) anche se il più vicino è fra qualche mese (prima si guardava solo ai 14 giorni successivi e il riquadro poteva restare vuoto). Cambiano solo i giorni controllati: gli ex membri restano indicati e le righe di oggi restano evidenziate; i compleanni lontani si leggono come giorno-mese.",
+            "Dashboard, Compleanni: la lista è sempre piena. Mostra i prossimi sei compleanni anche se il più vicino è fra qualche mese (prima si guardava solo ai 14 giorni successivi e il riquadro poteva restare vuoto). Cambiano solo i giorni controllati: gli ex membri restano indicati e le righe di oggi restano evidenziate; i compleanni lontani si leggono come giorno-mese.",
+            "Dashboard, informazioni generali: i riquadri \"Ultimi movimenti\", \"Compleanni\", \"Anniversari in gilda\" e \"Top nazioni\" ora hanno sei righe ciascuno (prima cinque, otto per i compleanni) e la fila è un po' più alta; la classifica delle nazioni diventa Top 6.",
         ],
     },
     {

@@ -28,7 +28,7 @@ STRINGS: dict[str, dict[str, str]] = {
     "dash.anniversary_line": {"it": "{date}  {name} — {years} {unit}", "en": "{date}  {name} — {years} {unit}"},
     "dash.year_one": {"it": "anno", "en": "year"},
     "dash.year_many": {"it": "anni", "en": "years"},
-    "dash.top_nations": {"it": "Top 5 nazioni (membri attuali)", "en": "Top 5 nations (current members)"},
+    "dash.top_nations": {"it": "Top 6 nazioni (membri attuali)", "en": "Top 6 nations (current members)"},
     "stats.anniversaries": {"it": "Prossimi anniversari in gilda (60 giorni)", "en": "Upcoming guild anniversaries (60 days)"},
     "label.birthday": {"it": "Compleanno", "en": "Birthday"},
     "birthday.year_placeholder": {"it": "Anno (opz.)", "en": "Year (opt.)"},

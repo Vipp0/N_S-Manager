@@ -62,10 +62,11 @@ _VALUE_STYLE = "font-size: 28px; font-weight: 600;"
 TODAY_COLOR = "#15803d"
 # Come TODAY_COLOR, ma per chi non è più un membro attuale (compleanno degli ex membri).
 FORMER_TODAY_COLOR = "#b45309"
-# La lista è sempre piena: i prossimi BIRTHDAY_ROWS compleanni, anche se il più vicino è fra mesi
-# (un anno di giorni basta a trovare il prossimo di chiunque). Cinque righe: quante ne hanno gli altri
-# riquadri della fila (movimenti, anniversari, nazioni), così non lo allungano.
-BIRTHDAY_ROWS = 5
+# Righe dei riquadri di informazioni (movimenti, compleanni, anniversari, nazioni): le stesse per tutti, così
+# la fila è alta quanto serve a sei righe e nessun riquadro resta con un vuoto sotto.
+INFO_ROWS = 6
+# I compleanni sono sempre INFO_ROWS, anche se il più vicino è fra mesi (un anno di giorni basta a trovare
+# il prossimo di chiunque).
 BIRTHDAY_DAYS = 366
 
 
@@ -466,7 +467,7 @@ class DashboardPage(QWidget):
         preview = [line if len(line) <= 60 else line[:57] + "..." for line in notes[:NOTES_PREVIEW_LINES]]
         self._tiles[TILE_NOTES].set_content("", preview or [tr("dash.notes_empty")])
 
-        activity = queries.recent_movements(conn)
+        activity = queries.recent_movements(conn, INFO_ROWS)
         self._info_cards["info_joins"].set_content(
             "",
             [
@@ -483,7 +484,7 @@ class DashboardPage(QWidget):
         birthday_today = set()
         birthday_colors: dict[int, str] = {}
         for day, family, main, age, status in stats.upcoming_birthdays(
-            conn, today, days=BIRTHDAY_DAYS, limit=BIRTHDAY_ROWS, include_former=True
+            conn, today, days=BIRTHDAY_DAYS, limit=INFO_ROWS, include_former=True
         ):
             name = family + (f" ({main})" if main else "")
             if status == STATUS_EX_MEMBRO:
@@ -501,7 +502,7 @@ class DashboardPage(QWidget):
             today_colors=birthday_colors,
         )
 
-        anniversaries = stats.upcoming_anniversaries(conn, today, days=30, limit=5)
+        anniversaries = stats.upcoming_anniversaries(conn, today, days=30, limit=INFO_ROWS)
         self._info_cards["info_anniversaries"].set_content(
             "",
             [
@@ -515,7 +516,7 @@ class DashboardPage(QWidget):
             or [tr("dash.no_anniversaries")],
             today_lines=frozenset(i for i, (day, *_rest) in enumerate(anniversaries) if day == today),
         )
-        nations = stats.nation_distribution(conn)[:5]
+        nations = stats.nation_distribution(conn)[:INFO_ROWS]
         self._info_cards["info_nations"].set_content(
             "", [f"{display_nation(r['nation'])} — {r['cnt']}" for r in nations] or [tr("stats.no_data")]
         )
