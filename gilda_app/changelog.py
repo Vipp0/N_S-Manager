@@ -6,6 +6,15 @@ usa il programma, non i dettagli tecnici del come."""
 
 CHANGELOG: list[dict] = [
     {
+        "version": "2.9.6",
+        "date": "30-10-2026",
+        "notes": [
+            "Etichette colorate al posto delle scritte: in dashboard, Ultimi movimenti mostra Entrato e Rientrato in verde, Uscito e Bannato in rosso (prima \" · entrato\" in fondo al nome); nei Compleanni gli ex membri hanno l'etichetta \"Ex membro\" (prima \"(ex membro)\" tra parentesi).",
+            "Ricerca globale: lo stato è un'etichetta colorata (Attuale in verde, Ex membro in ambra, Bannato in rosso).",
+            "Registro eventi: il tipo di evento (Ingresso, Rientro, Uscita, Bannato...) è un'etichetta verde, rossa o grigia, e le righe restano tutte neutre invece di colorarsi per intero.",
+        ],
+    },
+    {
         "version": "2.9.5",
         "date": "30-10-2026",
         "notes": [

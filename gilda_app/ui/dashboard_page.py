@@ -23,6 +23,7 @@ from gilda_app.db import stats
 from gilda_app.db.database import get_members
 from gilda_app.i18n import tr
 from gilda_app.models.member import STATUS_ATTIVO, STATUS_BANNATO, STATUS_EX_MEMBRO, status_label
+from gilda_app.ui.chips import TONE_BAD, TONE_GOOD, TONE_OUTLINE, ChipLabel
 from gilda_app.ui.season_decor import DecorItem, DecorOverlay, snow
 from gilda_app.utils.date_format import iso_to_display, relative_day_label
 from gilda_app.utils.flags import display_nation
@@ -68,6 +69,13 @@ INFO_ROWS = 6
 # I compleanni sono sempre INFO_ROWS, anche se il più vicino è fra mesi (un anno di giorni basta a trovare
 # il prossimo di chiunque).
 BIRTHDAY_DAYS = 366
+# Etichetta dei movimenti: verde per chi entra o rientra, rossa per chi esce o viene bannato (come nel Registro eventi).
+MOVE_TONES = {
+    queries.MOVE_JOINED: TONE_GOOD,
+    queries.MOVE_REJOINED: TONE_GOOD,
+    queries.MOVE_LEFT: TONE_BAD,
+    queries.MOVE_BANNED: TONE_BAD,
+}
 # Lo stesso per gli anniversari: si cercano nell'anno intero, così il riquadro è pieno quanto gli altri.
 ANNIVERSARY_DAYS = 366
 
@@ -152,6 +160,16 @@ class DashboardTile(CardWidget):
         self._lines.setWordWrap(True)
         self._lines.setTextFormat(Qt.RichText)
         layout.addWidget(self._lines)
+        # Righe con un'etichetta colorata in fondo (movimenti, compleanni degli ex membri): una griglia di
+        # widget al posto del testo, perché una pillola arrotondata nel testo formattato non si può disegnare.
+        self._chip_rows = QWidget(self)
+        self._chip_grid = QGridLayout(self._chip_rows)
+        self._chip_grid.setContentsMargins(0, 0, 0, 0)
+        self._chip_grid.setHorizontalSpacing(14)
+        self._chip_grid.setVerticalSpacing(0)
+        self._chip_grid.setColumnStretch(1, 1)
+        layout.addWidget(self._chip_rows)
+        self._chip_rows.hide()
         layout.addStretch(1)
         self.setCursor(Qt.PointingHandCursor)
 
@@ -184,7 +202,8 @@ class DashboardTile(CardWidget):
     ) -> None:
         """lines: stringhe semplici oppure coppie (etichetta, testo): le etichette (Oggi,
         Domani, una data) stanno in una colonna allineata, così i testi partono tutti dallo
-        stesso punto. today_lines: indici delle righe da evidenziare perché riguardano oggi;
+        stesso punto. Una terza voce (testo, tono) aggiunge in fondo alla riga un'etichetta colorata
+        (vedi chips.py). today_lines: indici delle righe da evidenziare perché riguardano oggi;
         today_colors: colore diverso da TODAY_COLOR per alcune di quelle righe."""
         self._value.setText(value)
         self._value.setVisible(bool(value))
@@ -194,6 +213,12 @@ class DashboardTile(CardWidget):
             color = (today_colors or {}).get(index, TODAY_COLOR)
             return f'<b style="color: {color};">{text}</b>' if index in today_lines else text
 
+        with_chips = any(isinstance(line, tuple) and len(line) == 3 for line in lines)
+        self._lines.setVisible(not with_chips)
+        self._chip_rows.setVisible(with_chips)
+        if with_chips:
+            self._fill_chip_rows(lines, fmt)
+            return
         if any(isinstance(line, tuple) for line in lines):
             rows = []
             for index, line in enumerate(lines):
@@ -205,6 +230,28 @@ class DashboardTile(CardWidget):
             self._lines.setText('<table cellspacing="0" cellpadding="1">' + "".join(rows) + "</table>")
         else:
             self._lines.setText("<br>".join(fmt(index, line) for index, line in enumerate(lines)))
+
+
+    def _fill_chip_rows(self, lines: list, fmt: Callable[[int, str], str]) -> None:
+        while self._chip_grid.count():
+            widget = self._chip_grid.takeAt(0).widget()
+            if widget is not None:
+                widget.setParent(None)
+                widget.deleteLater()
+        for row, line in enumerate(lines):
+            label, text, chip = (line + (None,))[:3] if isinstance(line, tuple) else ("", line, None)
+            if label:
+                when = BodyLabel(fmt(row, label), self._chip_rows)
+                when.setTextFormat(Qt.RichText)
+                self._chip_grid.addWidget(when, row, 0, Qt.AlignTop)
+            body = BodyLabel(fmt(row, text), self._chip_rows)
+            body.setTextFormat(Qt.RichText)
+            body.setWordWrap(True)
+            body.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)  # un nome lungo va a capo, non allarga
+            body.setMinimumHeight(21)
+            self._chip_grid.addWidget(body, row, 1 if label else 0, 1, 2 if not label else 1)
+            if chip:
+                self._chip_grid.addWidget(ChipLabel(chip[0], chip[1], self._chip_rows), row, 2, Qt.AlignRight | Qt.AlignTop)
 
 
 class InfoCard(DashboardTile):
@@ -475,7 +522,8 @@ class DashboardPage(QWidget):
             [
                 (
                     day_text(date.fromisoformat(r["day"]), date.today(), iso_to_display(r["day"])),
-                    r["family_name"] + (f" ({r['main_name']})" if r["main_name"] else "") + tr(f"dash.move.{r['kind']}"),
+                    r["family_name"] + (f" ({r['main_name']})" if r["main_name"] else ""),
+                    (tr(f"chip.{r['kind']}"), MOVE_TONES[r["kind"]]),
                 )
                 for r in activity
             ]
@@ -489,14 +537,13 @@ class DashboardPage(QWidget):
             conn, today, days=BIRTHDAY_DAYS, limit=INFO_ROWS, include_former=True
         ):
             name = family + (f" ({main})" if main else "")
-            if status == STATUS_EX_MEMBRO:
-                name += tr("dash.birthday_former")
             age_text = tr("dash.birthday_age", age=age) if age else ""
             if day == today:
                 birthday_today.add(len(birthday_lines))
                 if status == STATUS_EX_MEMBRO:
                     birthday_colors[len(birthday_lines)] = FORMER_TODAY_COLOR
-            birthday_lines.append((day_text(day, today, day.strftime("%d-%m")), f"{name}{age_text}"))
+            former = (tr("chip.former"), TONE_OUTLINE) if status == STATUS_EX_MEMBRO else None
+            birthday_lines.append((day_text(day, today, day.strftime("%d-%m")), f"{name}{age_text}", former))
         self._info_cards["info_birthdays"].set_content(
             "",
             birthday_lines or [tr("dash.no_birthdays")],

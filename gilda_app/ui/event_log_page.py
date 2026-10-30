@@ -1,18 +1,20 @@
 """Scheda "Registro eventi": lo storico delle operazioni fatte nel programma, il più recente in alto.
 
-Verde chi entra in gilda o torna tra i membri attuali, rosso chi esce (ex membro o bannato); le altre
-operazioni (cambi di nome, modifiche, correzioni dello storico, import...) senza colore. I testi si
+L'evento è un'etichetta colorata: verde per chi entra in gilda o torna tra i membri attuali, rossa per chi
+esce (ex membro o bannato), grigia per le altre operazioni (cambi di nome, modifiche, correzioni dello
+storico, import...). I testi si
 costruiscono qui da tipo e dettagli salvati (vedi db/event_log.py), così seguono la lingua del programma."""
 from datetime import date, timedelta
 
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtGui import QColor, QFont
+from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QAbstractItemView, QHBoxLayout, QHeaderView, QTableWidgetItem, QVBoxLayout, QWidget
 from qfluentwidgets import CaptionLabel, CheckBox, ComboBox, SubtitleLabel, TableWidget
 
 from gilda_app.db import event_log
 from gilda_app.i18n import tr
 from gilda_app.models.member import STATUS_ATTIVO, STATUS_BANNATO, STATUS_EX_MEMBRO, status_label
+from gilda_app.ui.chips import CHIP_TONE_ROLE, TONE_BAD, TONE_GOOD, TONE_NEUTRAL, FluentChipDelegate
 from gilda_app.ui.persistent_clear_search import PersistentClearSearchLineEdit
 from gilda_app.ui.season_decor import DecorItem, DecorOverlay, snow, OrnamentedPage
 from gilda_app.utils.date_format import iso_to_display
@@ -20,9 +22,11 @@ from gilda_app.utils.scrollbar import widen_scrollbar_on_hover
 
 TABLE_FONT = QFont("Segoe UI", 13)
 HEADER_FONT = QFont("Segoe UI", 13, QFont.DemiBold)
-COLOR_GOOD = QColor("#d7f0dc")  # come l'ingresso nello storico del membro
-COLOR_BAD = QColor("#f8d4d4")  # come il ban nello storico del membro
-TEXT_COLOR = QColor("#1f1f1f")
+EVENT_TONES = {
+    event_log.TONE_GOOD: TONE_GOOD,
+    event_log.TONE_BAD: TONE_BAD,
+    event_log.TONE_NEUTRAL: TONE_NEUTRAL,
+}
 WHEN_COLUMN, EVENT_COLUMN, MEMBER_COLUMN, DETAIL_COLUMN = range(4)
 FILTER_ALL, FILTER_GOOD, FILTER_BAD, FILTER_OTHER = "all", "good", "bad", "other"
 RECENT_DAYS = 60  # di norma si vedono solo gli ultimi giorni: "Mostra tutto" e la ricerca arrivano a ogni evento
@@ -176,6 +180,7 @@ class EventLogPage(OrnamentedPage, QWidget):
             [tr("log.column.when"), tr("log.column.event"), tr("log.column.member"), tr("log.column.details")]
         )
         self.table.setFont(TABLE_FONT)
+        self.table.setItemDelegate(FluentChipDelegate(self.table))
         self.table.horizontalHeader().setFont(HEADER_FONT)
         self.table.verticalHeader().setDefaultSectionSize(46)
         self.table.verticalHeader().hide()
@@ -225,17 +230,13 @@ class EventLogPage(OrnamentedPage, QWidget):
         self.table.setSortingEnabled(False)
         self.table.setRowCount(len(rows))
         for index, (event, label, details) in enumerate(rows):
-            tone = event_log.tone(event)
-            background = {event_log.TONE_GOOD: COLOR_GOOD, event_log.TONE_BAD: COLOR_BAD}.get(tone)
+            tone = EVENT_TONES[event_log.tone(event)]
             cells = (event_when(event["at"]), label, event["member_name"] or "", details)
             for column, text in enumerate(cells):
                 item = QTableWidgetItem(text)
                 item.setToolTip(text)
                 if column == EVENT_COLUMN:
-                    item.setFont(HEADER_FONT)
-                if background is not None:
-                    item.setBackground(background)
-                    item.setForeground(TEXT_COLOR)
+                    item.setData(CHIP_TONE_ROLE, tone)  # il tipo di evento è un'etichetta colorata
                 if column == WHEN_COLUMN:
                     item.setData(Qt.UserRole, event["member_id"])
                 self.table.setItem(index, column, item)

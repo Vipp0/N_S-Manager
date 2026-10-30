@@ -233,8 +233,10 @@ def test_event_log_page_lists_operations_with_colors_filter_and_search(qapp, win
 
     labels = [page.table.item(row, elp.EVENT_COLUMN).text() for row in range(page.table.rowCount())]
     assert labels[:3] == ["Rientro", "Uscita", "Ingresso"]  # il più recente in alto
-    backgrounds = [page.table.item(row, elp.EVENT_COLUMN).background().color() for row in range(3)]
-    assert backgrounds == [elp.COLOR_GOOD, elp.COLOR_BAD, elp.COLOR_GOOD]
+    from gilda_app.ui.chips import CHIP_TONE_ROLE, TONE_BAD, TONE_GOOD
+
+    tones = [page.table.item(row, elp.EVENT_COLUMN).data(CHIP_TONE_ROLE) for row in range(3)]
+    assert tones == [TONE_GOOD, TONE_BAD, TONE_GOOD]  # l'evento è un'etichetta verde (entra) o rossa (esce)
     assert "inattivo" in page.table.item(1, elp.DETAIL_COLUMN).text()
 
     page.filter_box.setCurrentIndex(page.filter_box.findData(elp.FILTER_BAD))
@@ -249,6 +251,73 @@ def test_event_log_page_lists_operations_with_colors_filter_and_search(qapp, win
     page.member_requested.connect(received.append)
     page._on_double_click(page.table.model().index(0, 0))
     assert received == [member]
+
+
+def _chips(card):
+    """(testo, tono) delle etichette di un riquadro della dashboard, riga per riga."""
+    from gilda_app.ui.chips import ChipLabel
+
+    grid = card._chip_grid
+    found = []
+    for index in range(grid.count()):
+        widget = grid.itemAt(index).widget()
+        if isinstance(widget, ChipLabel):
+            found.append(widget.text())
+    return found
+
+
+def test_dashboard_movements_and_ex_member_birthdays_carry_coloured_chips(qapp, window):
+    from datetime import date
+
+    from gilda_app.db.database import add_member, move_member_status
+
+    today = date.today()
+    add_member(window.conn, "Arrivato", "A", "", [], "attivo", data_inserimento=today.isoformat())
+    gone = add_member(window.conn, "Partito", "P", "", [], "attivo", data_inserimento="2024-01-01")
+    move_member_status(window.conn, gone, "ex_membro")
+    banned = add_member(window.conn, "Cattivo", "C", "", [], "attivo", data_inserimento="2024-01-01")
+    move_member_status(window.conn, banned, "bannato")
+    add_member(window.conn, "ExFesta", "E", "", [], "ex_membro", birthday=f"1990-{today.month:02d}-{today.day:02d}")
+    window.refresh_all()
+
+    moves = window.dashboard_page._info_cards["info_joins"]
+    assert moves._lines.isHidden() and not moves._chip_rows.isHidden()
+    assert sorted(_chips(moves)) == ["Bannato", "Entrato", "Uscito"]  # niente più " · entrato" nel testo
+    texts = [moves._chip_grid.itemAt(i).widget().text() for i in range(moves._chip_grid.count())]
+    assert not any("·" in t for t in texts)
+
+    birthdays = window.dashboard_page._info_cards["info_birthdays"]
+    assert _chips(birthdays) == ["Ex membro"]  # solo per chi non è più un membro attuale
+
+    # senza righe con etichetta il riquadro torna al testo normale
+    other = window.dashboard_page._info_cards["info_anniversaries"]
+    assert not other._lines.isHidden() and other._chip_rows.isHidden()
+
+
+def test_chip_colours_follow_the_meaning(qapp):
+    from gilda_app.ui import chips
+
+    assert chips.chip_foreground(chips.TONE_GOOD).name() == "#15803d"
+    assert chips.chip_foreground(chips.TONE_BAD).name() == "#c42b1c"
+    assert chips.chip_background(chips.TONE_OUTLINE).alpha() == 0  # solo il contorno
+    assert 0 < chips.chip_background(chips.TONE_GOOD).alpha() < 80  # fondo tenue, il testo resta leggibile
+
+
+def test_global_search_shows_the_status_as_a_coloured_chip(qapp, window):
+    from gilda_app.db.database import add_member
+    from gilda_app.ui.chips import CHIP_TONE_ROLE, TONE_BAD, TONE_GOOD, TONE_WARN
+    from gilda_app.ui.global_search import STATUS_COLUMN, GlobalSearchDialog
+
+    add_member(window.conn, "Cercaattivo", "", "", [], "attivo")
+    add_member(window.conn, "Cercaex", "", "", [], "ex_membro")
+    add_member(window.conn, "Cercaban", "", "", [], "bannato")
+    dialog = GlobalSearchDialog(window, window.conn)
+    dialog.search_box.setText("cerca")
+    items = {dialog.results_table.item(r, 0).text(): dialog.results_table.item(r, STATUS_COLUMN) for r in range(3)}
+    assert items["Cercaattivo"].text() == "Attuale" and items["Cercaattivo"].data(CHIP_TONE_ROLE) == TONE_GOOD
+    assert items["Cercaex"].text() == "Ex membro" and items["Cercaex"].data(CHIP_TONE_ROLE) == TONE_WARN
+    assert items["Cercaban"].text() == "Bannato" and items["Cercaban"].data(CHIP_TONE_ROLE) == TONE_BAD
+    dialog.close()
 
 
 def test_opening_a_deleted_member_from_the_log_does_not_crash(qapp, window):
