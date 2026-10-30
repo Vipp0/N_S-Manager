@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Callable
 
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtGui import QColor, QPainter, QPen, QPixmap
+from PySide6.QtGui import QColor, QLinearGradient, QPainter, QPainterPath, QPen, QPixmap
 from PySide6.QtWidgets import QFrame, QGridLayout, QHBoxLayout, QLabel, QSizePolicy, QVBoxLayout, QWidget
 from qfluentwidgets import (
     BodyLabel,
@@ -14,19 +14,19 @@ from qfluentwidgets import (
     PushButton,
     ScrollArea,
     StrongBodyLabel,
-    SubtitleLabel,
     isDarkTheme,
+    themeColor,
 )
 
+from gilda_app.capacity import guild_capacity
 from gilda_app.db import dashboard as queries
 from gilda_app.db import stats
-from gilda_app.db.database import get_members
 from gilda_app.i18n import tr
-from gilda_app.models.member import STATUS_ATTIVO, STATUS_BANNATO, STATUS_EX_MEMBRO, status_label
+from gilda_app.models.member import STATUS_ATTIVO, STATUS_BANNATO, STATUS_EX_MEMBRO
 from gilda_app.ui.chips import TONE_BAD, TONE_GOOD, TONE_OUTLINE, ChipLabel
+from gilda_app.ui.dashboard_cover import FONT_FAMILY, CoverHero
 from gilda_app.ui.season_decor import DecorItem, DecorOverlay, snow
 from gilda_app.utils.date_format import iso_to_display, relative_day_label
-from gilda_app.utils.icons import ban_icon
 from gilda_app.version import __version__
 
 TILE_MIN_WIDTH = 300
@@ -38,12 +38,12 @@ DASHBOARD_DECOR = [
     # Natale: altre due palline appese a fili diversi (più a sinistra, solo se c'è posto accanto al logo) e fiocchi
     # di neve tra il titolo e il logo. Mancano i file negli altri temi, e allora non si disegnano.
     DecorItem("spider2", height=95, right=255, min_page_width=1150, opacity=0.95),
-    DecorItem("spider3", height=137, right=335, min_page_width=1300, opacity=0.95),
-    *snow(left=250),
+    DecorItem("spider3", height=85, right=335, min_page_width=1300, opacity=0.95),  # corta: sotto c'è la legenda del grafico
+    *snow(right=430),
 ]
 CLUSTER_WIDTH = 240  # larghezza del gruppo di decorazioni nel vuoto in fondo alla griglia delle informazioni
 GREETING_ICON_SIZE = 26
-NOTES_PREVIEW_LINES = 3
+NOTES_PREVIEW_LINES = 5
 
 # Chiavi dei riquadri diversi dalle tre liste membri (le liste usano il loro status).
 TILE_STATS = "stats"
@@ -53,7 +53,9 @@ TILE_NOTES = "notes"
 TILE_SETTINGS = "settings"
 
 WORDMARK_PATH = Path(__file__).resolve().parent.parent / "resources" / "wordmark.png"
-WORDMARK_HEIGHT = 86
+WORDMARK_HEIGHT = 66
+COVER_WIDE_WIDTH = 1000  # da questa larghezza della pagina il grafico sta accanto ai numeri, sotto va su due file
+COVER_BAND_WIDE_WIDTH = 1150  # da qui le quattro sezioni stanno su una fila sola, sotto su due
 TILE_KEYS_INFO = ("info_joins", "info_anniversaries")
 
 _VALUE_STYLE = "font-size: 28px; font-weight: 600;"
@@ -271,6 +273,64 @@ class InfoCard(DashboardTile):
         CardWidget.paintEvent(self, event)
 
 
+class CoverCard(CardWidget):
+    """La scheda unica della copertina: sfondo come un riquadro, ma senza effetto al passaggio del mouse (le zone
+    cliccabili sono quelle dentro) e con una sfumatura nel colore d'accento sulla parte alta."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.hero: QWidget | None = None
+
+    def _hoverBackgroundColor(self):
+        return self._normalBackgroundColor()
+
+    def _pressedBackgroundColor(self):
+        return self._normalBackgroundColor()
+
+    def paintEvent(self, event) -> None:
+        CardWidget.paintEvent(self, event)
+        if self.hero is None:
+            return
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+        clip = QPainterPath()
+        clip.addRoundedRect(self.rect().adjusted(1, 1, -1, -1), self.borderRadius, self.borderRadius)
+        painter.setClipPath(clip)
+        tint = QColor(themeColor())
+        tint.setAlpha(46 if isDarkTheme() else 34)
+        gradient = QLinearGradient(0, 0, self.width() * 0.62, 0)
+        gradient.setColorAt(0, tint)
+        tint.setAlpha(0)
+        gradient.setColorAt(1, tint)
+        painter.fillRect(0, 0, self.width(), self.hero.height(), gradient)
+
+
+class CoverSection(DashboardTile):
+    """Una sezione della fascia in basso nella copertina (calendario, BDO, note, impostazioni): senza bordo e
+    sfondo propri, si illumina al passaggio del mouse e ha una linea di separazione dalle vicine."""
+
+    def __init__(self, icon, title: str, parent=None):
+        super().__init__(icon, title, parent)
+        self.setMinimumHeight(0)
+        self.edge_left = False
+        self.edge_top = False
+
+    def paintEvent(self, event) -> None:
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+        if self.isHover:
+            tint = QColor(themeColor())
+            tint.setAlpha(38 if isDarkTheme() else 30)
+            painter.setPen(Qt.NoPen)
+            painter.setBrush(tint)
+            painter.drawRoundedRect(self.rect().adjusted(1, 1, -1, -1), 9, 9)
+        painter.setPen(QPen(QColor(255, 255, 255, 28) if isDarkTheme() else QColor(0, 0, 0, 22), 1))
+        if self.edge_left:
+            painter.drawLine(0, 8, 0, self.height() - 8)
+        if self.edge_top:
+            painter.drawLine(8, 0, self.width() - 8, 0)
+
+
 class DashboardPage(QWidget):
     """Scheda iniziale: azioni rapide e un riquadro per ogni scheda dell'app con un
     riassunto; il click su un riquadro apre la scheda corrispondente."""
@@ -310,33 +370,6 @@ class DashboardPage(QWidget):
         layout = QVBoxLayout(content)
         layout.setContentsMargins(24, 20, 24, 20)
         layout.setSpacing(16)
-        header = QHBoxLayout()
-        title_box = QVBoxLayout()
-        title_box.setSpacing(2)
-        title_box.addWidget(SubtitleLabel(tr("nav.dashboard"), self))
-        # Scritta di auguri (con una piccola icona), solo nei giorni di festa (vedi set_greeting).
-        greeting_row = QHBoxLayout()
-        greeting_row.setSpacing(6)
-        self._greeting_icon = QLabel(self)
-        self._greeting_icon.hide()
-        greeting_row.addWidget(self._greeting_icon)
-        self._greeting = StrongBodyLabel("", self)
-        self._greeting.hide()
-        greeting_row.addWidget(self._greeting)
-        greeting_row.addStretch(1)
-        title_box.addLayout(greeting_row)
-        header.addLayout(title_box)
-        header.addStretch(1)
-        # Wordmark al centro dell'intestazione, come nelle liste dei membri.
-        self._wordmark = None
-        if WORDMARK_PATH.exists():
-            wordmark = QLabel(self)
-            self._wordmark = wordmark
-            wordmark.setPixmap(QPixmap(str(WORDMARK_PATH)).scaledToHeight(WORDMARK_HEIGHT, Qt.SmoothTransformation))
-            header.addWidget(wordmark)
-        header.addStretch(1)
-        layout.addLayout(header)
-
         # Un banner per manutenzione: di norma uno solo (nascosto se non c'è niente), se ce ne sono di
         # più (es. una ordinaria in corso e una temporanea annunciata per domani) si impilano.
         self._banner_box = QVBoxLayout()
@@ -359,24 +392,42 @@ class DashboardPage(QWidget):
         actions.addStretch(1)
         layout.addLayout(actions)
 
-        self._grid = QGridLayout()
-        self._grid.setSpacing(16)
-        self._tiles: dict[str, DashboardTile] = {}
-        tile_defs = [
-            (STATUS_ATTIVO, FIF.PEOPLE, status_label(STATUS_ATTIVO)),
-            (STATUS_EX_MEMBRO, FIF.HISTORY, status_label(STATUS_EX_MEMBRO)),
-            (STATUS_BANNATO, ban_icon(), status_label(STATUS_BANNATO)),
-            (TILE_STATS, FIF.PIE_SINGLE, tr("nav.stats")),
+        # La copertina: una scheda sola con in alto logo, numeri e grafico (CoverHero) e sotto le quattro sezioni
+        # cliccabili. I riquadri di ex membri e bannati sono dentro il CoverHero.
+        self._cover = CoverCard(self)
+        cover_layout = QVBoxLayout(self._cover)
+        cover_layout.setContentsMargins(0, 0, 0, 0)
+        cover_layout.setSpacing(0)
+        self._hero = CoverHero(self._cover)
+        self._cover.hero = self._hero
+        self._hero.zone_clicked.connect(self.tile_clicked)
+        cover_layout.addWidget(self._hero)
+        self._band = QWidget(self._cover)
+        self._band_grid = QGridLayout(self._band)
+        self._band_grid.setContentsMargins(6, 4, 6, 6)
+        self._band_grid.setSpacing(0)
+        cover_layout.addWidget(self._band)
+        self._tiles: dict[str, CoverSection] = {}
+        for key, icon, title in [
             (TILE_CALENDAR, FIF.CALENDAR, tr("nav.calendar")),
             (TILE_BDO, FIF.GLOBE, tr("nav.bdo")),
             (TILE_NOTES, FIF.QUICK_NOTE, tr("nav.notes")),
             (TILE_SETTINGS, FIF.SETTING, tr("nav.settings")),
-        ]
-        for key, icon, title in tile_defs:
-            tile = DashboardTile(icon, title, self)
+        ]:
+            tile = CoverSection(icon, title, self._band)
             tile.clicked.connect(lambda k=key: self.tile_clicked.emit(k))
             self._tiles[key] = tile
-        layout.addLayout(self._grid)
+        layout.addWidget(self._cover)
+        # Gli stessi nomi di prima per logo e auguri (li usano i temi stagionali): ora sono nella copertina.
+        self._wordmark = self._hero.wordmark
+        self._greeting = self._hero.greeting
+        self._greeting_icon = self._hero.greeting_icon
+        if WORDMARK_PATH.exists():
+            self._wordmark.setPixmap(QPixmap(str(WORDMARK_PATH)).scaledToHeight(WORDMARK_HEIGHT, Qt.SmoothTransformation))
+        else:
+            self._wordmark.hide()
+        # I numeri salgono da zero la prima volta che la dashboard compare (vedi showEvent).
+        self._intro_pending = True
 
         # Divisione netta tra i riquadri delle schede (sopra) e le informazioni generali (sotto).
         layout.addSpacing(14)
@@ -405,6 +456,7 @@ class DashboardPage(QWidget):
         self._cluster.hide()
         self._decor = DecorOverlay(content, DASHBOARD_DECOR)  # sul contenuto: scorre via con la pagina
         self._info_columns = 1
+        self._cover_layout_key = None
         self._reflow(1)
         self.set_bdo("", None, [tr("server.error.no_key")])
         self.set_timers([])
@@ -426,7 +478,9 @@ class DashboardPage(QWidget):
             )
         if text:
             self._greeting.setText(text)
-            self._greeting.setStyleSheet(f"color: {color};" if color else "")
+            self._greeting.setStyleSheet(
+                f"font-family: {FONT_FAMILY}; font-weight: 600; font-size: 15px;" + (f" color: {color};" if color else "")
+            )
 
     def set_decor(self, season) -> None:
         """Decorazioni del tema (None = nessuna): angoli sopra la pagina e gruppo nel vuoto della griglia."""
@@ -454,12 +508,6 @@ class DashboardPage(QWidget):
         if columns == self._columns:
             return
         self._columns = columns
-        for tile in self._tiles.values():
-            self._grid.removeWidget(tile)
-        for index, tile in enumerate(self._tiles.values()):
-            self._grid.addWidget(tile, index // columns, index % columns)
-        for col in range(MAX_COLUMNS):
-            self._grid.setColumnStretch(col, 1 if col < columns else 0)
         info_columns = max(1, min(columns, len(self._info_cards)))
         for card in self._info_cards.values():
             self._info_grid.removeWidget(card)
@@ -470,31 +518,49 @@ class DashboardPage(QWidget):
         self._info_columns = info_columns
         self._place_cluster()
 
+    def _reflow_cover(self, width: int) -> None:
+        """Copertina: il grafico accanto ai numeri solo se la pagina è larga; le quattro sezioni in basso su una
+        fila o su due."""
+        wide = width >= COVER_WIDE_WIDTH
+        band_columns = 4 if width >= COVER_BAND_WIDE_WIDTH else 2
+        key = (wide, band_columns)
+        if key == self._cover_layout_key:
+            return
+        self._cover_layout_key = key
+        self._hero.set_wide(wide)
+        for tile in self._tiles.values():
+            self._band_grid.removeWidget(tile)
+        for index, tile in enumerate(self._tiles.values()):
+            row, column = divmod(index, band_columns)
+            tile.edge_left, tile.edge_top = column > 0, row > 0
+            self._band_grid.addWidget(tile, row, column)
+            tile.update()
+        for column in range(4):
+            self._band_grid.setColumnStretch(column, 1 if column < band_columns else 0)
+
     def resizeEvent(self, event) -> None:
         super().resizeEvent(event)
         self._reflow(max(1, min(MAX_COLUMNS, (self.width() - 48) // TILE_MIN_WIDTH)))
+        self._reflow_cover(self.width())
+
+    def showEvent(self, event) -> None:
+        super().showEvent(event)
+        if self._intro_pending:
+            self._intro_pending = False
+            self._hero.play_count_up()
 
     # -- contenuto ----------------------------------------------------------
     def refresh(self) -> None:
         conn = self.get_conn()
-        for status, recent_count, recent_key in (
-            (STATUS_ATTIVO, queries.joined_recently(conn), "dash.joined_30"),
-            (STATUS_EX_MEMBRO, queries.transitions_to(conn, STATUS_EX_MEMBRO), "dash.left_30"),
-            (STATUS_BANNATO, queries.transitions_to(conn, STATUS_BANNATO), "dash.banned_30"),
-        ):
-            self._tiles[status].set_content(
-                str(len(get_members(conn, status))), [tr(recent_key, n=recent_count)]
-            )
-
-        movements = queries.recent_transitions(conn)
-        lines = [
-            (
-                day_text(date.fromisoformat(row["changed_at"][:10]), date.today(), iso_to_display(row["changed_at"])),
-                f"{row['family_name']} → {status_label(row['new_status'])}",
-            )
-            for row in movements
-        ]
-        self._tiles[TILE_STATS].set_content("", lines or [tr("dash.no_movements")])
+        today = date.today()
+        counts = stats.counts_by_status(conn)
+        self._hero.set_data(
+            counts[STATUS_ATTIVO], counts[STATUS_EX_MEMBRO], counts[STATUS_BANNATO], guild_capacity(conn),
+            queries.joined_recently(conn), queries.transitions_to(conn, STATUS_EX_MEMBRO),
+            queries.transitions_to(conn, STATUS_BANNATO),
+            queries.monthly_turnover(conn, today), queries.membership_trend(conn, today),
+            queries.tenure_distribution(conn, today), queries.tracking_start(conn),
+        )
 
         agenda = queries.upcoming_agenda(conn, date.today())
         if agenda:
@@ -527,7 +593,6 @@ class DashboardPage(QWidget):
             ]
             or [tr("dash.no_joins")],
         )
-        today = date.today()
         birthday_lines = []
         birthday_today = set()
         birthday_colors: dict[int, str] = {}

@@ -456,3 +456,152 @@ def test_english_interface_says_ex_members_not_former():
 
     assert STRINGS["status.ex_membro"]["en"] == "Ex members"
     assert not [key for key, texts in STRINGS.items() if "former" in texts["en"].lower() and key != "search.formerly"]
+
+
+def _settle_cover(window):
+    """Ferma l'animazione dei numeri (parte da sola quando la dashboard compare) e mostra i valori veri."""
+    hero = window.dashboard_page._hero
+    hero._animation.stop()
+    hero._finish_animation()
+    return hero
+
+
+def test_cover_shows_members_slots_and_the_recent_counts(qapp, window):
+    from gilda_app.db.database import add_member, move_member_status
+    from gilda_app.ui.dashboard_cover import ZONE_ACTIVE, ZONE_BANNED, ZONE_EX
+
+    for index in range(5):
+        add_member(window.conn, f"Attivo{index}", "", "", [], "attivo", data_inserimento="2025-01-01")
+    gone = add_member(window.conn, "Partito", "", "", [], "attivo")
+    move_member_status(window.conn, gone, "ex_membro")
+    banned = add_member(window.conn, "Cattivo", "", "", [], "attivo")
+    move_member_status(window.conn, banned, "bannato")
+    window.refresh_all()
+    hero = _settle_cover(window)
+    assert hero._numbers == {ZONE_ACTIVE: 5, ZONE_EX: 1, ZONE_BANNED: 1}
+    assert "5" in hero._big.text() and "/ 100" in hero._big.text()
+    assert hero._slots.text() == "95 posti liberi"
+    assert hero._mini[ZONE_EX][1].text() == "1" and hero._mini[ZONE_BANNED][1].text() == "1"
+
+
+def test_cover_over_the_cap_says_by_how_much_without_blocking(qapp, window):
+    from gilda_app.db.database import add_member
+
+    for index in range(5):
+        add_member(window.conn, f"M{index}", "", "", [], "attivo")
+    window.settings_page.capacity_spin.setValue(4)  # il tetto si cambia in Impostazioni
+    hero = _settle_cover(window)
+    assert hero._slots.text() == "1 oltre il tetto" and "/ 4" in hero._big.text()
+    window.settings_page.capacity_spin.setValue(5)
+    assert hero._slots.text() == "0 posti liberi"
+    window.settings_page.capacity_spin.setValue(6)
+    assert hero._slots.text() == "1 posto libero"
+
+
+def test_the_guild_capacity_setting_is_saved_and_restored(qapp, window):
+    from gilda_app.capacity import guild_capacity
+
+    window.settings_page.capacity_spin.setValue(120)
+    assert guild_capacity(window.conn) == 120
+    window.settings_page.set_capacity(100)  # mostra il valore salvato senza riscriverlo
+    assert guild_capacity(window.conn) == 120
+
+
+def test_cover_zones_open_the_right_pages(qapp, window):
+    from gilda_app.ui.dashboard_cover import ZONE_ACTIVE, ZONE_BANNED, ZONE_CHART, ZONE_EX
+    from gilda_app.ui.dashboard_page import TILE_BDO, TILE_CALENDAR, TILE_NOTES, TILE_SETTINGS
+
+    dash = window.dashboard_page
+    opened = []
+    dash.tile_clicked.connect(opened.append)
+    hero = dash._hero
+    hero.active_zone.clicked.emit()
+    hero.chart_zone.clicked.emit()
+    hero._mini  # le due zone piccole
+    for zone in hero.right.findChildren(type(hero.active_zone)):
+        zone.clicked.emit()
+    for key in (TILE_CALENDAR, TILE_BDO, TILE_NOTES, TILE_SETTINGS):
+        dash._tiles[key].clicked.emit()
+    assert opened == [ZONE_ACTIVE, ZONE_CHART, ZONE_EX, ZONE_BANNED, TILE_CALENDAR, TILE_BDO, TILE_NOTES, TILE_SETTINGS]
+    # e il programma le porta alla scheda giusta
+    window._open_tile(ZONE_CHART)
+    assert window.stackedWidget.currentWidget() is window.stats_page
+    window._open_tile(ZONE_EX)
+    assert window.stackedWidget.currentWidget() is window.pages["ex_membro"]
+
+
+def test_cover_chart_views_and_the_note_about_unrecorded_exits(qapp, window):
+    from gilda_app.ui.dashboard_cover import VIEW_TENURE, VIEW_TREND, VIEW_TURNOVER
+
+    from gilda_app.db.database import add_member
+
+    add_member(window.conn, "Primo", "", "", [], "attivo")
+    window.conn.execute("UPDATE members SET created_at = '2026-08-01 10:00:00'")
+    hero = _settle_cover(window)
+    window.refresh_all()
+    hero._set_view(VIEW_TURNOVER)
+    assert not hero._note.isHidden() and "dal 01-08-2026" in hero._note.text()  # le uscite prima non si sanno
+    assert hero.chart._view == VIEW_TURNOVER
+    hero._set_view(VIEW_TREND)
+    assert hero.chart._view == VIEW_TREND
+    hero._set_view(VIEW_TENURE)
+    assert hero.chart._view == VIEW_TENURE and hero._note.isHidden()
+    for view in (VIEW_TURNOVER, VIEW_TREND, VIEW_TENURE):  # ogni vista si disegna senza eccezioni, anche senza dati
+        hero._set_view(view)
+        hero.chart.resize(500, 200)
+        hero.chart.grab()
+
+
+def test_cover_note_is_hidden_when_the_exits_cover_the_whole_year(qapp, window):
+    from gilda_app.db.database import add_member
+
+    add_member(window.conn, "Primo", "", "", [], "attivo")
+    window.conn.execute("UPDATE members SET created_at = '2020-01-01 10:00:00'")
+    hero = _settle_cover(window)
+    window.refresh_all()
+    hero._set_view("turn")
+    assert hero._note.isHidden()
+
+
+def test_cover_rearranges_for_a_narrow_window(qapp, window):
+    dash = window.dashboard_page
+    dash._reflow_cover(1400)
+    assert dash._hero._wide and dash._band_grid.columnStretch(3) == 1
+    dash._reflow_cover(960)
+    assert not dash._hero._wide and dash._band_grid.columnStretch(3) == 0  # sezioni su due file, grafico sotto
+    assert dash._tiles["notes"].edge_top and not dash._tiles["calendar"].edge_top
+    dash._reflow_cover(1400)
+    assert dash._hero._wide and not dash._tiles["notes"].edge_top
+
+
+def test_cover_numbers_count_up_once_and_end_on_the_real_values(qapp, window):
+    from gilda_app.db.database import add_member
+
+    for index in range(3):
+        add_member(window.conn, f"M{index}", "", "", [], "attivo")
+    window.refresh_all()
+    dash = window.dashboard_page
+    hero = dash._hero
+    assert dash._intro_pending
+    window.show()
+    qapp.processEvents()
+    assert not dash._intro_pending  # parte alla prima comparsa, una volta sola
+    hero._animation.setCurrentTime(0)
+    hero._render_numbers(0.0)
+    assert hero._big.text().startswith("0")
+    hero._animation.stop()
+    hero._finish_animation()
+    assert hero._big.text().startswith("3") and not hero._animating
+    window.hide()
+    window.show()
+    qapp.processEvents()
+    assert not hero._animating  # tornando sulla dashboard i numeri non rifanno l'animazione
+
+
+def test_cover_greeting_lives_inside_the_cover(qapp, window):
+    dash = window.dashboard_page
+    assert dash._wordmark is dash._hero.wordmark and dash._greeting is dash._hero.greeting
+    dash.set_greeting("Buone Feste!", "#2a6fdb")
+    assert not dash._hero.greeting.isHidden() and "Feste" in dash._hero.greeting.text()
+    dash.set_greeting(None)
+    assert dash._hero.greeting.isHidden()

@@ -48,6 +48,7 @@ from gilda_app.db.database import (
     update_member,
 )
 from gilda_app.accent import ACCENT_SETTING, DEFAULT_ACCENT_KEY, accent_hex
+from gilda_app.capacity import GUILD_CAPACITY_SETTING, guild_capacity
 from gilda_app.i18n import get_language, tr
 from gilda_app.seasons import MODE_AUTO, SEASON_MODE_SETTING, active_season, greeting_active
 from gilda_app.importer.excel_export import export_workbook
@@ -270,6 +271,8 @@ class MainWindow(FluentWindow):
         self.settings_page.set_season_mode(get_setting(self.conn, SEASON_MODE_SETTING, MODE_AUTO))
         self.settings_page.accent_changed.connect(self._on_accent_changed)
         self.settings_page.set_accent(get_setting(self.conn, ACCENT_SETTING, DEFAULT_ACCENT_KEY))
+        self.settings_page.capacity_changed.connect(self._on_capacity_changed)
+        self.settings_page.set_capacity(guild_capacity(self.conn))
         self.settings_page.backup_now_requested.connect(self._on_backup_now)
         self.settings_page.open_backups_requested.connect(self._on_open_backups)
         self.settings_page.restore_requested.connect(self._on_restore)
@@ -336,6 +339,10 @@ class MainWindow(FluentWindow):
     def _on_season_mode_changed(self, mode: str) -> None:
         set_setting(self.conn, SEASON_MODE_SETTING, mode)
         self.apply_season()
+
+    def _on_capacity_changed(self, value: int) -> None:
+        set_setting(self.conn, GUILD_CAPACITY_SETTING, str(value))
+        self.dashboard_page.refresh()
 
     def _on_accent_changed(self, key: str) -> None:
         set_setting(self.conn, ACCENT_SETTING, key)

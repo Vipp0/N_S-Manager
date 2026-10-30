@@ -18,6 +18,7 @@ from qfluentwidgets import (
 from datetime import datetime, timezone
 
 from gilda_app.accent import ACCENT_COLORS
+from gilda_app.capacity import DEFAULT_GUILD_CAPACITY, MAX_GUILD_CAPACITY, MIN_GUILD_CAPACITY
 from gilda_app.i18n import LANGUAGES, get_language, tr
 from gilda_app.ui.season_decor import DecorItem, DecorOverlay, snow, OrnamentedPage
 from gilda_app.seasons import selectable_modes
@@ -82,6 +83,7 @@ class SettingsPage(OrnamentedPage, QWidget):
     server_region_changed = Signal(str)
     season_mode_changed = Signal(str)
     accent_changed = Signal(str)
+    capacity_changed = Signal(int)
     maintenance_window_changed = Signal(int, int, int)  # inizio (a Los Angeles), durata, durata se temporanea
 
     def __init__(self, parent=None):
@@ -140,6 +142,23 @@ class SettingsPage(OrnamentedPage, QWidget):
         accent_layout.addLayout(swatch_row)
         self._accent_group.buttonClicked.connect(lambda button: self.accent_changed.emit(button.key))
         layout.addWidget(accent_card)
+
+        # Posti della gilda: il massimo di membri, per la barra dei posti della dashboard.
+        capacity_card = CardWidget(self)
+        capacity_layout = QVBoxLayout(capacity_card)
+        capacity_layout.addWidget(StrongBodyLabel(tr("settings.capacity_title"), capacity_card))
+        capacity_hint = QLabel(tr("settings.capacity_hint"), capacity_card)
+        capacity_hint.setWordWrap(True)
+        capacity_layout.addWidget(capacity_hint)
+        capacity_row = QHBoxLayout()
+        self.capacity_spin = SpinBox(capacity_card)
+        self.capacity_spin.setRange(MIN_GUILD_CAPACITY, MAX_GUILD_CAPACITY)
+        self.capacity_spin.setValue(DEFAULT_GUILD_CAPACITY)
+        self.capacity_spin.valueChanged.connect(self.capacity_changed)
+        capacity_row.addWidget(self.capacity_spin)
+        capacity_row.addStretch(1)
+        capacity_layout.addLayout(capacity_row)
+        layout.addWidget(capacity_card)
 
         # Tema stagionale: automatico (cambia da solo nei periodi di festa), spento, o un tema per provarlo.
         season_card = CardWidget(self)
@@ -314,6 +333,12 @@ class SettingsPage(OrnamentedPage, QWidget):
         if mode == "off":
             return tr("season.mode.off")
         return tr("season.mode.force", name=tr(f"season.name.{mode}"))
+
+    def set_capacity(self, value: int) -> None:
+        """Mostra il valore salvato, senza emettere il segnale."""
+        self.capacity_spin.blockSignals(True)
+        self.capacity_spin.setValue(value)
+        self.capacity_spin.blockSignals(False)
 
     def set_accent(self, key: str) -> None:
         """Mostra il colore salvato (quello predefinito se la chiave non si conosce), senza emettere il segnale."""

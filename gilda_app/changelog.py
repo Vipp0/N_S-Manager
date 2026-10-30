@@ -6,6 +6,16 @@ usa il programma, non i dettagli tecnici del come."""
 
 CHANGELOG: list[dict] = [
     {
+        "version": "2.9.8",
+        "date": "30-10-2026",
+        "notes": [
+            "Nuova copertina della dashboard: in alto il logo, il numero dei membri attuali in grande (\"94 / 100\") con la barra dei posti, un grafico e a lato ex membri e bannati; sotto, nella stessa scheda, Calendario, BDO, Note e Impostazioni con la loro anteprima. Ogni zona è cliccabile e porta alla sua scheda: il numero ai Membri attuali, il grafico alle Statistiche, ex membri e bannati alle loro liste, le quattro sezioni alle loro schede. Il riquadro \"Statistiche\" non c'è più (si apre dal grafico o dalla barra laterale). I numeri salgono da zero quando il programma si apre. Con la finestra stretta il grafico passa sotto ai numeri e le sezioni su due file.",
+            "Il grafico ha tre viste, da scegliere con i pulsanti in alto: Ingressi e uscite (ultimi 12 mesi), Andamento (membri attuali nel tempo, con il tetto) e Anzianità (da quanto sono in gilda, con la riga \"Senza data\"). Le uscite si conoscono solo da quando il programma le registra: i mesi prima restano vuoti e una nota dice da quando.",
+            "Impostazioni → Posti della gilda: il numero massimo di membri (100 di base, come in Black Desert). Se si supera, niente si blocca: la barra dei posti diventa ambra e dice di quanto (\"3 oltre il tetto\").",
+            "Note: l'anteprima nella dashboard mostra cinque righe invece di tre.",
+        ],
+    },
+    {
         "version": "2.9.7",
         "date": "30-10-2026",
         "notes": [
