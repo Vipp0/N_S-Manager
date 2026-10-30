@@ -63,8 +63,9 @@ TODAY_COLOR = "#15803d"
 # Come TODAY_COLOR, ma per chi non è più un membro attuale (compleanno degli ex membri).
 FORMER_TODAY_COLOR = "#b45309"
 # La lista è sempre piena: i prossimi BIRTHDAY_ROWS compleanni, anche se il più vicino è fra mesi
-# (un anno di giorni basta a trovare il prossimo di chiunque).
-BIRTHDAY_ROWS = 8
+# (un anno di giorni basta a trovare il prossimo di chiunque). Cinque righe: quante ne hanno gli altri
+# riquadri della fila (movimenti, anniversari, nazioni), così non lo allungano.
+BIRTHDAY_ROWS = 5
 BIRTHDAY_DAYS = 366
 
 
