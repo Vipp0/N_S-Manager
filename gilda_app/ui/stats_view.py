@@ -1,10 +1,20 @@
 from datetime import date
 
-from PySide6.QtCharts import QAbstractBarSeries, QBarCategoryAxis, QBarSeries, QBarSet, QChart, QChartView, QLineSeries, QValueAxis
-from PySide6.QtCore import QPoint, Qt, QTimer
-from PySide6.QtGui import QCursor, QGuiApplication, QPainter
-from PySide6.QtWidgets import QGridLayout, QLabel, QScrollArea, QVBoxLayout, QWidget
-from qfluentwidgets import Action, CardWidget, FluentIcon as FIF, RoundMenu, StrongBodyLabel, SubtitleLabel
+from PySide6.QtCharts import QBarCategoryAxis, QChart, QChartView, QLineSeries, QValueAxis
+from PySide6.QtCore import QPoint, QRectF, Qt, QTimer, Signal
+from PySide6.QtGui import QColor, QCursor, QGuiApplication, QPainter
+from PySide6.QtWidgets import QGridLayout, QHBoxLayout, QLabel, QScrollArea, QVBoxLayout, QWidget
+from qfluentwidgets import (
+    Action,
+    BodyLabel,
+    CardWidget,
+    FluentIcon as FIF,
+    RoundMenu,
+    StrongBodyLabel,
+    SubtitleLabel,
+    isDarkTheme,
+    themeColor,
+)
 
 from gilda_app.db import stats
 from gilda_app.db.database import get_members
@@ -12,7 +22,7 @@ from gilda_app.i18n import tr
 from gilda_app.ui.season_decor import DecorItem, DecorOverlay, snow, OrnamentedPage
 from gilda_app.models.member import STATUS_ATTIVO, STATUS_BANNATO, STATUS_EX_MEMBRO, Member
 from gilda_app.utils.date_format import iso_month_to_display, iso_to_display
-from gilda_app.utils.flags import display_nation
+from gilda_app.utils.flags import display_nation, flag_pixmap
 
 # Numero minimo di membri con data di ingresso nota prima di mostrare la hall of fame,
 # per non classificare come "più anziani" un gruppo di persone importate lo stesso giorno.
@@ -22,6 +32,86 @@ MIN_DATED_MEMBERS_FOR_HALL_OF_FAME = 3
 # tutte con 1-2 persone): mostriamo solo le più numerose, ma il mouseover/tasto destro
 # su ogni barra dà comunque accesso a chi c'è in un gruppo, anche fuori dalla top N.
 NATION_CHART_TOP_N = 15
+NATION_FLAG_HEIGHT = 20
+NATION_NAME_WIDTH = 170
+NATION_ROW_HEIGHT = 30
+NATION_ROW_MAX_WIDTH = 760
+
+
+class _NationBar(QWidget):
+    """Barra proporzionale al numero di membri della nazione (la prima della classifica è piena)."""
+
+    def __init__(self, fraction: float, parent=None):
+        super().__init__(parent)
+        self._fraction = fraction
+        self.setFixedHeight(10)
+        self.setMinimumWidth(60)
+
+    def paintEvent(self, event) -> None:
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+        painter.setPen(Qt.NoPen)
+        track = QColor(255, 255, 255, 22) if isDarkTheme() else QColor(0, 0, 0, 16)
+        radius = self.height() / 2
+        painter.setBrush(track)
+        painter.drawRoundedRect(QRectF(self.rect()), radius, radius)
+        color = QColor(themeColor())
+        color.setAlpha(215)
+        painter.setBrush(color)
+        painter.drawRoundedRect(QRectF(0, 0, max(self.height(), self.width() * self._fraction), self.height()), radius, radius)
+
+
+class NationRow(QWidget):
+    """Una riga della classifica delle nazioni: bandiera, nome, barra e numero. Segnala quando il mouse
+    entra o esce (per l'elenco dei nomi) e il tasto destro (per il menu)."""
+
+    hovered = Signal(bool, int)  # entrato/uscito, indice della riga
+    context_requested = Signal(int, QPoint)  # indice, posizione sullo schermo
+
+    def __init__(self, index: int, raw_nation: str, name: str, count: int, fraction: float, parent=None):
+        super().__init__(parent)
+        self._index = index
+        self._hover = False
+        self.setFixedHeight(NATION_ROW_HEIGHT)
+        self.setMaximumWidth(NATION_ROW_MAX_WIDTH)  # a schermo largo il numero non finisce lontano dal nome
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(10, 0, 12, 0)
+        layout.setSpacing(12)
+        flag = QLabel(self)
+        flag.setPixmap(flag_pixmap(raw_nation).scaledToHeight(NATION_FLAG_HEIGHT, Qt.SmoothTransformation))
+        flag.setFixedSize(int(NATION_FLAG_HEIGHT * 1.5) + 2, NATION_FLAG_HEIGHT)
+        layout.addWidget(flag)
+        label = BodyLabel(name, self)
+        label.setFixedWidth(NATION_NAME_WIDTH)
+        layout.addWidget(label)
+        layout.addWidget(_NationBar(fraction, self), 1, Qt.AlignVCenter)
+        number = BodyLabel(str(count), self)
+        number.setFixedWidth(34)
+        number.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        layout.addWidget(number)
+
+    def enterEvent(self, event) -> None:
+        self._hover = True
+        self.update()
+        self.hovered.emit(True, self._index)
+        super().enterEvent(event)
+
+    def leaveEvent(self, event) -> None:
+        self._hover = False
+        self.update()
+        self.hovered.emit(False, self._index)
+        super().leaveEvent(event)
+
+    def contextMenuEvent(self, event) -> None:
+        self.context_requested.emit(self._index, event.globalPos())
+
+    def paintEvent(self, event) -> None:
+        if self._hover:
+            painter = QPainter(self)
+            painter.setRenderHint(QPainter.Antialiasing)
+            painter.setPen(Qt.NoPen)
+            painter.setBrush(QColor(255, 255, 255, 14) if isDarkTheme() else QColor(0, 0, 0, 10))
+            painter.drawRoundedRect(QRectF(self.rect()).adjusted(2, 1, -2, -1), 6, 6)
 
 
 def _stat_card(title: str, value: str) -> CardWidget:
@@ -74,17 +164,16 @@ class StatsPage(OrnamentedPage, QScrollArea):
         self.on_open_nation_filter = on_open_nation_filter
         self.setWidgetResizable(True)
 
-        # Stato del grafico nazioni per mouseover/tasto destro: ricostruito ad ogni
-        # refresh() insieme al grafico stesso.
+        # Stato della classifica nazioni per mouseover/tasto destro: ricostruito ad ogni
+        # refresh() insieme alla classifica stessa.
         self._nation_categories: list[str] = []
         self._nation_members: dict[str, list[Member]] = {}
         self._nation_hovered_index: int | None = None
-        self._nation_view = None
         # Tooltip fatto in casa invece di QToolTip: quest'ultimo, comparendo sotto il
-        # cursore, faceva credere a QtCharts che il mouse avesse lasciato la barra
-        # (hovered spurio) e Qt lo richiudeva subito. Un QLabel top-level trasparente
-        # agli eventi del mouse lascia passare l'hover al grafico sottostante, così la
-        # barra resta "hovered" e il tooltip resta finché non si sposta davvero.
+        # cursore, faceva credere che il mouse avesse lasciato la riga (uscita spuria) e
+        # Qt lo richiudeva subito. Un QLabel top-level trasparente agli eventi del mouse
+        # lascia passare l'hover alla riga sottostante, così resta "hovered" e il
+        # tooltip resta finché non ci si sposta davvero.
         self._nation_tooltip = QLabel(self, Qt.ToolTip | Qt.FramelessWindowHint | Qt.WindowTransparentForInput)
         self._nation_tooltip.setAttribute(Qt.WA_TransparentForMouseEvents, True)
         self._nation_tooltip.setAttribute(Qt.WA_ShowWithoutActivating, True)
@@ -93,8 +182,8 @@ class StatsPage(OrnamentedPage, QScrollArea):
             " border: 1px solid #3d3d3d; border-radius: 4px; padding: 6px 10px; font-size: 13px; }"
         )
         self._nation_tooltip.hide()
-        # Il tooltip sulle barre compare dopo un piccolo ritardo invece che all'istante,
-        # così non lampeggia mentre si muove il mouse sul grafico.
+        # Il tooltip sulle righe compare dopo un piccolo ritardo invece che all'istante,
+        # così non lampeggia mentre si muove il mouse sulla classifica.
         self._nation_tooltip_timer = QTimer(self)
         self._nation_tooltip_timer.setSingleShot(True)
         self._nation_tooltip_timer.setInterval(450)
@@ -112,7 +201,7 @@ class StatsPage(OrnamentedPage, QScrollArea):
         self.refresh()
 
     def refresh(self) -> None:
-        # Il grafico (e il suo stato hover) viene ricostruito: nascondi un eventuale
+        # La classifica (e il suo stato hover) viene ricostruita: nascondi un eventuale
         # tooltip rimasto aperto e ferma il ritardo in corso.
         self._nation_tooltip_timer.stop()
         self._nation_tooltip.hide()
@@ -262,66 +351,42 @@ class StatsPage(OrnamentedPage, QScrollArea):
         layout.addWidget(QLabel(tr("stats.nation_chart_hint"), card))
 
         # Raggruppa per nome nazione risolto (non la stringa grezza nel DB: varianti/
-        # alias come "Uk" e "United Kingdom" altrimenti apparirebbero come barre
-        # separate), tenendo anche i membri di ciascun gruppo per mouseover/tasto
-        # destro sulla barra.
+        # alias come "Uk" e "United Kingdom" altrimenti sarebbero righe separate),
+        # tenendo anche i membri di ciascun gruppo per mouseover/tasto destro sulla riga.
         members_by_nation: dict[str, list[Member]] = {}
+        raw_by_nation: dict[str, str] = {}  # un valore grezzo per gruppo: serve a trovare la bandiera
         for member in get_members(conn, STATUS_ATTIVO):
             for raw_nation in member.nations:
                 name = display_nation(raw_nation)
                 members_by_nation.setdefault(name, []).append(member)
+                raw_by_nation.setdefault(name, raw_nation)
         top_nations = sorted(members_by_nation.items(), key=lambda item: len(item[1]), reverse=True)[:NATION_CHART_TOP_N]
 
         self._nation_categories = [name for name, _ in top_nations]
         self._nation_members = dict(top_nations)
         self._nation_hovered_index = None
 
-        bar_set = QBarSet(tr("stats.current_members"))
-        for _, members in top_nations:
-            bar_set.append(len(members))
-        bar_set.hovered.connect(self._on_nation_bar_hovered)
-
-        series = QBarSeries()
-        series.append(bar_set)
-        series.setLabelsVisible(True)
-        series.setLabelsPosition(QAbstractBarSeries.LabelsInsideEnd)
-        series.setLabelsFormat("@value")
-
-        chart = QChart()
-        chart.addSeries(series)
-        chart.legend().hide()
-        chart.setBackgroundVisible(False)
-
-        axis_x = QBarCategoryAxis()
-        axis_x.append(self._nation_categories or ["-"])
-        chart.addAxis(axis_x, Qt.AlignBottom)
-        series.attachAxis(axis_x)
-
-        counts = [len(members) for _, members in top_nations] or [0]
-        axis_y = _integer_value_axis(0, max(counts))
-        chart.addAxis(axis_y, Qt.AlignLeft)
-        series.attachAxis(axis_y)
-
-        view = QChartView(chart)
-        view.setRenderHint(QPainter.Antialiasing)
-        view.setMinimumHeight(280)
-        view.setMouseTracking(True)
-        view.setContextMenuPolicy(Qt.CustomContextMenu)
-        view.customContextMenuRequested.connect(lambda pos, v=view: self._on_nation_context_menu(v, pos))
-        self._nation_view = view
-        layout.addWidget(view)
+        if not top_nations:
+            layout.addWidget(QLabel(tr("stats.no_data"), card))
+            return card
+        biggest = len(top_nations[0][1])
+        for index, (name, members) in enumerate(top_nations):
+            row = NationRow(index, raw_by_nation[name], name, len(members), len(members) / biggest, card)
+            row.hovered.connect(self._on_nation_bar_hovered)
+            row.context_requested.connect(self._on_nation_context_menu)
+            layout.addWidget(row)
         return card
 
     def _on_nation_bar_hovered(self, status: bool, index: int) -> None:
         self._nation_hovered_index = index if status else None
         if not status or index < 0 or index >= len(self._nation_categories):
-            # Uscita reale dalla barra (il tooltip è trasparente al mouse, quindi non
-            # genera hovered spuri): ferma il ritardo e nascondi il tooltip.
+            # Uscita reale dalla riga (il tooltip è trasparente al mouse, quindi non
+            # genera uscite spurie): ferma il ritardo e nascondi il tooltip.
             self._nation_tooltip_timer.stop()
             self._nation_tooltip.hide()
             return
-        # Riavvia il ritardo ad ogni cambio barra: il tooltip appare solo se il mouse
-        # resta fermo su una barra, non mentre lo si trascina sul grafico.
+        # Riavvia il ritardo ad ogni cambio riga: il tooltip appare solo se il mouse
+        # resta fermo su una riga, non mentre lo si trascina sulla classifica.
         self._nation_tooltip_timer.start()
 
     def _show_nation_tooltip(self) -> None:
@@ -335,16 +400,15 @@ class StatsPage(OrnamentedPage, QScrollArea):
         self._nation_tooltip.move(QCursor.pos() + QPoint(14, 16))
         self._nation_tooltip.show()
 
-    def _on_nation_context_menu(self, view: QChartView, pos) -> None:
-        index = self._nation_hovered_index
-        if index is None or index >= len(self._nation_categories):
+    def _on_nation_context_menu(self, index: int, global_pos: QPoint) -> None:
+        if index < 0 or index >= len(self._nation_categories):
             return
         name = self._nation_categories[index]
         members = self._nation_members.get(name, [])
         if not members:
             return
 
-        menu = RoundMenu(parent=view)
+        menu = RoundMenu(parent=self)
         menu.addAction(
             Action(FIF.COPY, tr("stats.nation_menu.copy"), triggered=lambda: self._copy_nation_members(members))
         )
@@ -356,7 +420,7 @@ class StatsPage(OrnamentedPage, QScrollArea):
                     triggered=lambda: self.on_open_nation_filter(name),
                 )
             )
-        menu.exec(view.viewport().mapToGlobal(pos))
+        menu.exec(global_pos)
 
     def _copy_nation_members(self, members: list[Member]) -> None:
         family_names = sorted(m.family_name for m in members)

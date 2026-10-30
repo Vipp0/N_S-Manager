@@ -26,7 +26,6 @@ from gilda_app.models.member import STATUS_ATTIVO, STATUS_BANNATO, STATUS_EX_MEM
 from gilda_app.ui.chips import TONE_BAD, TONE_GOOD, TONE_OUTLINE, ChipLabel
 from gilda_app.ui.season_decor import DecorItem, DecorOverlay, snow
 from gilda_app.utils.date_format import iso_to_display, relative_day_label
-from gilda_app.utils.flags import display_nation
 from gilda_app.utils.icons import ban_icon
 from gilda_app.version import __version__
 
@@ -55,7 +54,7 @@ TILE_SETTINGS = "settings"
 
 WORDMARK_PATH = Path(__file__).resolve().parent.parent / "resources" / "wordmark.png"
 WORDMARK_HEIGHT = 86
-TILE_KEYS_INFO = ("info_joins", "info_anniversaries", "info_nations")
+TILE_KEYS_INFO = ("info_joins", "info_anniversaries")
 
 _VALUE_STYLE = "font-size: 28px; font-weight: 600;"
 # Le righe che riguardano oggi (eventi, festività, compleanni, anniversari): grassetto e
@@ -63,7 +62,7 @@ _VALUE_STYLE = "font-size: 28px; font-weight: 600;"
 TODAY_COLOR = "#15803d"
 # Come TODAY_COLOR, ma per chi non è più un membro attuale (compleanno degli ex membri).
 FORMER_TODAY_COLOR = "#b45309"
-# Righe dei riquadri di informazioni (movimenti, compleanni, anniversari, nazioni): le stesse per tutti, così
+# Righe dei riquadri di informazioni (movimenti, compleanni, anniversari): le stesse per tutti, così
 # la fila è alta quanto serve a sei righe e nessun riquadro resta con un vuoto sotto.
 INFO_ROWS = 6
 # I compleanni sono sempre INFO_ROWS, anche se il più vicino è fra mesi (un anno di giorni basta a trovare
@@ -395,7 +394,6 @@ class DashboardPage(QWidget):
             ("info_joins", FIF.SYNC, tr("dash.recent_movements")),
             ("info_birthdays", FIF.HEART, tr("dash.birthdays")),
             ("info_anniversaries", FIF.CALENDAR, tr("dash.anniversaries")),
-            ("info_nations", FIF.PIE_SINGLE, tr("dash.top_nations")),
             ("info_timers", FIF.GLOBE, tr("dash.bdo_timers")),
         ]:
             self._info_cards[key] = InfoCard(icon, title, self)
@@ -564,10 +562,6 @@ class DashboardPage(QWidget):
             ]
             or [tr("dash.no_anniversaries")],
             today_lines=frozenset(i for i, (day, *_rest) in enumerate(anniversaries) if day == today),
-        )
-        nations = stats.nation_distribution(conn)[:INFO_ROWS]
-        self._info_cards["info_nations"].set_content(
-            "", [f"{display_nation(r['nation'])} — {r['cnt']}" for r in nations] or [tr("stats.no_data")]
         )
 
         last_backup = self.get_last_backup()

@@ -1,6 +1,6 @@
 import sqlite3
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QSize, Qt
 from PySide6.QtWidgets import QAbstractItemView, QHeaderView, QTableWidget, QTableWidgetItem
 from qfluentwidgets import MessageBoxBase, SubtitleLabel
 
@@ -9,9 +9,10 @@ from gilda_app.i18n import tr
 from gilda_app.ui.persistent_clear_search import PersistentClearSearchLineEdit
 from gilda_app.models.member import STATUS_ATTIVO, STATUS_BANNATO, STATUS_EX_MEMBRO
 from gilda_app.ui.chips import CHIP_TONE_ROLE, TONE_BAD, TONE_GOOD, TONE_WARN, ChipDelegate
-from gilda_app.utils.flags import nations_text
+from gilda_app.utils.flags import MAX_FLAG_ICON_SIZE, combined_flag_icon, nations_text
 
 ALL_STATUSES = [STATUS_ATTIVO, STATUS_EX_MEMBRO, STATUS_BANNATO]
+NATION_COLUMN = 2
 STATUS_COLUMN = 4
 STATUS_TONES = {STATUS_ATTIVO: TONE_GOOD, STATUS_EX_MEMBRO: TONE_WARN, STATUS_BANNATO: TONE_BAD}
 
@@ -51,6 +52,8 @@ class GlobalSearchDialog(MessageBoxBase):
         self.results_table.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.results_table.setSelectionMode(QAbstractItemView.SingleSelection)
         self.results_table.setItemDelegateForColumn(STATUS_COLUMN, ChipDelegate(self.results_table))
+        # Come nelle liste dei membri: l'icona alla dimensione nativa, senza sfocarla scalandola.
+        self.results_table.setIconSize(QSize(*MAX_FLAG_ICON_SIZE))
         self.results_table.setMinimumHeight(280)
         self.results_table.itemSelectionChanged.connect(self._update_button_state)
         self.results_table.doubleClicked.connect(self._on_double_click)
@@ -89,6 +92,10 @@ class GlobalSearchDialog(MessageBoxBase):
                     item = QTableWidgetItem(value)
                     if col == STATUS_COLUMN:
                         item.setData(CHIP_TONE_ROLE, STATUS_TONES[status])  # lo stato è un'etichetta colorata
+                    elif col == NATION_COLUMN:
+                        icon = combined_flag_icon(member.nations)  # la bandiera (o due) accanto al nome
+                        if icon is not None:
+                            item.setIcon(icon)
                     self.results_table.setItem(row, col, item)
                 self._result_ids.append((status, member.id))
 

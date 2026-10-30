@@ -24,7 +24,6 @@ STRINGS: dict[str, dict[str, str]] = {
     "dash.anniversary_line": {"it": "{date}  {name} — {years} {unit}", "en": "{date}  {name} — {years} {unit}"},
     "dash.year_one": {"it": "anno", "en": "year"},
     "dash.year_many": {"it": "anni", "en": "years"},
-    "dash.top_nations": {"it": "Top 6 nazioni (membri attuali)", "en": "Top 6 nations (current members)"},
     "stats.anniversaries": {"it": "Prossimi anniversari in gilda (60 giorni)", "en": "Upcoming guild anniversaries (60 days)"},
     "label.birthday": {"it": "Compleanno", "en": "Birthday"},
     "birthday.year_placeholder": {"it": "Anno (opz.)", "en": "Year (opt.)"},
@@ -533,8 +532,8 @@ STRINGS: dict[str, dict[str, str]] = {
         "en": "Distribution by nation (current members, top 15)",
     },
     "stats.nation_chart_hint": {
-        "it": "Passa il mouse su una barra per vedere i nomi, tasto destro per altre opzioni.",
-        "en": "Hover a bar to see the names, right-click for more options.",
+        "it": "Passa il mouse su una nazione per vedere i nomi, tasto destro per altre opzioni.",
+        "en": "Hover a nation to see the names, right-click for more options.",
     },
     "stats.nation_menu.copy": {"it": "Copia elenco nomi", "en": "Copy list of names"},
     "stats.nation_menu.open": {"it": "Apri in Membri attuali: {nation}", "en": "Open in Current members: {nation}"},

@@ -6,6 +6,15 @@ usa il programma, non i dettagli tecnici del come."""
 
 CHANGELOG: list[dict] = [
     {
+        "version": "2.9.7",
+        "date": "30-10-2026",
+        "notes": [
+            "Bandiere: nella ricerca globale la nazione ha la bandiera (o le due bandiere per la doppia nazionalità), come nelle liste dei membri.",
+            "Statistiche: la distribuzione per nazione diventa una classifica con la bandiera, il nome, una barra proporzionale e il numero di membri (le prime 15). Il mouse sopra una nazione mostra sempre i nomi e il tasto destro le stesse opzioni di prima.",
+            "Dashboard: il riquadro \"Top 6 nazioni\" non c'è più, perché le nazioni ora stanno nelle Statistiche; la fila delle informazioni ha quattro riquadri (Ultimi movimenti, Compleanni, Anniversari in gilda, Timer BDO).",
+        ],
+    },
+    {
         "version": "2.9.6",
         "date": "30-10-2026",
         "notes": [
