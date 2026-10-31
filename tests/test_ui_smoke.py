@@ -152,10 +152,10 @@ def test_seasonal_theme_changes_logo_greeting_and_accent_and_restores_them(qapp,
     assert not dashboard._decor.isHidden() and dashboard._decor._pixmaps  # ragnatela e ragno degli angoli
     assert not dashboard._greeting_icon.isHidden()  # zucca accanto agli auguri
     window.resize(1100, 720)
-    dashboard._reflow(3)  # 5 schede informative su 3 colonne: resta una cella libera per il gruppo di zucche
+    assert not dashboard._cluster.isHidden()  # il gruppo di zucche sta sotto i riquadri, a qualunque larghezza
+    dashboard._reflow(3)
+    dashboard._reflow(1)
     assert not dashboard._cluster.isHidden()
-    dashboard._reflow(1)  # su una colonna non c'è nessun vuoto
-    assert dashboard._cluster.isHidden()
 
     page = window.pages["attivo"]  # liste: zucca e corvo ai lati del logo, solo se la pagina è larga
     page.resize(1400, 700)

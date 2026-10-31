@@ -54,6 +54,8 @@ TILE_SETTINGS = "settings"
 
 WORDMARK_PATH = Path(__file__).resolve().parent.parent / "resources" / "wordmark.png"
 WORDMARK_HEIGHT = 66
+CHIP_ROW_HEIGHT = 21  # altezza di una riga dei riquadri (come le righe di testo)
+CHIP_MIN_WIDTH = 76
 COVER_WIDE_WIDTH = 1000  # da questa larghezza della pagina il grafico sta accanto ai numeri, sotto va su due file
 COVER_BAND_WIDE_WIDTH = 1150  # da qui le quattro sezioni stanno su una fila sola, sotto su due
 TILE_KEYS_INFO = ("info_joins", "info_anniversaries")
@@ -165,7 +167,7 @@ class DashboardTile(CardWidget):
         # widget al posto del testo, perché una pillola arrotondata nel testo formattato non si può disegnare.
         self._chip_rows = QWidget(self)
         self._chip_grid = QGridLayout(self._chip_rows)
-        self._chip_grid.setContentsMargins(0, 0, 0, 0)
+        self._chip_grid.setContentsMargins(0, 1, 0, 0)  # un pixel di margine: le righe partono alla stessa altezza di quelle in testo
         self._chip_grid.setHorizontalSpacing(14)
         self._chip_grid.setVerticalSpacing(0)
         self._chip_grid.setColumnStretch(1, 1)
@@ -241,18 +243,25 @@ class DashboardTile(CardWidget):
                 widget.deleteLater()
         for row, line in enumerate(lines):
             label, text, chip = (line + (None,))[:3] if isinstance(line, tuple) else ("", line, None)
+            # Data e nome hanno lo stesso carattere, la stessa altezza di riga e partono dall'alto: stanno sulla
+            # stessa linea (anche se il nome va a capo), come nei riquadri con la tabella di testo.
             if label:
                 when = BodyLabel(fmt(row, label), self._chip_rows)
                 when.setTextFormat(Qt.RichText)
+                when.setAlignment(Qt.AlignLeft | Qt.AlignTop)
+                when.setFixedHeight(CHIP_ROW_HEIGHT)
                 self._chip_grid.addWidget(when, row, 0, Qt.AlignTop)
             body = BodyLabel(fmt(row, text), self._chip_rows)
             body.setTextFormat(Qt.RichText)
             body.setWordWrap(True)
+            body.setAlignment(Qt.AlignLeft | Qt.AlignTop)
             body.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)  # un nome lungo va a capo, non allarga
-            body.setMinimumHeight(21)
+            body.setMinimumHeight(CHIP_ROW_HEIGHT)
             self._chip_grid.addWidget(body, row, 1 if label else 0, 1, 2 if not label else 1)
             if chip:
-                self._chip_grid.addWidget(ChipLabel(chip[0], chip[1], self._chip_rows), row, 2, Qt.AlignRight | Qt.AlignTop)
+                badge = ChipLabel(chip[0], chip[1], self._chip_rows)
+                badge.setMinimumWidth(CHIP_MIN_WIDTH)  # tutte della stessa larghezza: il bordo sinistro è dritto
+                self._chip_grid.addWidget(badge, row, 2, Qt.AlignRight | Qt.AlignTop)
 
 
 class InfoCard(DashboardTile):
@@ -449,11 +458,12 @@ class DashboardPage(QWidget):
         ]:
             self._info_cards[key] = InfoCard(icon, title, self)
         layout.addLayout(self._info_grid)
-        layout.addStretch(1)
-        # Tema stagionale: gruppo di decorazioni nella cella vuota in fondo alle informazioni (se c'è) e
-        # strato con le decorazioni degli angoli. Senza tema restano nascosti.
+        # Tema stagionale: gruppo di decorazioni (zucche, palline...) sotto i riquadri delle informazioni, al centro,
+        # e strato con le decorazioni degli angoli. Senza tema restano nascosti.
         self._cluster = QLabel(self)
         self._cluster.hide()
+        layout.addWidget(self._cluster, 0, Qt.AlignHCenter)
+        layout.addStretch(1)
         self._decor = DecorOverlay(content, DASHBOARD_DECOR)  # sul contenuto: scorre via con la pagina
         self._info_columns = 1
         self._cover_layout_key = None
@@ -483,7 +493,7 @@ class DashboardPage(QWidget):
             )
 
     def set_decor(self, season) -> None:
-        """Decorazioni del tema (None = nessuna): angoli sopra la pagina e gruppo nel vuoto della griglia."""
+        """Decorazioni del tema (None = nessuna): angoli sopra la pagina e gruppo sotto i riquadri."""
         self._decor.set_season(season)
         path = season.decor_path("cluster") if season is not None else None
         if path is not None and path.exists():
@@ -493,15 +503,8 @@ class DashboardPage(QWidget):
         self._place_cluster()
 
     def _place_cluster(self) -> None:
-        """Mette il gruppo di decorazioni nella prima cella libera dopo l'ultima scheda di informazioni, se la
-        riga non è piena (con una sola colonna o riga piena non c'è vuoto: resta nascosto)."""
-        self._info_grid.removeWidget(self._cluster)
-        count, columns = len(self._info_cards), self._info_columns
-        free = count % columns != 0 and self._cluster.pixmap() is not None and not self._cluster.pixmap().isNull()
-        self._cluster.setVisible(free)
-        if free:
-            self._cluster.setAlignment(Qt.AlignCenter)
-            self._info_grid.addWidget(self._cluster, count // columns, count % columns)
+        """Il gruppo di decorazioni si vede solo se il tema ne ha uno."""
+        self._cluster.setVisible(self._cluster.pixmap() is not None and not self._cluster.pixmap().isNull())
 
     # -- layout -----------------------------------------------------------
     def _reflow(self, columns: int) -> None:
@@ -516,7 +519,6 @@ class DashboardPage(QWidget):
         for col in range(MAX_COLUMNS):
             self._info_grid.setColumnStretch(col, 1 if col < info_columns else 0)
         self._info_columns = info_columns
-        self._place_cluster()
 
     def _reflow_cover(self, width: int) -> None:
         """Copertina: il grafico accanto ai numeri solo se la pagina è larga; le quattro sezioni in basso su una

@@ -6,6 +6,14 @@ usa il programma, non i dettagli tecnici del come."""
 
 CHANGELOG: list[dict] = [
     {
+        "version": "2.9.9",
+        "date": "31-10-2026",
+        "notes": [
+            "Dashboard, informazioni generali: in Ultimi movimenti e Compleanni la data, il nome e l'etichetta colorata stanno ora sulla stessa linea (prima la data era più in alto del nome) e le etichette hanno tutte la stessa larghezza, con il bordo sinistro dritto.",
+            "Temi di festa: il gruppo di decorazioni (zucche, pupazzo e rametti) torna sotto i riquadri delle informazioni, al centro; con quattro riquadri non c'era più la cella libera dove stava prima.",
+        ],
+    },
+    {
         "version": "2.9.8",
         "date": "30-10-2026",
         "notes": [
