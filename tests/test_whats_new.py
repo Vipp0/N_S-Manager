@@ -130,3 +130,20 @@ def test_real_history_for_2_7_3(monkeypatch):
     assert rts("2.7", "2.7.3", True) == ["2.7.3", "2.7.2", "2.7.1"]  # al massimo le ultime tre
     assert rts("2.7.3", "2.7.3", True) == []
     assert len(wn.WHATS_NEW["2.7.3"]) == 3
+
+
+def test_the_3_0_popup_leads_with_the_new_look_and_the_side_card(monkeypatch):
+    import importlib
+
+    from qfluentwidgets import FluentIcon
+
+    importlib.reload(wn)
+    items = wn.WHATS_NEW["3.0"]
+    assert [item.title for item in items][:2] == ["Nuova grafica, a partire dalla dashboard", "La scheda del membro, a destra"]
+    assert items[-1].title == "Avviso di aggiornamento più visibile"  # l'avviso va per ultimo
+    assert len(items) == 5
+    for item in items:
+        assert hasattr(FluentIcon, item.icon), item.icon  # l'icona esiste davvero
+    # chi arriva dalla 2.9 vede solo le novità della 3.0
+    assert wn.releases_to_show("2.9", "3.0", True) == ["3.0"]
+    assert wn.latest_release("3.0") == "3.0"

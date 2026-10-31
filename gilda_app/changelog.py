@@ -6,92 +6,23 @@ usa il programma, non i dettagli tecnici del come."""
 
 CHANGELOG: list[dict] = [
     {
-        "version": "2.9.11",
+        "version": "3.0",
         "date": "31-10-2026",
         "notes": [
-            "Dashboard, grafico della copertina: quarta vista \"Nazioni\", con le prime sei nazioni dei membri attuali (bandiera, barra e numero) e il totale delle nazioni; l'elenco completo resta nelle Statistiche. Il grafico passa sotto ai numeri con la finestra sotto circa 1130 pixel di larghezza, perché con quattro pulsanti non c'è più posto accanto.",
-        ],
-    },
-    {
-        "version": "2.9.10",
-        "date": "31-10-2026",
-        "notes": [
-            "Membri attuali, Ex membri e Bannati: cliccando una riga si apre a destra la scheda del membro con i dati principali: nome e main, nazione con la bandiera, Discord con il pulsante Copia, da quando è in gilda (o quando è uscito o è stato bannato, con il motivo del ban), la nota per intero e gli ultimi passaggi (con \"Mostra altro\"). Nei membri nuovi o rientrati da poco c'è l'etichetta \"Nuovo\" o \"Rientrato\"; per chi non ha la data di ingresso la scheda lo dice e propone di inserirla. In basso i pulsanti Modifica e Sposta.",
-            "Il pannello si chiude con la X, con Esc, cliccando di nuovo la stessa riga o in un punto vuoto; cliccando un'altra riga cambia membro. La tabella usa tutta la larghezza finché è chiuso e si restringe quando si apre; con la finestra stretta il pannello si sovrappone alla tabella senza restringerla. Doppio clic per modificare e tasto destro funzionano come prima.",
-        ],
-    },
-    {
-        "version": "2.9.9",
-        "date": "31-10-2026",
-        "notes": [
-            "Dashboard, informazioni generali: in Ultimi movimenti e Compleanni la data, il nome e l'etichetta colorata stanno ora sulla stessa linea (prima la data era più in alto del nome) e le etichette hanno tutte la stessa larghezza, con il bordo sinistro dritto.",
-            "Temi di festa: il gruppo di decorazioni (zucche, pupazzo e rametti) torna sotto i riquadri delle informazioni, al centro; con quattro riquadri non c'era più la cella libera dove stava prima.",
-        ],
-    },
-    {
-        "version": "2.9.8",
-        "date": "30-10-2026",
-        "notes": [
-            "Nuova copertina della dashboard: in alto il logo, il numero dei membri attuali in grande (\"94 / 100\") con la barra dei posti, un grafico e a lato ex membri e bannati; sotto, nella stessa scheda, Calendario, BDO, Note e Impostazioni con la loro anteprima. Ogni zona è cliccabile e porta alla sua scheda: il numero ai Membri attuali, il grafico alle Statistiche, ex membri e bannati alle loro liste, le quattro sezioni alle loro schede. Il riquadro \"Statistiche\" non c'è più (si apre dal grafico o dalla barra laterale). I numeri salgono da zero quando il programma si apre. Con la finestra stretta il grafico passa sotto ai numeri e le sezioni su due file.",
-            "Il grafico ha tre viste, da scegliere con i pulsanti in alto: Ingressi e uscite (ultimi 12 mesi), Andamento (membri attuali nel tempo, con il tetto) e Anzianità (da quanto sono in gilda, con la riga \"Senza data\"). Le uscite si conoscono solo da quando il programma le registra: i mesi prima restano vuoti e una nota dice da quando.",
+            "Nuova copertina della dashboard: in alto il logo, il numero dei membri attuali in grande (\"94 / 100\") con la barra dei posti, un grafico e a lato ex membri e bannati; sotto, nella stessa scheda, Calendario, BDO, Note e Impostazioni con la loro anteprima (le Note mostrano cinque righe invece di tre). Ogni zona è cliccabile e porta alla sua scheda: il numero ai Membri attuali, il grafico alle Statistiche, ex membri e bannati alle loro liste, le quattro sezioni alle loro schede. Il riquadro \"Statistiche\" non c'è più (si apre dal grafico o dalla barra laterale). I numeri salgono da zero quando il programma si apre. Con la finestra stretta (sotto circa 1130 pixel) il grafico passa sotto ai numeri e le sezioni vanno su due file.",
+            "Il grafico ha quattro viste, da scegliere con i pulsanti in alto: Ingressi e uscite (ultimi 12 mesi), Andamento (membri attuali nel tempo, con il tetto), Anzianità (da quanto sono in gilda, con la riga \"Senza data\") e Nazioni (le prime sei dei membri attuali, con bandiera, barra e numero). Le uscite si conoscono solo da quando il programma le registra: i mesi prima restano vuoti e una nota dice da quando.",
             "Impostazioni → Posti della gilda: il numero massimo di membri (100 di base, come in Black Desert). Se si supera, niente si blocca: la barra dei posti diventa ambra e dice di quanto (\"3 oltre il tetto\").",
-            "Note: l'anteprima nella dashboard mostra cinque righe invece di tre.",
-        ],
-    },
-    {
-        "version": "2.9.7",
-        "date": "30-10-2026",
-        "notes": [
-            "Bandiere: nella ricerca globale la nazione ha la bandiera (o le due bandiere per la doppia nazionalità), come nelle liste dei membri.",
-            "Statistiche: la distribuzione per nazione diventa una classifica con la bandiera, il nome, una barra proporzionale e il numero di membri (le prime 15). Il mouse sopra una nazione mostra sempre i nomi e il tasto destro le stesse opzioni di prima.",
-            "Dashboard: il riquadro \"Top 6 nazioni\" non c'è più, perché le nazioni ora stanno nelle Statistiche; la fila delle informazioni ha quattro riquadri (Ultimi movimenti, Compleanni, Anniversari in gilda, Timer BDO).",
-        ],
-    },
-    {
-        "version": "2.9.6",
-        "date": "30-10-2026",
-        "notes": [
-            "Etichette colorate al posto delle scritte: in dashboard, Ultimi movimenti mostra Entrato e Rientrato in verde, Uscito e Bannato in rosso (prima \" · entrato\" in fondo al nome); nei Compleanni gli ex membri hanno l'etichetta \"Ex membro\" (prima \"(ex membro)\" tra parentesi).",
-            "Ricerca globale: lo stato è un'etichetta colorata (Attuale in verde, Ex membro in ambra, Bannato in rosso).",
-            "Registro eventi: il tipo di evento (Ingresso, Rientro, Uscita, Bannato...) è un'etichetta verde, rossa o grigia, e le righe restano tutte neutre invece di colorarsi per intero.",
-        ],
-    },
-    {
-        "version": "2.9.5",
-        "date": "30-10-2026",
-        "notes": [
             "Colore d'accento: quello di base diventa il viola Night Shade (era il turchese). In Impostazioni → Colore d'accento si sceglie tra cinque colori: viola Night Shade, turchese (quello di prima), blu, fucsia e ardesia; il cambio è immediato e resta salvato. Nei periodi di festa (Halloween, Natale) vince il colore del tema stagionale, poi torna quello scelto.",
-        ],
-    },
-    {
-        "version": "2.9.4",
-        "date": "30-10-2026",
-        "notes": [
-            "Dashboard, Anniversari in gilda: la lista è sempre piena, come i compleanni. Mostra i prossimi sei anniversari anche se il più vicino è fra qualche mese (prima si guardava solo ai 30 giorni successivi e il riquadro poteva restare vuoto).",
-        ],
-    },
-    {
-        "version": "2.9.3",
-        "date": "30-10-2026",
-        "notes": [
+            "Membri attuali, Ex membri e Bannati: cliccando una riga si apre a destra la scheda del membro con i dati principali: nome e main, nazione con la bandiera, Discord con il pulsante Copia, da quando è in gilda (o quando è uscito o è stato bannato, con il motivo del ban), la nota per intero e gli ultimi passaggi (con \"Mostra altro\"). Nei membri nuovi o rientrati da poco c'è l'etichetta \"Nuovo\" o \"Rientrato\"; per chi non ha la data di ingresso la scheda lo dice e propone di inserirla. In basso i pulsanti Modifica e Sposta.",
+            "La scheda si chiude con la X, con Esc, cliccando di nuovo la stessa riga o in un punto vuoto; cliccando un'altra riga cambia membro. La tabella usa tutta la larghezza finché è chiusa e si restringe quando si apre; con la finestra stretta la scheda si sovrappone alla tabella senza restringerla. Doppio clic per modificare e tasto destro funzionano come prima.",
+            "Etichette colorate al posto delle scritte: in dashboard, Ultimi movimenti mostra Entrato e Rientrato in verde, Uscito e Bannato in rosso; nei Compleanni gli ex membri hanno l'etichetta \"Ex membro\". Nella ricerca globale lo stato è un'etichetta (Attuale in verde, Ex membro in ambra, Bannato in rosso); nel Registro eventi il tipo di evento è un'etichetta verde, rossa o grigia, e le righe restano tutte neutre invece di colorarsi per intero.",
+            "Bandiere: nella ricerca globale la nazione ha la bandiera (o le due bandiere per la doppia nazionalità), come nelle liste dei membri. Nelle Statistiche la distribuzione per nazione diventa una classifica con bandiera, nome, barra proporzionale e numero di membri (le prime 15); il mouse sopra una nazione mostra sempre i nomi e il tasto destro le stesse opzioni di prima. Il riquadro \"Top nazioni\" non c'è più nella fila delle informazioni, che ha quattro riquadri (Ultimi movimenti, Compleanni, Anniversari in gilda, Timer BDO): le nazioni stanno nel grafico della copertina e nelle Statistiche.",
+            "Dashboard, Ultimi movimenti: il riquadro \"Ultimi ingressi\" mostra, per ogni membro, il movimento più recente: entrato (data di ingresso registrata, per chi è tra i membri attuali), rientrato (da ex membro o bannato), uscito o bannato. I passaggi tra ex membro e bannato non compaiono. Il conteggio \"Ingressi negli ultimi 30 giorni\" non cambia. Data, nome ed etichetta stanno sulla stessa linea e le etichette hanno tutte la stessa larghezza.",
+            "Dashboard, Compleanni e Anniversari in gilda: le liste sono sempre piene. Mostrano i prossimi sei anche se il più vicino è fra qualche mese (prima si guardava solo ai 14 e ai 30 giorni successivi e il riquadro poteva restare vuoto). Gli ex membri restano indicati e le righe di oggi restano evidenziate. Tutti i riquadri della fila hanno sei righe.",
             "Interfaccia in inglese: \"Former members\" diventa \"Ex members\" ovunque compaia (liste, statistiche, ricerca, dashboard, scheda BDO). In italiano non cambia niente.",
-            "Dashboard, Compleanni: la lista è sempre piena. Mostra i prossimi sei compleanni anche se il più vicino è fra qualche mese (prima si guardava solo ai 14 giorni successivi e il riquadro poteva restare vuoto). Cambiano solo i giorni controllati: gli ex membri restano indicati e le righe di oggi restano evidenziate; i compleanni lontani si leggono come giorno-mese.",
-            "Dashboard, informazioni generali: i riquadri \"Ultimi movimenti\", \"Compleanni\", \"Anniversari in gilda\" e \"Top nazioni\" ora hanno sei righe ciascuno (prima cinque, otto per i compleanni) e la fila è un po' più alta; la classifica delle nazioni diventa Top 6.",
-        ],
-    },
-    {
-        "version": "2.9.2",
-        "date": "28-10-2026",
-        "notes": [
-            "Dashboard: il riquadro \"Ultimi ingressi\" diventa \"Ultimi movimenti\" e mostra, per ogni membro, il movimento più recente: \"entrato\" (data di ingresso registrata, per chi è tra i membri attuali), \"rientrato\" (da ex membro o bannato), \"uscito\" (passato a ex membro) o \"bannato\". Nessun colore, solo la scritta accanto al nome. I passaggi tra ex membro e bannato non compaiono. Il conteggio \"Ingressi negli ultimi 30 giorni\" non cambia.",
-            "Il file .exe ora ha le sue informazioni di identità (Proprietà → Dettagli: nome del prodotto, autore, descrizione, versione, licenza), prese dal numero di versione del programma. Un eseguibile che si presenta viene sospettato meno dagli antivirus, e con l'aggiornamento automatico serve a evitare i falsi allarmi.",
-        ],
-    },
-    {
-        "version": "2.9.1",
-        "date": "28-10-2026",
-        "notes": [
             "Avviso di nuova versione a programma aperto: invece della piccola finestrella grigia in alto (che finiva sopra la barra del titolo e si notava poco) ora compare una striscia a tutta larghezza, nel colore d'accento (segue anche i temi stagionali), subito sotto la barra del titolo, con il pulsante \"Vedi\" ben visibile. Sta sopra le schede senza coprire niente, si vede da qualunque scheda e resta finché non la chiudi con la X.",
+            "Temi di festa: il gruppo di decorazioni (zucche, pupazzo e rametti) sta sotto i riquadri delle informazioni, al centro.",
+            "Il file .exe ora ha le sue informazioni di identità (Proprietà → Dettagli: nome del prodotto, autore, descrizione, versione, licenza), prese dal numero di versione del programma. Un eseguibile che si presenta viene sospettato meno dagli antivirus, e con l'aggiornamento automatico serve a evitare i falsi allarmi.",
         ],
     },
     {

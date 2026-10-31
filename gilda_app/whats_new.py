@@ -33,6 +33,66 @@ class Highlight:
 
 # Chiave: versione della release (come in version.py, es. "2.6").
 WHATS_NEW: dict[str, list[Highlight]] = {
+    "3.0": [
+        Highlight(
+            "HOME",
+            "Nuova grafica, a partire dalla dashboard",
+            "La prima schermata cambia look: in alto il logo e il numero dei membri in grande, con la barra dei posti "
+            "della gilda (100 di base, si cambia in Impostazioni), un grafico con quattro viste da scegliere (ingressi "
+            "e uscite, andamento, anzianità, nazioni) e ex membri e bannati a fianco. Sotto, nella stessa scheda, "
+            "Calendario, BDO, Note e Impostazioni. Ogni zona si clicca e porta alla sua scheda; il riquadro Statistiche "
+            "non c'è più, si apre dal grafico o dalla barra a sinistra. Cambia anche il colore: i pulsanti diventano "
+            "viola Night Shade e in Impostazioni → Colore d'accento puoi sceglierne un altro tra cinque (c'è anche il "
+            "turchese di prima).",
+            "New look, starting from the dashboard",
+            "The first screen changes its look: at the top the logo and the number of members in large type, with the "
+            "guild slots bar (100 by default, changeable in Settings), a chart with four views to choose from (joins "
+            "and exits, trend, tenure, nations), and ex members and banned on the side. Below, in the same card, "
+            "Calendar, BDO, Notes and Settings. Every area is clickable and leads to its tab; the Statistics tile is "
+            "gone, it opens from the chart or from the sidebar. The colour changes too: buttons become Night Shade "
+            "violet and in Settings → Accent colour you can pick another one out of five (the old teal is there too).",
+        ),
+        Highlight(
+            "PEOPLE",
+            "La scheda del membro, a destra",
+            "In Membri attuali, Ex membri e Bannati, cliccando una riga si apre a destra la scheda con i dati "
+            "principali: nazione con bandiera, Discord con il pulsante Copia, da quando è in gilda (o quando è uscito o "
+            "è stato bannato, con il motivo), la nota per intero e gli ultimi passaggi. Si chiude con la X, con Esc o "
+            "cliccando di nuovo la riga. Doppio clic per modificare e tasto destro funzionano come prima.",
+            "The member card, on the right",
+            "In Current members, Ex members and Banned, clicking a row opens a card on the right with the main data: "
+            "nation with flag, Discord with a Copy button, since when they are in the guild (or when they left or were "
+            "banned, with the reason), the full note and the latest steps. It closes with the X, with Esc or by "
+            "clicking the row again. Double-click to edit and right-click work as before.",
+        ),
+        Highlight(
+            "TAG",
+            "Etichette colorate e bandiere",
+            "Entrato e Rientrato in verde, Uscito e Bannato in rosso: li vedi negli Ultimi movimenti, nella ricerca "
+            "(Ctrl+F) e nel Registro eventi. La ricerca mostra anche le bandiere.",
+            "Coloured labels and flags",
+            "Joined and Rejoined in green, Left and Banned in red: you see them in Latest movements, in the search "
+            "(Ctrl+F) and in the Event log. The search shows the flags too.",
+        ),
+        Highlight(
+            "SYNC",
+            "Ultimi movimenti, compleanni e anniversari sempre pieni",
+            "Gli Ultimi ingressi diventano Ultimi movimenti: ci sono anche uscite e ban, una riga per membro. "
+            "Compleanni e Anniversari in gilda mostrano sempre sei righe, anche se i prossimi sono tra qualche mese.",
+            "Latest movements, birthdays and anniversaries always full",
+            "Latest joins become Latest movements: exits and bans are there too, one row per member. Birthdays and "
+            "Guild anniversaries always show six rows, even if the next ones are a few months away.",
+        ),
+        Highlight(
+            "UPDATE",
+            "Avviso di aggiornamento più visibile",
+            "Quando c'è una nuova versione, a programma aperto compare una striscia a tutta larghezza sotto la barra "
+            "del titolo, con il pulsante Vedi, al posto della piccola finestra grigia di prima.",
+            "More visible update notice",
+            "When a new version is available, with the program open a full-width strip appears under the title bar, "
+            "with a See button, instead of the small grey window of before.",
+        ),
+    ],
     "2.9": [
         Highlight(
             "BOOK_SHELF",
