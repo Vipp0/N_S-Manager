@@ -6,6 +6,14 @@ usa il programma, non i dettagli tecnici del come."""
 
 CHANGELOG: list[dict] = [
     {
+        "version": "2.9.10",
+        "date": "31-10-2026",
+        "notes": [
+            "Membri attuali, Ex membri e Bannati: cliccando una riga si apre a destra la scheda del membro con i dati principali: nome e main, nazione con la bandiera, Discord con il pulsante Copia, da quando è in gilda (o quando è uscito o è stato bannato, con il motivo del ban), la nota per intero e gli ultimi passaggi (con \"Mostra altro\"). Nei membri nuovi o rientrati da poco c'è l'etichetta \"Nuovo\" o \"Rientrato\"; per chi non ha la data di ingresso la scheda lo dice e propone di inserirla. In basso i pulsanti Modifica e Sposta.",
+            "Il pannello si chiude con la X, con Esc, cliccando di nuovo la stessa riga o in un punto vuoto; cliccando un'altra riga cambia membro. La tabella usa tutta la larghezza finché è chiuso e si restringe quando si apre; con la finestra stretta il pannello si sovrappone alla tabella senza restringerla. Doppio clic per modificare e tasto destro funzionano come prima.",
+        ],
+    },
+    {
         "version": "2.9.9",
         "date": "31-10-2026",
         "notes": [

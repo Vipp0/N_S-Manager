@@ -39,6 +39,7 @@ from gilda_app.db.database import (
     find_by_family_name,
     find_duplicate,
     get_members,
+    get_status_history,
     delete_setting,
     get_setting,
     move_member_status,
@@ -209,7 +210,7 @@ class MainWindow(FluentWindow):
 
         self.pages: dict[str, MemberListPage] = {}
         for status in STATUS_ORDER:
-            page = MemberListPage(status, self)
+            page = MemberListPage(status, self, history_provider=lambda member_id: get_status_history(self.conn, member_id))
             page.setObjectName(f"page_{status}")
             page.edit_requested.connect(self._on_edit)
             page.move_requested.connect(self._on_move)

@@ -7,13 +7,14 @@ riquadri della dashboard una ChipLabel."""
 from PySide6.QtCore import QRectF, Qt
 from PySide6.QtGui import QColor, QFont, QFontMetrics, QPainter, QPen
 from PySide6.QtWidgets import QLabel, QStyledItemDelegate, QStyleOptionViewItem
-from qfluentwidgets import TableItemDelegate, isDarkTheme
+from qfluentwidgets import TableItemDelegate, isDarkTheme, themeColor
 
 TONE_GOOD = "good"
 TONE_BAD = "bad"
 TONE_WARN = "warn"
 TONE_NEUTRAL = "neutral"
 TONE_OUTLINE = "outline"  # solo un contorno sottile: per un'informazione, non per un movimento
+TONE_ACCENT = "accent"  # nel colore d'accento scelto (es. "Nuovo")
 
 CHIP_TONE_ROLE = Qt.UserRole + 101
 
@@ -24,6 +25,8 @@ PAD_Y = 2
 
 
 def chip_foreground(tone: str) -> QColor:
+    if tone == TONE_ACCENT:
+        return QColor(themeColor())
     return QColor((_DARK if isDarkTheme() else _LIGHT).get(tone, _LIGHT[TONE_NEUTRAL]))
 
 
@@ -46,7 +49,7 @@ class ChipLabel(QLabel):
         foreground = chip_foreground(tone)
         border = f"1px solid rgba({foreground.red()}, {foreground.green()}, {foreground.blue()}, 90)" if tone == TONE_OUTLINE else "none"
         self.setStyleSheet(
-            f"QLabel {{ background: {_rgba(chip_background(tone))}; color: {foreground.name()}; "
+            f"QLabel {{ background: {_rgba(chip_background(tone))}; color: {foreground.name()}; font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif; "
             f"border: {border}; border-radius: 9px; padding: 1px {PAD_X}px; font-size: 12px; font-weight: 600; }}"
         )
         self.setAlignment(Qt.AlignCenter)

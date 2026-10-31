@@ -1,16 +1,28 @@
+from datetime import date
 from pathlib import Path
+from typing import Callable
 
-from PySide6.QtCore import QEvent, QSize, Qt, Signal
-from PySide6.QtGui import QColor, QFont, QGuiApplication, QPixmap
-from PySide6.QtWidgets import QAbstractItemView, QHBoxLayout, QLabel, QTableWidgetItem, QVBoxLayout, QWidget
+from PySide6.QtCore import QEvent, QPoint, QRect, QSize, Qt, Signal
+from PySide6.QtGui import QColor, QFont, QGuiApplication, QKeySequence, QPixmap, QShortcut
+from PySide6.QtWidgets import (
+    QAbstractItemView,
+    QGraphicsDropShadowEffect,
+    QHBoxLayout,
+    QLabel,
+    QTableWidgetItem,
+    QVBoxLayout,
+    QWidget,
+)
 from qfluentwidgets import Action, FluentIcon as FIF
 from qfluentwidgets import PrimaryPushButton, RoundMenu, StrongBodyLabel, TableWidget
 
 from gilda_app.i18n import tr
 from gilda_app.models.member import Member, STATUS_EX_MEMBRO, status_label
+from gilda_app.ui.member_detail_panel import PANEL_WIDTH, MemberDetailPanel
 from gilda_app.ui.persistent_clear_search import PersistentClearSearchLineEdit
 from gilda_app.utils.discord_format import discord_copy_text
 from gilda_app.utils.flags import MAX_FLAG_ICON_SIZE, combined_flag_icon, nations_text
+from gilda_app.utils.member_summary import summarize
 from gilda_app.utils.scrollbar import widen_scrollbar_on_hover
 
 NUMBER_COLUMN = 0
@@ -39,6 +51,7 @@ def _columns(status: str) -> list[str]:
 
 HEADER_DECOR_HEIGHT = 70  # decorazioni ai lati del logo, nelle liste
 HEADER_DECOR_MIN_WIDTH = 1250  # sotto questa larghezza della pagina non c'è spazio ai lati del logo
+PANEL_BESIDE_MIN_WIDTH = 1200  # da questa larghezza il pannello dei dettagli sta accanto alla tabella, sotto la copre
 
 
 class MemberListPage(QWidget):
@@ -49,9 +62,11 @@ class MemberListPage(QWidget):
     delete_requested = Signal(object)
     add_requested = Signal(str)
 
-    def __init__(self, status: str, parent=None):
+    def __init__(self, status: str, parent=None, history_provider: Callable[[int], list] | None = None):
+        """history_provider: dato l'id di un membro, le righe della sua cronologia (status_history), per il pannello."""
         super().__init__(parent)
         self.status = status
+        self._history_provider = history_provider
         self._members: list[Member] = []
         self._old_names: dict[int, list[str]] = {}
         self._columns = _columns(status)
@@ -120,7 +135,27 @@ class MemberListPage(QWidget):
         self.table.customContextMenuRequested.connect(self._show_context_menu)
         self.table.doubleClicked.connect(self._on_double_click)
         widen_scrollbar_on_hover(self.table.scrollDelagate.vScrollBar)
-        layout.addWidget(self.table)
+        # Il pannello dei dettagli a destra: si apre con un clic su una riga (vedi _on_table_release).
+        self._body = QHBoxLayout()
+        self._body.setSpacing(16)
+        self._body.addWidget(self.table, 1)
+        layout.addLayout(self._body, 1)
+        self.detail = MemberDetailPanel(self)
+        self.detail.hide()
+        self.detail.close_requested.connect(self.close_detail)
+        self.detail.edit_requested.connect(self.edit_requested)
+        self.detail.move_requested.connect(self.move_requested)
+        shadow = QGraphicsDropShadowEffect(self.detail)  # si vede solo quando il pannello copre la tabella
+        shadow.setBlurRadius(28)
+        shadow.setOffset(0, 6)
+        shadow.setColor(QColor(0, 0, 0, 70))
+        self._detail_shadow = shadow
+        self._detail_id: int | None = None
+        self._ignore_next_release = False  # dopo un doppio clic (modifica) il rilascio non deve richiudere
+        self._open_at_press: int | None = None  # il membro mostrato nel pannello quando si preme il mouse
+        self.table.viewport().installEventFilter(self)
+        self.table.itemSelectionChanged.connect(self._follow_selection)
+        QShortcut(QKeySequence(Qt.Key_Escape), self.table, activated=self.close_detail)
 
     def set_decor(self, season) -> None:
         """Decorazioni ai lati del logo (None = nessuna); a ogni tema le sue, se ci sono i file."""
@@ -143,6 +178,13 @@ class MemberListPage(QWidget):
         super().resizeEvent(event)
         if self._wordmark is not None:
             self._update_decor_visibility()
+        self._place_detail()
+
+    def mousePressEvent(self, event) -> None:
+        """Un clic in un punto vuoto della pagina (fuori da tabella e pannello) chiude il pannello."""
+        if event.button() == Qt.LeftButton:
+            self.close_detail()
+        super().mousePressEvent(event)
 
     def set_wordmark(self, path: Path) -> None:
         """Cambia il logo dell'intestazione (tema stagionale); se il file manca non fa niente."""
@@ -186,8 +228,22 @@ class MemberListPage(QWidget):
         self.table.setSortingEnabled(True)
         self.table.resizeColumnsToContents()
         self._apply_filter(self.search_box.text())
+        self._refresh_detail()
 
     def eventFilter(self, obj, event) -> bool:
+        if obj is self.table.viewport():
+            if event.type() == QEvent.MouseButtonPress and event.button() == Qt.LeftButton:
+                # Prima che Qt scelga la riga (e il pannello la segua): serve a distinguere un secondo clic sulla
+                # stessa riga (chiude) dal clic su un'altra (cambia membro).
+                self._open_at_press = self._detail_id if self.detail.isVisible() else None
+            elif event.type() == QEvent.MouseButtonDblClick:
+                self._ignore_next_release = True  # il doppio clic modifica: il clic non deve aprire o chiudere il pannello
+            elif event.type() == QEvent.MouseButtonRelease and event.button() == Qt.LeftButton:
+                if self._ignore_next_release:
+                    self._ignore_next_release = False
+                else:
+                    self._on_table_release(event.pos())
+            return False
         if obj is self.table.horizontalHeader().viewport() and event.type() in (
             QEvent.MouseButtonPress,
             QEvent.MouseButtonRelease,
@@ -232,6 +288,76 @@ class MemberListPage(QWidget):
                 self.table.selectRow(row)
                 self.table.scrollToItem(item)
                 break
+
+    # -- pannello dei dettagli ------------------------------------------------------------------------
+    def _on_table_release(self, pos: QPoint) -> None:
+        """Clic su una riga: apre il pannello; sulla stessa riga di nuovo: lo chiude; in un punto vuoto: lo chiude."""
+        row = self.table.rowAt(pos.y())
+        member = self._member_at_row(row) if row >= 0 else None
+        if member is None or member.id == self._open_at_press:
+            self.close_detail()
+        else:
+            self.open_detail(member)
+
+    def open_detail(self, member: Member) -> None:
+        self._detail_id = member.id
+        self._open_at_press = None
+        self._fill_detail(member)
+        self.detail.show()
+        self._place_detail()
+
+    def close_detail(self) -> None:
+        if not self.detail.isVisible():
+            return
+        self.detail.hide()
+        self._detail_id = None
+        self.table.clearSelection()
+        self._place_detail()
+
+    def _fill_detail(self, member: Member) -> None:
+        history = self._history_provider(member.id) if self._history_provider is not None else []
+        self.detail.set_member(member, summarize(member, history, date.today()))
+
+    def _refresh_detail(self) -> None:
+        """Dopo un aggiornamento dei dati il pannello mostra quelli nuovi (o si chiude se il membro non c'è più)."""
+        if not self.detail.isVisible():
+            return
+        member = next((m for m in self._members if m.id == self._detail_id), None)
+        if member is None:
+            self.close_detail()
+            return
+        self._fill_detail(member)
+        for row in range(self.table.rowCount()):  # l'aggiornamento azzera la selezione: si rimette sul membro
+            item = self.table.item(row, NUMBER_COLUMN)
+            if item is not None and item.data(Qt.UserRole) == member.id:
+                self.table.selectRow(row)
+                break
+
+    def _follow_selection(self) -> None:
+        """Con il pannello aperto, scegliere un'altra riga (anche con la tastiera o il tasto destro) lo aggiorna."""
+        if not self.detail.isVisible():
+            return
+        rows = self.table.selectionModel().selectedRows()
+        member = self._member_at_row(rows[0].row()) if rows else None
+        if member is not None and member.id != self._detail_id:
+            self.open_detail(member)
+
+    def _place_detail(self) -> None:
+        """Larga: il pannello sta accanto alla tabella e la restringe. Stretta: la copre sul lato destro, senza
+        toglierle spazio."""
+        beside = self.width() >= PANEL_BESIDE_MIN_WIDTH
+        in_layout = self._body.indexOf(self.detail) >= 0
+        if beside and not in_layout:
+            self.detail.setGraphicsEffect(None)
+            self._body.addWidget(self.detail)
+        elif not beside and in_layout:
+            self._body.removeWidget(self.detail)
+        if not beside:
+            top_left = self.table.mapTo(self, QPoint(0, 0))
+            height = self.table.height()
+            self.detail.setGraphicsEffect(self._detail_shadow)
+            self.detail.setGeometry(QRect(self.width() - 24 - PANEL_WIDTH, top_left.y(), PANEL_WIDTH, height))
+            self.detail.raise_()
 
     def _on_double_click(self, index) -> None:
         member = self._member_at_row(index.row())
