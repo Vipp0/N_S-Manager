@@ -635,3 +635,61 @@ def test_cover_nations_view_without_members_says_there_is_no_data(qapp, window):
     assert hero.chart._nations == []
     hero.chart.resize(500, 220)
     hero.chart.grab()
+
+
+def test_the_window_opens_maximized_the_first_time(qapp, window, monkeypatch):
+    calls = []
+    monkeypatch.setattr(window, "showMaximized", lambda: calls.append("maximized"))
+    monkeypatch.setattr(window, "show", lambda: calls.append("normal"))
+    window.show_restored()
+    assert calls == ["maximized"]  # nessuno stato salvato: a tutto schermo
+
+
+def test_the_window_state_is_remembered_across_restarts_and_updates(qapp, window, monkeypatch):
+    from gilda_app.db.database import get_setting
+    from gilda_app.ui.main_window import WINDOW_GEOMETRY_SETTING, WINDOW_MAXIMIZED_SETTING
+
+    window.setGeometry(40, 50, 1300, 800)
+    monkeypatch.setattr(window, "isMaximized", lambda: True)  # chiusa a tutto schermo
+    window._save_window_state()
+    assert get_setting(window.conn, WINDOW_MAXIMIZED_SETTING) == "1"
+
+    monkeypatch.setattr(window, "isMaximized", lambda: False)  # chiusa in finestra: si ricorda dove e quanto grande
+    window.setGeometry(60, 70, 1250, 780)
+    window._save_window_state()
+    assert get_setting(window.conn, WINDOW_MAXIMIZED_SETTING) == "0"
+    geometry = window.geometry()
+    assert get_setting(window.conn, WINDOW_GEOMETRY_SETTING) == f"{geometry.x()},{geometry.y()},1250,780"
+
+    calls = []
+    monkeypatch.setattr(window, "showMaximized", lambda: calls.append("maximized"))
+    monkeypatch.setattr(window, "show", lambda: calls.append("normal"))
+    window.setGeometry(0, 0, 1000, 700)
+    window.show_restored()
+    assert calls == ["normal"] and (window.geometry().width(), window.geometry().height()) == (1250, 780)  # riapre in finestra
+
+
+def test_a_saved_window_on_a_disconnected_screen_or_with_bad_data_is_ignored(qapp, window, monkeypatch):
+    from gilda_app.db.database import set_setting
+    from gilda_app.ui.main_window import WINDOW_GEOMETRY_SETTING, WINDOW_MAXIMIZED_SETTING
+
+    set_setting(window.conn, WINDOW_MAXIMIZED_SETTING, "0")
+    monkeypatch.setattr(window, "show", lambda: None)
+    window.setGeometry(100, 100, 1100, 720)
+    before = window.geometry()
+    for bad in ("99999,99999,1200,800", "garbage", "", "1,2,3", "10,10,100,100"):  # fuori schermo, non numerico, troppo piccola
+        set_setting(window.conn, WINDOW_GEOMETRY_SETTING, bad)
+        window.show_restored()
+        assert window.geometry() == before, bad
+
+
+def test_saving_the_window_state_never_fails_when_the_database_is_closed(qapp, window, monkeypatch):
+    import sqlite3
+
+    from gilda_app.ui import main_window as mw
+
+    def closed_database(*_args):
+        raise sqlite3.ProgrammingError("Cannot operate on a closed database.")
+
+    monkeypatch.setattr(mw, "set_setting", closed_database)  # chiusura del programma: il database può essere già chiuso
+    window._save_window_state()  # nessuna eccezione

@@ -6,6 +6,13 @@ usa il programma, non i dettagli tecnici del come."""
 
 CHANGELOG: list[dict] = [
     {
+        "version": "3.0.1",
+        "date": "31-10-2026",
+        "notes": [
+            "Il programma ricorda la finestra: si apre a tutto schermo (la prima volta, e finché lo si chiude così) e dopo un aggiornamento o un riavvio ritrova la finestra com'era, ingrandita oppure in finestra con la sua posizione e le sue misure. Prima ripartiva sempre in una finestra piccola da ingrandire a mano. Se la finestra salvata cade su uno schermo che non c'è più, torna visibile da sola.",
+        ],
+    },
+    {
         "version": "3.0",
         "date": "31-10-2026",
         "notes": [

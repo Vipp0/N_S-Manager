@@ -4,7 +4,7 @@ import threading
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
-from PySide6.QtCore import QObject, Qt, QTimer, QUrl, Signal
+from PySide6.QtCore import QObject, QRect, Qt, QTimer, QUrl, Signal
 from PySide6.QtGui import QColor, QDesktopServices, QGuiApplication, QIcon, QKeySequence, QShortcut
 from PySide6.QtWidgets import QApplication, QFileDialog, QVBoxLayout
 from qfluentwidgets import FluentIcon as FIF
@@ -132,6 +132,11 @@ SERVER_REGION_SETTING = "server_status_region"
 GUILD_NAME_SETTING = "bdo_guild_name"
 MAINT_START_SETTING = "maintenance_start_pt"
 WHATS_NEW_SEEN_SETTING = "whats_new_seen_version"
+# Stato della finestra: il programma si apre a tutto schermo (ingrandita) a meno che non lo si sia chiuso in finestra,
+# e dopo un aggiornamento o un riavvio ritrova la stessa finestra. La geometria è quella della finestra non ingrandita.
+WINDOW_MAXIMIZED_SETTING = "window_maximized"
+WINDOW_GEOMETRY_SETTING = "window_geometry"
+WINDOW_STATE_SAVE_DELAY_MS = 600  # si salva poco dopo l'ultima modifica, non a ogni pixel di un ridimensionamento
 MAINT_HOURS_SETTING = "maintenance_hours"
 MAINT_TEMP_HOURS_SETTING = "maintenance_temp_hours"
 SERVER_STATUS_INTERVAL_MS = 5 * 60 * 1000
@@ -201,6 +206,10 @@ class MainWindow(FluentWindow):
 
         self.setWindowTitle(f"{tr('window.title')} v{__version__}")
         self.resize(1100, 720)
+        self._window_state_timer = QTimer(self)
+        self._window_state_timer.setSingleShot(True)
+        self._window_state_timer.setInterval(WINDOW_STATE_SAVE_DELAY_MS)
+        self._window_state_timer.timeout.connect(self._save_window_state)
         # Sotto questa altezza il pannello di navigazione non fa più stare "Impostazioni"
         # (in fondo, posizione BOTTOM) dentro la finestra: qfluentwidgets non lo scorre,
         # resta semplicemente fuori dai bordi. 680 lascia un margine sopra la soglia reale (~650px).
@@ -355,7 +364,53 @@ class MainWindow(FluentWindow):
         # Il blocco note salva con un ritardo dopo l'ultima battitura: se si chiude
         # l'app proprio in quella finestra andrebbero perse le ultime modifiche.
         self.notes_page.save()
+        self._save_window_state()
         super().closeEvent(event)
+
+    # -- stato della finestra (ingrandita o no, posizione e misure) ----------------------------------
+    def show_restored(self) -> None:
+        """Mostra la finestra come era stata lasciata; la prima volta, a tutto schermo."""
+        saved = get_setting(self.conn, WINDOW_GEOMETRY_SETTING)
+        try:
+            x, y, width, height = (int(part) for part in (saved or "").split(","))
+        except ValueError:
+            x = y = width = height = None
+        if width is not None:
+            rect = QRect(x, y, width, height)
+            # Solo se la finestra cade su uno schermo che c'è ancora (un monitor scollegato non deve nasconderla).
+            if (
+                width >= self.minimumWidth() and height >= self.minimumHeight()
+                and any(screen.availableGeometry().intersects(rect) for screen in QGuiApplication.screens())
+            ):
+                self.setGeometry(rect)
+        if get_setting(self.conn, WINDOW_MAXIMIZED_SETTING, "1") == "1":
+            self.showMaximized()
+        else:
+            self.show()
+
+    def _save_window_state(self) -> None:
+        """Ricorda se la finestra è ingrandita e, per quando non lo è, dove sta e quanto è grande."""
+        try:
+            maximized = self.isMaximized()
+            rect = self.normalGeometry() if maximized else self.geometry()
+            set_setting(self.conn, WINDOW_MAXIMIZED_SETTING, "1" if maximized else "0")
+            if rect.width() > 0 and rect.height() > 0:
+                set_setting(self.conn, WINDOW_GEOMETRY_SETTING, f"{rect.x()},{rect.y()},{rect.width()},{rect.height()}")
+        except sqlite3.Error:
+            pass  # database già chiuso (programma in chiusura): resta lo stato salvato prima
+
+    def resizeEvent(self, event) -> None:
+        super().resizeEvent(event)
+        self._window_state_timer.start()
+
+    def moveEvent(self, event) -> None:
+        super().moveEvent(event)
+        self._window_state_timer.start()
+
+    def changeEvent(self, event) -> None:
+        super().changeEvent(event)
+        if event.type() == event.Type.WindowStateChange:
+            self._window_state_timer.start()
 
     def _setup_title_bar(self) -> None:
         if APP_ICON_PATH.exists():
@@ -1155,6 +1210,7 @@ class MainWindow(FluentWindow):
         except OSError:
             self._update_failed(tr("update.backup_failed"))
             return
+        self._save_window_state()  # la nuova versione si apre come la finestra era, a tutto schermo se lo era
         self._update_window = UpdateProgressWindow(self._season.splash_path if self._season is not None else None)
         self._update_window.set_progress(0, "")
         self._update_window.show()
@@ -1191,6 +1247,7 @@ class MainWindow(FluentWindow):
         box.yesButton.setText(tr("button.restart_now"))
         box.cancelButton.setText(tr("button.later"))
         if box.exec():
+            self._save_window_state()
             self.conn.close()
             restart_app()
 
@@ -1457,6 +1514,7 @@ class MainWindow(FluentWindow):
             restored.close()
         except sqlite3.Error:
             pass
+        self._save_window_state()
         restart_app()
 
     # -- Import / Export / Reset ---------------------------------------

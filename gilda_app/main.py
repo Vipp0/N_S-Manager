@@ -198,7 +198,7 @@ def main() -> None:
         _animate_splash_dots()
     # Finestra mostrata prima di chiudere lo splash: altrimenti Windows non ha una
     # finestra in primo piano da cui passare il focus e l'app parte in background.
-    window.show()
+    window.show_restored()
     if splash is not None:
         splash.finish(window)
     _close_splash()
