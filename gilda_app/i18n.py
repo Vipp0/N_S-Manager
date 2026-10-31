@@ -50,6 +50,8 @@ STRINGS: dict[str, dict[str, str]] = {
     "dash.chart.view.turn": {"it": "Ingressi e uscite", "en": "Joins and exits"},
     "dash.chart.view.trend": {"it": "Andamento", "en": "Trend"},
     "dash.chart.view.tenure": {"it": "Anzianità", "en": "Tenure"},
+    "dash.chart.view.nations": {"it": "Nazioni", "en": "Nations"},
+    "dash.chart.nations_total": {"it": "{n} nazioni", "en": "{n} nations"},
     "dash.chart.joins": {"it": "Ingressi {n}", "en": "Joins {n}"},
     "dash.chart.exits": {"it": "Uscite {n}", "en": "Exits {n}"},
     "dash.chart.cap": {"it": "tetto", "en": "limit"},

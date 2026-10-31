@@ -13,9 +13,11 @@ from gilda_app.db.dashboard import TENURE_BUCKETS
 from gilda_app.i18n import get_language, tr
 from gilda_app.ui.chips import TONE_WARN, chip_foreground
 from gilda_app.utils.date_format import iso_to_display
+from gilda_app.utils.flags import flag_pixmap
 
-VIEW_TURNOVER, VIEW_TREND, VIEW_TENURE = "turn", "trend", "tenure"
-VIEWS = (VIEW_TURNOVER, VIEW_TREND, VIEW_TENURE)
+VIEW_TURNOVER, VIEW_TREND, VIEW_TENURE, VIEW_NATIONS = "turn", "trend", "tenure", "nations"
+VIEWS = (VIEW_TURNOVER, VIEW_TREND, VIEW_TENURE, VIEW_NATIONS)
+NATIONS_SHOWN = 6  # le prime nazioni nel grafico: l'elenco completo è nelle Statistiche
 ZONE_ACTIVE, ZONE_EX, ZONE_BANNED, ZONE_CHART = "attivo", "ex_membro", "bannato", "stats"  # chiavi dei riquadri
 
 MONTH_ABBR = {
@@ -24,7 +26,7 @@ MONTH_ABBR = {
 }
 COUNT_UP_MS = 900
 FONT_FAMILY = "'Segoe UI', 'Microsoft YaHei', 'PingFang SC', sans-serif"  # come i testi di qfluentwidgets
-WIDE_MIN_WIDTH = 1000  # sotto questa larghezza della pagina il grafico va su una seconda fila
+WIDE_MIN_WIDTH = 1080  # sotto questa larghezza della pagina il grafico va su una seconda fila (quattro pulsanti + legenda non ci stanno)
 
 
 def month_abbr(month_key: str) -> str:
@@ -121,10 +123,11 @@ class CoverChart(QWidget):
         self._turnover: list[dict] = []
         self._trend: list[tuple[str, int | None]] = []
         self._tenure: dict[str, int] = {}
+        self._nations: list[tuple[str, str, int]] = []  # (nome mostrato, valore grezzo per la bandiera, membri)
         self._cap = 100
 
-    def set_data(self, turnover, trend, tenure, cap) -> None:
-        self._turnover, self._trend, self._tenure, self._cap = turnover, trend, tenure, cap
+    def set_data(self, turnover, trend, tenure, cap, nations) -> None:
+        self._turnover, self._trend, self._tenure, self._cap, self._nations = turnover, trend, tenure, cap, nations
         self.update()
 
     def set_view(self, view: str) -> None:
@@ -140,9 +143,12 @@ class CoverChart(QWidget):
         font = QFont("Segoe UI")
         font.setPixelSize(12)
         painter.setFont(font)
-        {VIEW_TURNOVER: self._paint_turnover, VIEW_TREND: self._paint_trend, VIEW_TENURE: self._paint_tenure}[
-            self._view
-        ](painter)
+        {
+            VIEW_TURNOVER: self._paint_turnover,
+            VIEW_TREND: self._paint_trend,
+            VIEW_TENURE: self._paint_tenure,
+            VIEW_NATIONS: self._paint_nations,
+        }[self._view](painter)
 
     # -- ingressi e uscite --------------------------------------------------------------------------
     def _paint_turnover(self, painter: QPainter) -> None:
@@ -275,6 +281,37 @@ class CoverChart(QWidget):
             painter.setPen(_faint_color())
             painter.drawText(QRectF(plot.right() - count_width, top, count_width, row_height), Qt.AlignRight | Qt.AlignVCenter, str(count))
 
+    # -- nazioni -----------------------------------------------------------------------------------
+    def _paint_nations(self, painter: QPainter) -> None:
+        rows = self._nations[:NATIONS_SHOWN]
+        if not rows:
+            return self._paint_empty(painter)
+        plot = QRectF(0, 2, self.width() - 4, self.height() - 4)
+        row_height = min(30.0, plot.height() / NATIONS_SHOWN)
+        biggest = max(count for _name, _raw, count in rows)
+        flag_height, flag_width, name_width, count_width = 16, 24, 130.0, 30.0
+        accent = QColor(themeColor())
+        accent.setAlpha(215)
+        for index, (name, raw, count) in enumerate(rows):
+            top = plot.top() + row_height * index
+            flag = flag_pixmap(raw).scaledToHeight(flag_height * 2, Qt.SmoothTransformation)  # il doppio: nitida sugli schermi densi
+            flag.setDevicePixelRatio(2)
+            painter.drawPixmap(QPointF(plot.left() + 2, top + (row_height - flag_height) / 2), flag)
+            painter.setPen(_text_color())
+            painter.drawText(
+                QRectF(plot.left() + flag_width + 12, top, name_width, row_height), Qt.AlignLeft | Qt.AlignVCenter,
+                painter.fontMetrics().elidedText(name, Qt.ElideRight, int(name_width)),
+            )
+            track = QRectF(plot.left() + flag_width + name_width + 22, top + row_height / 2 - 4,
+                           plot.width() - flag_width - name_width - count_width - 40, 8)
+            painter.setPen(Qt.NoPen)
+            painter.setBrush(_line_color())
+            painter.drawRoundedRect(track, 4, 4)
+            painter.setBrush(accent)
+            painter.drawRoundedRect(QRectF(track.left(), track.top(), max(8.0, track.width() * count / biggest), 8), 4, 4)
+            painter.setPen(_faint_color())
+            painter.drawText(QRectF(plot.right() - count_width, top, count_width, row_height), Qt.AlignRight | Qt.AlignVCenter, str(count))
+
     def _paint_empty(self, painter: QPainter) -> None:
         painter.setPen(_faint_color())
         painter.drawText(QRectF(self.rect()), Qt.AlignCenter | Qt.TextWordWrap, tr("dash.chart.no_data"))
@@ -392,6 +429,7 @@ class CoverHero(QWidget):
         self._view = VIEW_TURNOVER
         self._tracking_start: date | None = None
         self._tenure_total = 0
+        self._nations_total = 0
         self._turnover: list[dict] = []
         self._trend: list = []
         self.set_wide(True)
@@ -450,7 +488,7 @@ class CoverHero(QWidget):
 
     # -- dati --------------------------------------------------------------------------------------
     def set_data(self, active: int, ex: int, banned: int, cap: int, joined_30: int, left_30: int, banned_30: int,
-                 turnover: list, trend: list, tenure: dict, tracking_start: date | None) -> None:
+                 turnover: list, trend: list, tenure: dict, tracking_start: date | None, nations: list) -> None:
         self._cap = cap
         self._numbers = {ZONE_ACTIVE: active, ZONE_EX: ex, ZONE_BANNED: banned}
         from gilda_app.models.member import STATUS_BANNATO, STATUS_EX_MEMBRO, STATUS_ATTIVO, status_label
@@ -476,8 +514,9 @@ class CoverHero(QWidget):
             sub.setText(tr(recent_key, n=recent))
         self._tracking_start = tracking_start
         self._turnover, self._trend = turnover, trend
-        self.chart.set_data(turnover, trend, tenure, cap)
+        self.chart.set_data(turnover, trend, tenure, cap, nations)
         self._tenure_total = sum(tenure.values())
+        self._nations_total = len(nations)
         self._update_legend_and_note()
         if not self._animating:
             self._render_numbers(1.0)
@@ -523,8 +562,10 @@ class CoverHero(QWidget):
                 legend = tr("dash.chart.trend_delta", delta=f"{known[-1][1] - known[0][1]:+d}", since=month_abbr(known[0][0]))
             if self._tracking_start and any(v is None for _m, v in self._trend):
                 note = tr("dash.chart.note_trend", date=iso_to_display(self._tracking_start.isoformat()))
-        else:
+        elif self._view == VIEW_TENURE:
             legend = tr("dash.chart.tenure_total", n=self._tenure_total)
+        else:
+            legend = tr("dash.chart.nations_total", n=self._nations_total)
         self._legend.setText(f'<span style="color: {faint}; font-size: 12px; font-family: {FONT_FAMILY};">{legend}</span>')
         self._note.setText(note)
         self._note.setVisible(bool(note))

@@ -26,6 +26,7 @@ from gilda_app.models.member import STATUS_ATTIVO, STATUS_BANNATO, STATUS_EX_MEM
 from gilda_app.ui.chips import TONE_BAD, TONE_GOOD, TONE_OUTLINE, ChipLabel
 from gilda_app.ui.dashboard_cover import FONT_FAMILY, CoverHero
 from gilda_app.ui.season_decor import DecorItem, DecorOverlay, snow
+from gilda_app.utils.flags import display_nation
 from gilda_app.utils.date_format import iso_to_display, relative_day_label
 from gilda_app.version import __version__
 
@@ -56,7 +57,7 @@ WORDMARK_PATH = Path(__file__).resolve().parent.parent / "resources" / "wordmark
 WORDMARK_HEIGHT = 66
 CHIP_ROW_HEIGHT = 21  # altezza di una riga dei riquadri (come le righe di testo)
 CHIP_MIN_WIDTH = 76
-COVER_WIDE_WIDTH = 1000  # da questa larghezza della pagina il grafico sta accanto ai numeri, sotto va su due file
+COVER_WIDE_WIDTH = 1080  # da questa larghezza della pagina il grafico sta accanto ai numeri, sotto va su due file
 COVER_BAND_WIDE_WIDTH = 1150  # da qui le quattro sezioni stanno su una fila sola, sotto su due
 TILE_KEYS_INFO = ("info_joins", "info_anniversaries")
 
@@ -551,6 +552,16 @@ class DashboardPage(QWidget):
             self._intro_pending = False
             self._hero.play_count_up()
 
+    @staticmethod
+    def _nations_ranking(conn) -> list[tuple[str, str, int]]:
+        """(nome mostrato, valore grezzo, membri attuali) dalla più numerosa; scritture diverse della stessa nazione
+        (\"Uk\", \"United Kingdom\") contano insieme, come nelle Statistiche."""
+        merged: dict[str, list] = {}
+        for row in stats.nation_distribution(conn):
+            entry = merged.setdefault(display_nation(row["nation"]), [row["nation"], 0])
+            entry[1] += row["cnt"]
+        return sorted(((name, raw, count) for name, (raw, count) in merged.items()), key=lambda item: (-item[2], item[0]))
+
     # -- contenuto ----------------------------------------------------------
     def refresh(self) -> None:
         conn = self.get_conn()
@@ -561,7 +572,7 @@ class DashboardPage(QWidget):
             queries.joined_recently(conn), queries.transitions_to(conn, STATUS_EX_MEMBRO),
             queries.transitions_to(conn, STATUS_BANNATO),
             queries.monthly_turnover(conn, today), queries.membership_trend(conn, today),
-            queries.tenure_distribution(conn, today), queries.tracking_start(conn),
+            queries.tenure_distribution(conn, today), queries.tracking_start(conn), self._nations_ranking(conn),
         )
 
         agenda = queries.upcoming_agenda(conn, date.today())

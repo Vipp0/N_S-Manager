@@ -546,7 +546,7 @@ def test_cover_chart_views_and_the_note_about_unrecorded_exits(qapp, window):
     assert hero.chart._view == VIEW_TREND
     hero._set_view(VIEW_TENURE)
     assert hero.chart._view == VIEW_TENURE and hero._note.isHidden()
-    for view in (VIEW_TURNOVER, VIEW_TREND, VIEW_TENURE):  # ogni vista si disegna senza eccezioni, anche senza dati
+    for view in (VIEW_TURNOVER, VIEW_TREND, VIEW_TENURE, "nations"):  # ogni vista si disegna senza eccezioni, anche senza dati
         hero._set_view(view)
         hero.chart.resize(500, 200)
         hero.chart.grab()
@@ -605,3 +605,33 @@ def test_cover_greeting_lives_inside_the_cover(qapp, window):
     assert not dash._hero.greeting.isHidden() and "Feste" in dash._hero.greeting.text()
     dash.set_greeting(None)
     assert dash._hero.greeting.isHidden()
+
+
+def test_cover_nations_view_shows_the_top_nations_with_their_counts(qapp, window):
+    from gilda_app.db.database import add_member
+    from gilda_app.ui.dashboard_cover import NATIONS_SHOWN, VIEW_NATIONS
+
+    for nation, count in (("Italy", 3), ("Spain", 2), ("Uk", 1), ("United Kingdom", 1)):  # "Uk" e "United Kingdom" insieme
+        for index in range(count):
+            add_member(window.conn, f"{nation}{index}", "", "", [nation], "attivo")
+    for index in range(NATIONS_SHOWN + 2):  # tante nazioni quanto basta a superare quelle mostrate
+        add_member(window.conn, f"Altra{index}", "", "", [["France", "Germany", "Poland", "Portugal", "Greece", "Norway", "Japan", "Brazil"][index]], "attivo")
+    window.refresh_all()
+    hero = _settle_cover(window)
+    chart = hero.chart
+    assert [(name, count) for name, _raw, count in chart._nations[:3]] == [("Italia", 3), ("Regno Unito", 2), ("Spagna", 2)]
+    hero._set_view(VIEW_NATIONS)
+    assert chart._view == VIEW_NATIONS
+    assert hero._legend.text().count("nazioni") == 1 and f"{len(chart._nations)} nazioni" in hero._legend.text()
+    assert hero._note.isHidden()
+    chart.resize(500, 220)
+    chart.grab()  # si disegna senza eccezioni
+    assert len(chart._nations) > NATIONS_SHOWN  # il grafico ne mostra solo le prime, il totale è nella legenda
+
+
+def test_cover_nations_view_without_members_says_there_is_no_data(qapp, window):
+    hero = _settle_cover(window)
+    hero._set_view("nations")
+    assert hero.chart._nations == []
+    hero.chart.resize(500, 220)
+    hero.chart.grab()

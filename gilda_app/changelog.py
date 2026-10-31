@@ -6,6 +6,13 @@ usa il programma, non i dettagli tecnici del come."""
 
 CHANGELOG: list[dict] = [
     {
+        "version": "2.9.11",
+        "date": "31-10-2026",
+        "notes": [
+            "Dashboard, grafico della copertina: quarta vista \"Nazioni\", con le prime sei nazioni dei membri attuali (bandiera, barra e numero) e il totale delle nazioni; l'elenco completo resta nelle Statistiche. Il grafico passa sotto ai numeri con la finestra sotto circa 1130 pixel di larghezza, perché con quattro pulsanti non c'è più posto accanto.",
+        ],
+    },
+    {
         "version": "2.9.10",
         "date": "31-10-2026",
         "notes": [
