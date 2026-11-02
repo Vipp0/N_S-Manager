@@ -715,20 +715,20 @@ def test_window_events_during_construction_do_not_crash_before_the_timer_exists(
 
 
 def test_elided_label_cuts_the_name_but_keeps_the_age(qapp):
-    from gilda_app.ui.dashboard_page import CHIP_ROW_HEIGHT, ElidedLabel
+    from gilda_app.ui.dashboard_page import INFO_ROW_HEIGHT, ElidedLabel
 
     label = ElidedLabel("AE_Zekken (AE_Zekken)", suffix=" — compie 36 anni")
-    assert label.height() == CHIP_ROW_HEIGHT
-    label.resize(600, CHIP_ROW_HEIGHT)
+    assert label.height() == INFO_ROW_HEIGHT
+    label.resize(600, INFO_ROW_HEIGHT)
     assert label._shown() == "AE_Zekken (AE_Zekken) — compie 36 anni"  # c'è posto: intero
     metrics = label.fontMetrics()  # la larghezza dipende dal carattere del computer: si misura, non si indovina
-    label.resize(metrics.horizontalAdvance(" — compie 36 anni") + metrics.horizontalAdvance("AE_Zekken"), CHIP_ROW_HEIGHT)
+    label.resize(metrics.horizontalAdvance(" — compie 36 anni") + metrics.horizontalAdvance("AE_Zekken"), INFO_ROW_HEIGHT)
     shown = label._shown()
     assert shown.endswith(" — compie 36 anni") and "…" in shown  # il nome si accorcia, l'età resta
-    label.resize(60, CHIP_ROW_HEIGHT)
+    label.resize(60, INFO_ROW_HEIGHT)
     assert label._shown().endswith("…") and "compie" not in label._shown()  # niente posto: si taglia tutto
     plain = ElidedLabel("Kazyo (Yukishita)")  # senza suffisso: si taglia in fondo
-    plain.resize(60, CHIP_ROW_HEIGHT)
+    plain.resize(60, INFO_ROW_HEIGHT)
     assert plain._shown().endswith("…")
 
 
@@ -737,7 +737,7 @@ def test_info_rows_with_long_names_all_have_the_same_height(qapp, window):
     from datetime import date, timedelta
 
     from gilda_app.db.database import add_member, move_member_status
-    from gilda_app.ui.dashboard_page import CHIP_ROW_HEIGHT
+    from gilda_app.ui.dashboard_page import INFO_ROW_HEIGHT
 
     today = date.today()
     ids = []
@@ -751,11 +751,24 @@ def test_info_rows_with_long_names_all_have_the_same_height(qapp, window):
     window.show()
     window.refresh_all()
     qapp.processEvents()
-    for key in ("info_joins", "info_birthdays"):
+    for key in ("info_joins", "info_birthdays", "info_anniversaries"):
         card = window.dashboard_page._info_cards[key]
+        assert not card._chip_rows.isHidden(), key  # righe-widget, tutte alte uguali (anche gli anniversari)
         grid = card._chip_grid
         rows = [r for r in range(grid.rowCount()) if grid.itemAtPosition(r, 1) is not None or grid.itemAtPosition(r, 0) is not None]
-        assert len(rows) >= 4, key
-        assert {grid.cellRect(r, 0).height() for r in rows} == {CHIP_ROW_HEIGHT}, key  # tutte alte uguali
+        assert len(rows) >= (2 if key == "info_anniversaries" else 4), key  # gli anniversari: solo i due membri rimasti
+        assert {grid.cellRect(r, 0).height() for r in rows} == {INFO_ROW_HEIGHT}, key  # tutte alte uguali
         dates = [grid.itemAtPosition(r, 0).widget() for r in rows if grid.itemAtPosition(r, 0).widget().isVisible()]
         assert dates and all(d.width() > 20 for d in dates), key  # la colonna delle date si vede
+
+
+def test_info_rows_have_room_and_the_timer_lines_are_spaced_like_them(qapp, window):
+    from gilda_app.ui.dashboard_page import INFO_LINE_GAP, INFO_ROW_HEIGHT
+
+    assert INFO_ROW_HEIGHT >= 26  # a tutto schermo le righe non devono essere attaccate
+    timers = window.dashboard_page._info_cards["info_timers"]
+    window.dashboard_page.set_timers(["Prossimo boss: Karanda", "Reset giornaliero: 5h", "Consegna imperiale: 3h"])
+    html = timers._lines.text()
+    assert html.count("<p") == 3 and f"margin: {INFO_LINE_GAP}px" in html  # una riga staccata dall'altra
+    # gli altri riquadri (calendario, BDO, note...) restano com'erano: righe a capo semplici
+    assert window.dashboard_page._tiles["notes"].LINE_GAP == 0

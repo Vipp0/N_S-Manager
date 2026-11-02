@@ -10,7 +10,7 @@ CHANGELOG: list[dict] = [
         "date": "31-10-2026",
         "notes": [
             "Il programma ricorda la finestra: si apre a tutto schermo (la prima volta, e finché lo si chiude così) e dopo un aggiornamento o un riavvio ritrova la finestra com'era, ingrandita oppure in finestra con la sua posizione e le sue misure. Prima ripartiva sempre in una finestra piccola da ingrandire a mano. Se la finestra salvata cade su uno schermo che non c'è più, torna visibile da sola.",
-            "Dashboard, Ultimi movimenti e Compleanni: le righe hanno tutte la stessa altezza, una linea sola. Prima, con i nomi lunghi, alcune righe diventavano alte il doppio e lasciavano vuoti tra una riga e l'altra. Ora un nome troppo lungo si accorcia con \"…\" (passandoci sopra con il mouse si legge intero); nei Compleanni si accorcia il nome e non l'età (\"— compie 36 anni\"). Le righe senza etichetta usano anche lo spazio dell'etichetta.",
+            "Dashboard, Ultimi movimenti e Compleanni: le righe hanno tutte la stessa altezza, una linea sola. Prima, con i nomi lunghi, alcune righe diventavano alte il doppio e lasciavano vuoti tra una riga e l'altra. Ora un nome troppo lungo si accorcia con \"…\" (passandoci sopra con il mouse si legge intero); nei Compleanni si accorcia il nome e non l'età (\"— compie 36 anni\"). Le righe senza etichetta usano anche lo spazio dell'etichetta. Le righe di tutti i riquadri delle informazioni (anche Anniversari e Timer BDO) sono più alte e distanziate, per leggersi meglio a tutto schermo.",
         ],
     },
     {

@@ -56,7 +56,8 @@ TILE_SETTINGS = "settings"
 
 WORDMARK_PATH = Path(__file__).resolve().parent.parent / "resources" / "wordmark.png"
 WORDMARK_HEIGHT = 66
-CHIP_ROW_HEIGHT = 21  # altezza di una riga dei riquadri (come le righe di testo)
+INFO_ROW_HEIGHT = 28  # altezza di una riga dei riquadri delle informazioni: aria tra una riga e l'altra, a tutto schermo
+INFO_LINE_GAP = 8  # lo spazio tra le righe di testo che vanno a capo da sole (Timer BDO), in pari con le altre
 CHIP_MIN_WIDTH = 76
 COVER_WIDE_WIDTH = 1080  # da questa larghezza della pagina il grafico sta accanto ai numeri, sotto va su due file
 COVER_BAND_WIDE_WIDTH = 1150  # da qui le quattro sezioni stanno su una fila sola, sotto su due
@@ -150,17 +151,17 @@ class ElidedLabel(QLabel):
         self._name, self._suffix = text, suffix
         self._color = QColor(color) if color else None
         self.setFont(getFont(14, QFont.Bold if bold else QFont.Normal))
-        self.setFixedHeight(CHIP_ROW_HEIGHT)
+        self.setFixedHeight(INFO_ROW_HEIGHT)
         if fit:
             self.setFixedWidth(self.fontMetrics().horizontalAdvance(text + suffix) + 2)
         else:
             self.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)  # prende lo spazio che resta, senza allargare
 
     def sizeHint(self) -> QSize:
-        return QSize(self.fontMetrics().horizontalAdvance(self._name + self._suffix) + 2, CHIP_ROW_HEIGHT)
+        return QSize(self.fontMetrics().horizontalAdvance(self._name + self._suffix) + 2, INFO_ROW_HEIGHT)
 
     def minimumSizeHint(self) -> QSize:
-        return QSize(0, CHIP_ROW_HEIGHT)
+        return QSize(0, INFO_ROW_HEIGHT)
 
     def _shown(self) -> str:
         metrics, width = self.fontMetrics(), self.width()
@@ -183,6 +184,9 @@ class ElidedLabel(QLabel):
 
 class DashboardTile(CardWidget):
     """Riquadro cliccabile: titolo con icona, un valore grande opzionale e qualche riga."""
+
+    ROWS_AS_WIDGETS = False  # le righe con più colonne sono widget (una linea ciascuna) invece di una tabella di testo
+    LINE_GAP = 0  # spazio in più tra le righe di testo semplice
 
     def __init__(self, icon, title: str, parent=None):
         super().__init__(parent)
@@ -262,7 +266,7 @@ class DashboardTile(CardWidget):
             color = (today_colors or {}).get(index, TODAY_COLOR)
             return f'<b style="color: {color};">{text}</b>' if index in today_lines else text
 
-        with_chips = any(isinstance(line, tuple) and len(line) >= 3 for line in lines)
+        with_chips = any(isinstance(line, tuple) and (len(line) >= 3 or self.ROWS_AS_WIDGETS) for line in lines)
         self._lines.setVisible(not with_chips)
         self._chip_rows.setVisible(with_chips)
         if with_chips:
@@ -278,7 +282,12 @@ class DashboardTile(CardWidget):
                     rows.append(f'<tr><td colspan="2">{fmt(index, line)}</td></tr>')
             self._lines.setText('<table cellspacing="0" cellpadding="1">' + "".join(rows) + "</table>")
         else:
-            self._lines.setText("<br>".join(fmt(index, line) for index, line in enumerate(lines)))
+            if self.LINE_GAP and len(lines) > 1:
+                paragraphs = [f'<p style="margin: {0 if index == 0 else self.LINE_GAP}px 0 0 0;">{fmt(index, line)}</p>'
+                              for index, line in enumerate(lines)]
+                self._lines.setText("".join(paragraphs))
+            else:
+                self._lines.setText("<br>".join(fmt(index, line) for index, line in enumerate(lines)))
 
 
     def _fill_chip_rows(self, lines: list, today_lines: frozenset[int], today_colors: dict[int, str]) -> None:
@@ -292,7 +301,7 @@ class DashboardTile(CardWidget):
             label, text = parts[0], parts[1]
             chip = parts[2] if len(parts) > 2 else None
             suffix = parts[3] if len(parts) > 3 else ""  # la parte finale che non si taglia (es. l'età nei compleanni)
-            # Ogni riga è di una linea sola, alta CHIP_ROW_HEIGHT: data, nome ed etichetta stanno sulla stessa linea
+            # Ogni riga è di una linea sola, alta INFO_ROW_HEIGHT: data, nome ed etichetta stanno sulla stessa linea
             # e le righe sono tutte uguali (un nome lungo si accorcia, non fa crescere la riga).
             today = row in today_lines
             color = today_colors.get(row, TODAY_COLOR) if today else None
@@ -307,12 +316,15 @@ class DashboardTile(CardWidget):
                 badge.setMinimumWidth(CHIP_MIN_WIDTH)  # tutte della stessa larghezza: il bordo sinistro è dritto
                 self._chip_grid.addWidget(badge, row, 2, Qt.AlignRight | Qt.AlignVCenter)
         for row in range(len(lines)):
-            self._chip_grid.setRowMinimumHeight(row, CHIP_ROW_HEIGHT)
+            self._chip_grid.setRowMinimumHeight(row, INFO_ROW_HEIGHT)
 
 
 class InfoCard(DashboardTile):
     """Riquadro solo informativo: stesso aspetto dei riquadri ma senza effetto al
     passaggio del mouse e senza click."""
+
+    ROWS_AS_WIDGETS = True  # movimenti, compleanni e anniversari: righe tutte alte uguali
+    LINE_GAP = INFO_LINE_GAP
 
     def __init__(self, icon, title: str, parent=None):
         super().__init__(icon, title, parent)
