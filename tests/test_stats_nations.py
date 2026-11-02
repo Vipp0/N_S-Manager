@@ -111,3 +111,58 @@ def test_a_short_ranking_stays_on_one_column_even_when_wide(qapp, conn):
     page.show()
     qapp.processEvents()
     assert page._nation_columns == 1  # poche nazioni: una colonna, non ha senso dividerle
+
+
+def _titles(page):
+    from qfluentwidgets import StrongBodyLabel
+
+    return [label.text() for label in page.content.findChildren(StrongBodyLabel)]
+
+
+def test_stats_lists_without_data_are_hidden_until_there_is_something_to_list(qapp, conn):
+    from gilda_app.db.database import move_member_status
+    from gilda_app.ui.stats_view import StatsPage
+
+    member = add_member(conn, "Rossi", "", "", ["Italy"], "attivo")
+    page = StatsPage(lambda: conn)
+    titles = _titles(page)
+    assert "Membri con più rientri" not in titles and "Motivi di ban più comuni" not in titles  # niente riquadri vuoti
+
+    move_member_status(conn, member, "ex_membro")
+    move_member_status(conn, member, "attivo")  # un rientro
+    page.refresh()
+    assert "Membri con più rientri" in _titles(page)
+    assert "Motivi di ban più comuni" not in _titles(page)
+
+    move_member_status(conn, member, "bannato", note="insulti")
+    page.refresh()
+    assert "Motivi di ban più comuni" in _titles(page)  # compare da solo appena c'è un motivo
+
+
+def test_the_move_note_no_longer_suggests_a_ban_reason():
+    from gilda_app import i18n
+
+    previous = i18n.get_language()
+    try:
+        for language in ("it", "en"):
+            i18n.set_language(language)
+            label = i18n.tr("dialog.move.note_label")
+            assert "ban" not in label.lower()
+            assert "opzional" in label.lower() or "optional" in label.lower()
+    finally:
+        i18n.set_language(previous)
+
+
+def test_the_banned_card_shows_the_ban_note_only_when_there_is_one(qapp):
+    from gilda_app.models.member import Member
+    from gilda_app.ui.member_detail_panel import MemberDetailPanel
+    from gilda_app.utils.member_summary import MemberSummary
+    from qfluentwidgets import CaptionLabel
+
+    banned = Member(1, "Brokk", "", "", "bannato", None, "", [])
+    panel = MemberDetailPanel()
+    panel.set_member(banned, MemberSummary(in_guild="Il 22-10-2026"))
+    captions = [label.text() for label in panel.findChildren(CaptionLabel)]
+    assert "NOTA DEL BAN" not in captions  # senza nota non c'è un blocco vuoto
+    panel.set_member(banned, MemberSummary(in_guild="Il 22-10-2026", ban_reason="Insulti in chat"))
+    assert "NOTA DEL BAN" in [label.text() for label in panel.findChildren(CaptionLabel)]

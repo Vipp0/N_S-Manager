@@ -100,8 +100,7 @@ STRINGS: dict[str, dict[str, str]] = {
     "panel.still_no": {"it": "No", "en": "No"},
     "panel.note": {"it": "Nota", "en": "Note"},
     "panel.no_note": {"it": "Nessuna nota", "en": "No note"},
-    "panel.ban_reason": {"it": "Motivo del ban", "en": "Ban reason"},
-    "panel.no_reason": {"it": "Non registrato", "en": "Not recorded"},
+    "panel.ban_reason": {"it": "Nota del ban", "en": "Ban note"},
     "panel.history": {"it": "Storico", "en": "History"},
     "panel.show_more": {"it": "Mostra altro ({n})", "en": "Show more ({n})"},
     "panel.show_less": {"it": "Mostra meno", "en": "Show less"},
@@ -317,7 +316,7 @@ STRINGS: dict[str, dict[str, str]] = {
     "dialog.move.title": {"it": "Sposta {name}", "en": "Move {name}"},
     "dialog.move.current_list": {"it": "Lista attuale: {status}", "en": "Current list: {status}"},
     "dialog.move.target_label": {"it": "Sposta in:", "en": "Move to:"},
-    "dialog.move.note_label": {"it": "Nota (opzionale, es. motivo del ban):", "en": "Note (optional, e.g. ban reason):"},
+    "dialog.move.note_label": {"it": "Nota (opzionale):", "en": "Note (optional):"},
     "dialog.move.still_on_discord": {
         "it": "L'utente rimarrà nel canale Discord della gilda?",
         "en": "Will the member stay in the guild's Discord channel?",

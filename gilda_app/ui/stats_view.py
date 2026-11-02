@@ -254,24 +254,28 @@ class StatsPage(OrnamentedPage, QScrollArea):
         self.main_layout.addWidget(self._trend_chart_card(conn))
         self.main_layout.addWidget(self._nation_chart_card(conn))
 
+        # Gli elenchi senza dati non si mostrano: riquadri con scritto solo "Nessun dato" occupano spazio a vuoto
+        # (rientri e motivi di ban sono rari); compaiono da soli appena c'è qualcosa da elencare.
         top_rejoiners = stats.top_rejoiners(conn)
-        self.main_layout.addWidget(
-            _list_card(
-                tr("stats.top_rejoiners"),
-                [
-                    tr("stats.top_rejoiners_line", name=r["family_name"], main=r["main_name"], count=r["rejoin_count"])
-                    for r in top_rejoiners
-                ],
+        if top_rejoiners:
+            self.main_layout.addWidget(
+                _list_card(
+                    tr("stats.top_rejoiners"),
+                    [
+                        tr("stats.top_rejoiners_line", name=r["family_name"], main=r["main_name"], count=r["rejoin_count"])
+                        for r in top_rejoiners
+                    ],
+                )
             )
-        )
 
         ban_reasons = stats.common_ban_reasons(conn)
-        self.main_layout.addWidget(
-            _list_card(
-                tr("stats.ban_reasons"),
-                [tr("stats.ban_reasons_line", reason=r["note"], count=r["cnt"]) for r in ban_reasons],
+        if ban_reasons:
+            self.main_layout.addWidget(
+                _list_card(
+                    tr("stats.ban_reasons"),
+                    [tr("stats.ban_reasons_line", reason=r["note"], count=r["cnt"]) for r in ban_reasons],
+                )
             )
-        )
 
         # La hall of fame ha senso solo se un numero minimo di membri ha una data di
         # ingresso realmente nota: appena importato il database, tutti risultano
