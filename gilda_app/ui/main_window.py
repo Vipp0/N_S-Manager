@@ -191,6 +191,10 @@ class _GuildSignal(QObject):
 
 
 class MainWindow(FluentWindow):
+    # Qt manda ridimensionamenti e spostamenti già mentre la finestra si sta costruendo (dentro super().__init__),
+    # prima che il timer esista: finché non c'è, gli eventi non fanno niente.
+    _window_state_timer = None
+
     def __init__(self, conn: sqlite3.Connection, db_path: Path):
         super().__init__()
         self.conn = conn
@@ -399,18 +403,22 @@ class MainWindow(FluentWindow):
         except sqlite3.Error:
             pass  # database già chiuso (programma in chiusura): resta lo stato salvato prima
 
+    def _schedule_window_state_save(self) -> None:
+        if self._window_state_timer is not None:
+            self._window_state_timer.start()
+
     def resizeEvent(self, event) -> None:
         super().resizeEvent(event)
-        self._window_state_timer.start()
+        self._schedule_window_state_save()
 
     def moveEvent(self, event) -> None:
         super().moveEvent(event)
-        self._window_state_timer.start()
+        self._schedule_window_state_save()
 
     def changeEvent(self, event) -> None:
         super().changeEvent(event)
         if event.type() == event.Type.WindowStateChange:
-            self._window_state_timer.start()
+            self._schedule_window_state_save()
 
     def _setup_title_bar(self) -> None:
         if APP_ICON_PATH.exists():

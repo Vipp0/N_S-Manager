@@ -693,3 +693,22 @@ def test_saving_the_window_state_never_fails_when_the_database_is_closed(qapp, w
 
     monkeypatch.setattr(mw, "set_setting", closed_database)  # chiusura del programma: il database può essere già chiuso
     window._save_window_state()  # nessuna eccezione
+
+
+def test_window_events_during_construction_do_not_crash_before_the_timer_exists(qapp, window):
+    """Su Windows Qt manda resize, move e cambi di stato già dentro il costruttore della finestra, prima che il
+    timer del salvataggio esista (l'exe 3.0.1 si rompeva all'avvio): senza timer gli eventi non devono fare niente."""
+    from PySide6.QtCore import QEvent, QPoint, QSize
+    from PySide6.QtGui import QMoveEvent, QResizeEvent
+
+    from gilda_app.ui.main_window import MainWindow
+
+    assert MainWindow._window_state_timer is None  # il valore di partenza, finché il costruttore non lo crea
+    timer = window._window_state_timer
+    window._window_state_timer = None  # come dentro super().__init__()
+    try:
+        window.resizeEvent(QResizeEvent(QSize(1000, 700), QSize(900, 600)))
+        window.moveEvent(QMoveEvent(QPoint(10, 10), QPoint(0, 0)))
+        window.changeEvent(QEvent(QEvent.Type.WindowStateChange))
+    finally:
+        window._window_state_timer = timer
