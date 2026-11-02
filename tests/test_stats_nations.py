@@ -78,3 +78,36 @@ def test_global_search_shows_the_flags(qapp, conn):
     assert not items["Bandiera"].icon().isNull()
     assert items["SenzaNazione"].icon().isNull()  # nessuna nazione, nessuna bandiera
     dialog.close()
+
+
+def test_nation_ranking_uses_two_columns_on_a_wide_page_and_one_on_a_narrow_page(qapp, conn):
+    from gilda_app.ui.stats_view import NATION_TWO_COLUMNS_MIN_WIDTH, StatsPage
+
+    countries = ["Italy", "Spain", "France", "Germany", "Poland", "Portugal", "Greece", "Norway", "Japan", "Brazil"]
+    for index, country in enumerate(countries):
+        add_member(conn, f"M{index}", "", "", [country], "attivo")
+    page = StatsPage(lambda: conn)
+    page.resize(NATION_TWO_COLUMNS_MIN_WIDTH + 200, 800)
+    page.show()
+    qapp.processEvents()
+    grid = page._nation_grid
+    assert page._nation_columns == 2
+    positions = [grid.getItemPosition(grid.indexOf(row))[:2] for row in page._nation_rows]
+    assert positions[:5] == [(r, 0) for r in range(5)] and positions[5:] == [(r, 1) for r in range(5)]  # metà e metà
+
+    page.resize(NATION_TWO_COLUMNS_MIN_WIDTH - 300, 800)
+    qapp.processEvents()
+    assert page._nation_columns == 1
+    assert [grid.getItemPosition(grid.indexOf(row))[:2] for row in page._nation_rows] == [(r, 0) for r in range(10)]
+
+
+def test_a_short_ranking_stays_on_one_column_even_when_wide(qapp, conn):
+    from gilda_app.ui.stats_view import NATION_TWO_COLUMNS_MIN_WIDTH, StatsPage
+
+    for index, country in enumerate(["Italy", "Spain", "France"]):
+        add_member(conn, f"M{index}", "", "", [country], "attivo")
+    page = StatsPage(lambda: conn)
+    page.resize(NATION_TWO_COLUMNS_MIN_WIDTH + 400, 800)
+    page.show()
+    qapp.processEvents()
+    assert page._nation_columns == 1  # poche nazioni: una colonna, non ha senso dividerle

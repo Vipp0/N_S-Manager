@@ -1,7 +1,7 @@
 from datetime import date
 
 from PySide6.QtCharts import QBarCategoryAxis, QChart, QChartView, QLineSeries, QValueAxis
-from PySide6.QtCore import QPoint, QRectF, Qt, QTimer, Signal
+from PySide6.QtCore import QPoint, QRectF, QSize, Qt, QTimer, Signal
 from PySide6.QtGui import QColor, QCursor, QGuiApplication, QPainter
 from PySide6.QtWidgets import QGridLayout, QHBoxLayout, QLabel, QScrollArea, QVBoxLayout, QWidget
 from qfluentwidgets import (
@@ -36,6 +36,7 @@ NATION_FLAG_HEIGHT = 20
 NATION_NAME_WIDTH = 170
 NATION_ROW_HEIGHT = 30
 NATION_ROW_MAX_WIDTH = 760
+NATION_TWO_COLUMNS_MIN_WIDTH = 1150  # da questa larghezza della pagina la classifica va su due colonne (metà altezza)
 
 
 class _NationBar(QWidget):
@@ -89,6 +90,10 @@ class NationRow(QWidget):
         number.setFixedWidth(34)
         number.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
         layout.addWidget(number)
+
+    def sizeHint(self) -> QSize:
+        """La larghezza che si vorrebbe (il massimo): allineata a sinistra la riga la prende tutta, se c'è posto."""
+        return QSize(NATION_ROW_MAX_WIDTH, NATION_ROW_HEIGHT)
 
     def enterEvent(self, event) -> None:
         self._hover = True
@@ -169,6 +174,9 @@ class StatsPage(OrnamentedPage, QScrollArea):
         self._nation_categories: list[str] = []
         self._nation_members: dict[str, list[Member]] = {}
         self._nation_hovered_index: int | None = None
+        self._nation_rows: list[NationRow] = []
+        self._nation_grid: QGridLayout | None = None
+        self._nation_columns = 0
         # Tooltip fatto in casa invece di QToolTip: quest'ultimo, comparendo sotto il
         # cursore, faceva credere che il mouse avesse lasciato la riga (uscita spuria) e
         # Qt lo richiudeva subito. Un QLabel top-level trasparente agli eventi del mouse
@@ -370,12 +378,40 @@ class StatsPage(OrnamentedPage, QScrollArea):
             layout.addWidget(QLabel(tr("stats.no_data"), card))
             return card
         biggest = len(top_nations[0][1])
+        self._nation_grid = QGridLayout()
+        self._nation_grid.setHorizontalSpacing(24)
+        self._nation_grid.setVerticalSpacing(0)
+        self._nation_rows = []
         for index, (name, members) in enumerate(top_nations):
             row = NationRow(index, raw_by_nation[name], name, len(members), len(members) / biggest, card)
             row.hovered.connect(self._on_nation_bar_hovered)
             row.context_requested.connect(self._on_nation_context_menu)
-            layout.addWidget(row)
+            self._nation_rows.append(row)
+        layout.addLayout(self._nation_grid)
+        self._nation_columns = 0
+        self._arrange_nation_rows()
         return card
+
+    def _arrange_nation_rows(self) -> None:
+        """La classifica su una colonna o, se la pagina è larga, su due (la prima metà a sinistra, il resto a destra):
+        con le quindici nazioni occupa metà altezza e lascia più posto ai riquadri sotto."""
+        if not self._nation_rows or self._nation_grid is None:
+            return
+        columns = 2 if self.width() >= NATION_TWO_COLUMNS_MIN_WIDTH and len(self._nation_rows) > 6 else 1
+        if columns == self._nation_columns:
+            return
+        self._nation_columns = columns
+        for row in self._nation_rows:
+            self._nation_grid.removeWidget(row)
+        per_column = -(-len(self._nation_rows) // columns)  # divisione per eccesso
+        for index, row in enumerate(self._nation_rows):
+            self._nation_grid.addWidget(row, index % per_column, index // per_column, Qt.AlignLeft | Qt.AlignTop)
+        for column in range(2):
+            self._nation_grid.setColumnStretch(column, 1 if column < columns else 0)
+
+    def resizeEvent(self, event) -> None:
+        super().resizeEvent(event)
+        self._arrange_nation_rows()
 
     def _on_nation_bar_hovered(self, status: bool, index: int) -> None:
         self._nation_hovered_index = index if status else None
