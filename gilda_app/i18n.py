@@ -100,7 +100,7 @@ STRINGS: dict[str, dict[str, str]] = {
     "panel.still_no": {"it": "No", "en": "No"},
     "panel.note": {"it": "Nota", "en": "Note"},
     "panel.no_note": {"it": "Nessuna nota", "en": "No note"},
-    "panel.ban_reason": {"it": "Nota del ban", "en": "Ban note"},
+    "panel.ban_reason": {"it": "Motivo del ban", "en": "Ban reason"},
     "panel.history": {"it": "Storico", "en": "History"},
     "panel.show_more": {"it": "Mostra altro ({n})", "en": "Show more ({n})"},
     "panel.show_less": {"it": "Mostra meno", "en": "Show less"},

@@ -153,7 +153,7 @@ def test_the_move_note_no_longer_suggests_a_ban_reason():
         i18n.set_language(previous)
 
 
-def test_the_banned_card_shows_the_ban_note_only_when_there_is_one(qapp):
+def test_the_banned_card_shows_the_ban_reason_only_when_there_is_one(qapp):
     from gilda_app.models.member import Member
     from gilda_app.ui.member_detail_panel import MemberDetailPanel
     from gilda_app.utils.member_summary import MemberSummary
@@ -163,6 +163,6 @@ def test_the_banned_card_shows_the_ban_note_only_when_there_is_one(qapp):
     panel = MemberDetailPanel()
     panel.set_member(banned, MemberSummary(in_guild="Il 22-10-2026"))
     captions = [label.text() for label in panel.findChildren(CaptionLabel)]
-    assert "NOTA DEL BAN" not in captions  # senza nota non c'è un blocco vuoto
+    assert "MOTIVO DEL BAN" not in captions  # senza nota non c'è un blocco vuoto
     panel.set_member(banned, MemberSummary(in_guild="Il 22-10-2026", ban_reason="Insulti in chat"))
-    assert "NOTA DEL BAN" in [label.text() for label in panel.findChildren(CaptionLabel)]
+    assert "MOTIVO DEL BAN" in [label.text() for label in panel.findChildren(CaptionLabel)]

@@ -275,7 +275,7 @@ class MemberDetailPanel(QWidget):
             holder.addStretch(1)
             self._block(tr("panel.still_on_discord"), holder)
         if member.status == STATUS_BANNATO:
-            if summary.ban_reason:  # la nota scritta al momento del ban, solo se c'è (di solito non si scrive)
+            if summary.ban_reason:  # il motivo scritto al momento del ban: si mostra solo se c'è (campo vuoto nascosto)
                 self._block(tr("panel.ban_reason"), self._text(summary.ban_reason))
 
         # nota per intero (nella tabella è tagliata)
