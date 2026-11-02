@@ -3,8 +3,8 @@ from datetime import date
 from pathlib import Path
 from typing import Callable
 
-from PySide6.QtCore import Qt, Signal
-from PySide6.QtGui import QColor, QLinearGradient, QPainter, QPainterPath, QPen, QPixmap
+from PySide6.QtCore import QSize, Qt, Signal
+from PySide6.QtGui import QColor, QFont, QLinearGradient, QPainter, QPainterPath, QPen, QPixmap
 from PySide6.QtWidgets import QFrame, QGridLayout, QHBoxLayout, QLabel, QSizePolicy, QVBoxLayout, QWidget
 from qfluentwidgets import (
     BodyLabel,
@@ -14,6 +14,7 @@ from qfluentwidgets import (
     PushButton,
     ScrollArea,
     StrongBodyLabel,
+    getFont,
     isDarkTheme,
     themeColor,
 )
@@ -136,6 +137,50 @@ class MaintenanceBanner(CardWidget):
             self.update()
 
 
+class ElidedLabel(QLabel):
+    """Il testo di una riga dei riquadri con le etichette: sempre di una linea sola, alta quanto le righe di testo
+    degli altri riquadri. Se non ci sta, il nome finisce con "…" (e il passaggio del mouse mostra il testo intero);
+    la parte finale (suffix, es. "— compie 36 anni") non si taglia mai finché c'è posto. Così tutte le righe hanno
+    la stessa altezza, invece di averne due quando un nome è lungo."""
+
+    def __init__(self, text: str, parent=None, bold: bool = False, color: str | None = None, suffix: str = "",
+                 fit: bool = False):
+        """fit: la larghezza è quella del testo (per la colonna delle date), non quella che avanza."""
+        super().__init__(parent)
+        self._name, self._suffix = text, suffix
+        self._color = QColor(color) if color else None
+        self.setFont(getFont(14, QFont.Bold if bold else QFont.Normal))
+        self.setFixedHeight(CHIP_ROW_HEIGHT)
+        if fit:
+            self.setFixedWidth(self.fontMetrics().horizontalAdvance(text + suffix) + 2)
+        else:
+            self.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)  # prende lo spazio che resta, senza allargare
+
+    def sizeHint(self) -> QSize:
+        return QSize(self.fontMetrics().horizontalAdvance(self._name + self._suffix) + 2, CHIP_ROW_HEIGHT)
+
+    def minimumSizeHint(self) -> QSize:
+        return QSize(0, CHIP_ROW_HEIGHT)
+
+    def _shown(self) -> str:
+        metrics, width = self.fontMetrics(), self.width()
+        full = self._name + self._suffix
+        if metrics.horizontalAdvance(full) <= width:
+            return full
+        room = width - metrics.horizontalAdvance(self._suffix)
+        if not self._suffix or room < metrics.horizontalAdvance("…") * 4:  # niente posto per il suffisso: si taglia tutto
+            return metrics.elidedText(full, Qt.ElideRight, width)
+        return metrics.elidedText(self._name, Qt.ElideRight, room) + self._suffix
+
+    def paintEvent(self, event) -> None:
+        painter = QPainter(self)
+        painter.setFont(self.font())
+        painter.setPen(self._color or (QColor(255, 255, 255) if isDarkTheme() else QColor(0, 0, 0)))
+        shown = self._shown()
+        self.setToolTip(self._name + self._suffix if shown != self._name + self._suffix else "")
+        painter.drawText(self.rect(), Qt.AlignLeft | Qt.AlignVCenter, shown)
+
+
 class DashboardTile(CardWidget):
     """Riquadro cliccabile: titolo con icona, un valore grande opzionale e qualche riga."""
 
@@ -217,11 +262,11 @@ class DashboardTile(CardWidget):
             color = (today_colors or {}).get(index, TODAY_COLOR)
             return f'<b style="color: {color};">{text}</b>' if index in today_lines else text
 
-        with_chips = any(isinstance(line, tuple) and len(line) == 3 for line in lines)
+        with_chips = any(isinstance(line, tuple) and len(line) >= 3 for line in lines)
         self._lines.setVisible(not with_chips)
         self._chip_rows.setVisible(with_chips)
         if with_chips:
-            self._fill_chip_rows(lines, fmt)
+            self._fill_chip_rows(lines, today_lines, today_colors or {})
             return
         if any(isinstance(line, tuple) for line in lines):
             rows = []
@@ -236,33 +281,33 @@ class DashboardTile(CardWidget):
             self._lines.setText("<br>".join(fmt(index, line) for index, line in enumerate(lines)))
 
 
-    def _fill_chip_rows(self, lines: list, fmt: Callable[[int, str], str]) -> None:
+    def _fill_chip_rows(self, lines: list, today_lines: frozenset[int], today_colors: dict[int, str]) -> None:
         while self._chip_grid.count():
             widget = self._chip_grid.takeAt(0).widget()
             if widget is not None:
                 widget.setParent(None)
                 widget.deleteLater()
         for row, line in enumerate(lines):
-            label, text, chip = (line + (None,))[:3] if isinstance(line, tuple) else ("", line, None)
-            # Data e nome hanno lo stesso carattere, la stessa altezza di riga e partono dall'alto: stanno sulla
-            # stessa linea (anche se il nome va a capo), come nei riquadri con la tabella di testo.
+            parts = list(line) if isinstance(line, tuple) else ["", line]
+            label, text = parts[0], parts[1]
+            chip = parts[2] if len(parts) > 2 else None
+            suffix = parts[3] if len(parts) > 3 else ""  # la parte finale che non si taglia (es. l'età nei compleanni)
+            # Ogni riga è di una linea sola, alta CHIP_ROW_HEIGHT: data, nome ed etichetta stanno sulla stessa linea
+            # e le righe sono tutte uguali (un nome lungo si accorcia, non fa crescere la riga).
+            today = row in today_lines
+            color = today_colors.get(row, TODAY_COLOR) if today else None
             if label:
-                when = BodyLabel(fmt(row, label), self._chip_rows)
-                when.setTextFormat(Qt.RichText)
-                when.setAlignment(Qt.AlignLeft | Qt.AlignTop)
-                when.setFixedHeight(CHIP_ROW_HEIGHT)
-                self._chip_grid.addWidget(when, row, 0, Qt.AlignTop)
-            body = BodyLabel(fmt(row, text), self._chip_rows)
-            body.setTextFormat(Qt.RichText)
-            body.setWordWrap(True)
-            body.setAlignment(Qt.AlignLeft | Qt.AlignTop)
-            body.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)  # un nome lungo va a capo, non allarga
-            body.setMinimumHeight(CHIP_ROW_HEIGHT)
-            self._chip_grid.addWidget(body, row, 1 if label else 0, 1, 2 if not label else 1)
+                self._chip_grid.addWidget(ElidedLabel(label, self._chip_rows, bold=today, color=color, fit=True), row, 0)
+            body = ElidedLabel(text, self._chip_rows, bold=today, color=color, suffix=suffix)
+            # senza etichetta in fondo il testo occupa anche la sua colonna, così ha più posto
+            first_column = 1 if label else 0
+            self._chip_grid.addWidget(body, row, first_column, 1, 3 - first_column if not chip else 2 - first_column)
             if chip:
                 badge = ChipLabel(chip[0], chip[1], self._chip_rows)
                 badge.setMinimumWidth(CHIP_MIN_WIDTH)  # tutte della stessa larghezza: il bordo sinistro è dritto
-                self._chip_grid.addWidget(badge, row, 2, Qt.AlignRight | Qt.AlignTop)
+                self._chip_grid.addWidget(badge, row, 2, Qt.AlignRight | Qt.AlignVCenter)
+        for row in range(len(lines)):
+            self._chip_grid.setRowMinimumHeight(row, CHIP_ROW_HEIGHT)
 
 
 class InfoCard(DashboardTile):
@@ -619,7 +664,7 @@ class DashboardPage(QWidget):
                 if status == STATUS_EX_MEMBRO:
                     birthday_colors[len(birthday_lines)] = FORMER_TODAY_COLOR
             former = (tr("chip.former"), TONE_OUTLINE) if status == STATUS_EX_MEMBRO else None
-            birthday_lines.append((day_text(day, today, day.strftime("%d-%m")), f"{name}{age_text}", former))
+            birthday_lines.append((day_text(day, today, day.strftime("%d-%m")), name, former, age_text))
         self._info_cards["info_birthdays"].set_content(
             "",
             birthday_lines or [tr("dash.no_birthdays")],

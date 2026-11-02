@@ -712,3 +712,50 @@ def test_window_events_during_construction_do_not_crash_before_the_timer_exists(
         window.changeEvent(QEvent(QEvent.Type.WindowStateChange))
     finally:
         window._window_state_timer = timer
+
+
+def test_elided_label_cuts_the_name_but_keeps_the_age(qapp):
+    from gilda_app.ui.dashboard_page import CHIP_ROW_HEIGHT, ElidedLabel
+
+    label = ElidedLabel("AE_Zekken (AE_Zekken)", suffix=" — compie 36 anni")
+    assert label.height() == CHIP_ROW_HEIGHT
+    label.resize(600, CHIP_ROW_HEIGHT)
+    assert label._shown() == "AE_Zekken (AE_Zekken) — compie 36 anni"  # c'è posto: intero
+    metrics = label.fontMetrics()  # la larghezza dipende dal carattere del computer: si misura, non si indovina
+    label.resize(metrics.horizontalAdvance(" — compie 36 anni") + metrics.horizontalAdvance("AE_Zekken"), CHIP_ROW_HEIGHT)
+    shown = label._shown()
+    assert shown.endswith(" — compie 36 anni") and "…" in shown  # il nome si accorcia, l'età resta
+    label.resize(60, CHIP_ROW_HEIGHT)
+    assert label._shown().endswith("…") and "compie" not in label._shown()  # niente posto: si taglia tutto
+    plain = ElidedLabel("Kazyo (Yukishita)")  # senza suffisso: si taglia in fondo
+    plain.resize(60, CHIP_ROW_HEIGHT)
+    assert plain._shown().endswith("…")
+
+
+def test_info_rows_with_long_names_all_have_the_same_height(qapp, window):
+    """Con nomi lunghi le righe di Ultimi movimenti e Compleanni restavano di una o due linee a caso."""
+    from datetime import date, timedelta
+
+    from gilda_app.db.database import add_member, move_member_status
+    from gilda_app.ui.dashboard_page import CHIP_ROW_HEIGHT
+
+    today = date.today()
+    ids = []
+    for index, (family, main) in enumerate([("AE_Zekken", "AE_Zekken"), ("Kazyo", "Yukishita"), ("EspirituDigital", "EspirituDigital"),
+                                            ("BalthazaR92", "BalthazarTheDark"), ("NomeLunghissimoDiProva", "AncoraPiuLungoDelNome")]):
+        birthday = (today + timedelta(days=index * 3)).strftime("1990-%m-%d")
+        ids.append(add_member(window.conn, family, main, "", ["Italy"], "attivo", data_inserimento="2025-01-01", birthday=birthday))
+    for member_id in ids[:3]:
+        move_member_status(window.conn, member_id, "ex_membro")
+    window.resize(1100, 720)
+    window.show()
+    window.refresh_all()
+    qapp.processEvents()
+    for key in ("info_joins", "info_birthdays"):
+        card = window.dashboard_page._info_cards[key]
+        grid = card._chip_grid
+        rows = [r for r in range(grid.rowCount()) if grid.itemAtPosition(r, 1) is not None or grid.itemAtPosition(r, 0) is not None]
+        assert len(rows) >= 4, key
+        assert {grid.cellRect(r, 0).height() for r in rows} == {CHIP_ROW_HEIGHT}, key  # tutte alte uguali
+        dates = [grid.itemAtPosition(r, 0).widget() for r in rows if grid.itemAtPosition(r, 0).widget().isVisible()]
+        assert dates and all(d.width() > 20 for d in dates), key  # la colonna delle date si vede
