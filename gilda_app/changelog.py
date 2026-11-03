@@ -6,19 +6,8 @@ usa il programma, non i dettagli tecnici del come."""
 
 CHANGELOG: list[dict] = [
     {
-        "version": "3.0.1",
-        "date": "31-10-2026",
-        "notes": [
-            "Statistiche: i riquadri \"Membri con più rientri\" e \"Motivi di ban più comuni\" compaiono solo quando c'è qualcosa da elencare (prima restavano con scritto \"Nessun dato disponibile\").",
-            "Spostando un membro da una lista all'altra la nota è solo \"opzionale\": non suggerisce più il motivo del ban. Nella scheda del membro bannato il motivo del ban compare solo se è stato scritto (niente riga vuota).",
-            "Statistiche, distribuzione per nazione: con la pagina larga la classifica va su due colonne (la prima metà a sinistra, il resto a destra), così occupa metà altezza e lascia più posto ai riquadri sotto; con la finestra stretta resta su una colonna.",
-            "Il programma ricorda la finestra: si apre a tutto schermo (la prima volta, e finché lo si chiude così) e dopo un aggiornamento o un riavvio ritrova la finestra com'era, ingrandita oppure in finestra con la sua posizione e le sue misure. Prima ripartiva sempre in una finestra piccola da ingrandire a mano. Se la finestra salvata cade su uno schermo che non c'è più, torna visibile da sola.",
-            "Dashboard, Ultimi movimenti e Compleanni: le righe hanno tutte la stessa altezza, una linea sola. Prima, con i nomi lunghi, alcune righe diventavano alte il doppio e lasciavano vuoti tra una riga e l'altra. Ora un nome troppo lungo si accorcia con \"…\" (passandoci sopra con il mouse si legge intero); nei Compleanni si accorcia il nome e non l'età (\"— compie 36 anni\"). Le righe senza etichetta usano anche lo spazio dell'etichetta. Le righe di tutti i riquadri delle informazioni (anche Anniversari e Timer BDO) sono più alte e distanziate, per leggersi meglio a tutto schermo.",
-        ],
-    },
-    {
         "version": "3.0",
-        "date": "31-10-2026",
+        "date": "03-11-2026",
         "notes": [
             "Nuova copertina della dashboard: in alto il logo, il numero dei membri attuali in grande (\"94 / 100\") con la barra dei posti, un grafico e a lato ex membri e bannati; sotto, nella stessa scheda, Calendario, BDO, Note e Impostazioni con la loro anteprima (le Note mostrano cinque righe invece di tre). Ogni zona è cliccabile e porta alla sua scheda: il numero ai Membri attuali, il grafico alle Statistiche, ex membri e bannati alle loro liste, le quattro sezioni alle loro schede. Il riquadro \"Statistiche\" non c'è più (si apre dal grafico o dalla barra laterale). I numeri salgono da zero quando il programma si apre. Con la finestra stretta (sotto circa 1130 pixel) il grafico passa sotto ai numeri e le sezioni vanno su due file.",
             "Il grafico ha quattro viste, da scegliere con i pulsanti in alto: Ingressi e uscite (ultimi 12 mesi), Andamento (membri attuali nel tempo, con il tetto), Anzianità (da quanto sono in gilda, con la riga \"Senza data\") e Nazioni (le prime sei dei membri attuali, con bandiera, barra e numero). Le uscite si conoscono solo da quando il programma le registra: i mesi prima restano vuoti e una nota dice da quando.",
@@ -34,6 +23,11 @@ CHANGELOG: list[dict] = [
             "Avviso di nuova versione a programma aperto: invece della piccola finestrella grigia in alto (che finiva sopra la barra del titolo e si notava poco) ora compare una striscia a tutta larghezza, nel colore d'accento (segue anche i temi stagionali), subito sotto la barra del titolo, con il pulsante \"Vedi\" ben visibile. Sta sopra le schede senza coprire niente, si vede da qualunque scheda e resta finché non la chiudi con la X.",
             "Temi di festa: il gruppo di decorazioni (zucche, pupazzo e rametti) sta sotto i riquadri delle informazioni, al centro.",
             "Il file .exe ora ha le sue informazioni di identità (Proprietà → Dettagli: nome del prodotto, autore, descrizione, versione, licenza), prese dal numero di versione del programma. Un eseguibile che si presenta viene sospettato meno dagli antivirus, e con l'aggiornamento automatico serve a evitare i falsi allarmi.",
+            "Statistiche: i riquadri \"Membri con più rientri\" e \"Motivi di ban più comuni\" compaiono solo quando c'è qualcosa da elencare (prima restavano con scritto \"Nessun dato disponibile\").",
+            "Spostando un membro da una lista all'altra la nota è solo \"opzionale\": non suggerisce più il motivo del ban. Nella scheda del membro bannato il motivo del ban compare solo se è stato scritto (niente riga vuota).",
+            "Statistiche, distribuzione per nazione: con la pagina larga la classifica va su due colonne (la prima metà a sinistra, il resto a destra), così occupa metà altezza e lascia più posto ai riquadri sotto; con la finestra stretta resta su una colonna.",
+            "Il programma ricorda la finestra: si apre a tutto schermo (la prima volta, e finché lo si chiude così) e dopo un aggiornamento o un riavvio ritrova la finestra com'era, ingrandita oppure in finestra con la sua posizione e le sue misure. Prima ripartiva sempre in una finestra piccola da ingrandire a mano. Se la finestra salvata cade su uno schermo che non c'è più, torna visibile da sola.",
+            "Dashboard, Ultimi movimenti e Compleanni: le righe hanno tutte la stessa altezza, una linea sola. Prima, con i nomi lunghi, alcune righe diventavano alte il doppio e lasciavano vuoti tra una riga e l'altra. Ora un nome troppo lungo si accorcia con \"…\" (passandoci sopra con il mouse si legge intero); nei Compleanni si accorcia il nome e non l'età (\"— compie 36 anni\"). Le righe senza etichetta usano anche lo spazio dell'etichetta. Le righe di tutti i riquadri delle informazioni (anche Anniversari e Timer BDO) sono più alte e distanziate, per leggersi meglio a tutto schermo.",
         ],
     },
     {
