@@ -7,7 +7,7 @@ from datetime import date
 from PySide6.QtCore import QEasingCurve, QPointF, QRectF, Qt, QVariantAnimation, Signal
 from PySide6.QtGui import QColor, QFont, QLinearGradient, QPainter, QPainterPath, QPen
 from PySide6.QtWidgets import QGridLayout, QHBoxLayout, QLabel, QVBoxLayout, QWidget
-from qfluentwidgets import SegmentedWidget, isDarkTheme, themeColor
+from qfluentwidgets import SegmentedWidget, isDarkTheme, qconfig, themeColor
 
 from gilda_app.db.dashboard import TENURE_BUCKETS
 from gilda_app.i18n import get_language, tr
@@ -433,6 +433,13 @@ class CoverHero(QWidget):
         self._turnover: list[dict] = []
         self._trend: list = []
         self.set_wide(True)
+        qconfig.themeColorChanged.connect(self._restyle_accent)
+
+    def _restyle_accent(self, *_args) -> None:
+        """Il colore d'accento cambia (scelta in Impostazioni, temi di festa): le scritte che lo portano nel foglio
+        di stile (non disegnate a mano come la barra e il grafico) vanno rifatte, o resterebbero del colore di prima."""
+        self._style_label(self._delta)
+        self._update_legend_and_note()
 
     def _label(self, text: str, size: int, weight: int = 400, upper: bool = False, accent: bool = False) -> QLabel:
         label = QLabel(text, self)

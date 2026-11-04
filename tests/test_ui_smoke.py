@@ -772,3 +772,18 @@ def test_info_rows_have_room_and_the_timer_lines_are_spaced_like_them(qapp, wind
     assert html.count("<p") == 3 and f"margin: {INFO_LINE_GAP}px" in html  # una riga staccata dall'altra
     # gli altri riquadri (calendario, BDO, note...) restano com'erano: righe a capo semplici
     assert window.dashboard_page._tiles["notes"].LINE_GAP == 0
+
+
+def test_dashboard_cover_texts_follow_the_accent_color(qapp, window):
+    """La scritta "Ingressi negli ultimi 30 giorni" e il pallino della legenda portano il colore d'accento nel
+    foglio di stile: cambiandolo in Impostazioni devono cambiare subito, senza aspettare un riavvio."""
+    window.dashboard_page.refresh()
+    hero = window.dashboard_page._hero
+    window.settings_page.accent_changed.emit("blue")
+    qapp.processEvents()
+    assert "rgba(42, 111, 219" in hero._delta.styleSheet().lower()
+    assert "#2a6fdb" in hero._legend.text().lower()
+    window.settings_page.accent_changed.emit("fuchsia")
+    qapp.processEvents()
+    assert "rgba(194, 48, 138" in hero._delta.styleSheet().lower()
+    assert "#c2308a" in hero._legend.text().lower()

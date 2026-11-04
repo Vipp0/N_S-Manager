@@ -6,6 +6,13 @@ usa il programma, non i dettagli tecnici del come."""
 
 CHANGELOG: list[dict] = [
     {
+        "version": "3.0.1",
+        "date": "04-11-2026",
+        "notes": [
+            "Dashboard: cambiando il colore d'accento in Impostazioni, la scritta \"Ingressi negli ultimi 30 giorni\" e il pallino della legenda del grafico restavano del colore di prima fino al riavvio; ora cambiano subito, come il resto.",
+        ],
+    },
+    {
         "version": "3.0",
         "date": "03-11-2026",
         "notes": [
