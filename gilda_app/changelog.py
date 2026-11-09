@@ -6,6 +6,13 @@ usa il programma, non i dettagli tecnici del come."""
 
 CHANGELOG: list[dict] = [
     {
+        "version": "3.0.2",
+        "date": "09-11-2026",
+        "notes": [
+            "Registro eventi: se si ricostruisce lo storico di un membro e questo cambia la sua lista (per esempio da ex membro a membro attuale), oltre a \"Ricostruito lo storico movimenti\" compare anche il movimento vero (Rientro, Uscita, Bannato), con il suo colore e nei filtri. Prima restava solo la riga neutra dello storico.",
+        ],
+    },
+    {
         "version": "3.0.1",
         "date": "04-11-2026",
         "notes": [

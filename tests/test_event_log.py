@@ -119,6 +119,26 @@ def test_history_corrections_are_logged(conn):
     assert whats == ["status_entry", "status_rebuilt", "name_added", "name_edited"]
 
 
+def test_rebuilding_the_history_also_logs_the_move_when_the_list_changes(conn):
+    member = add_member(conn, "Rossi", "", "", [], STATUS_EX_MEMBRO)
+    rebuild_status_history(
+        conn,
+        member,
+        [
+            {"status": STATUS_ATTIVO, "date": "2026-01-01", "note": None},
+            {"status": STATUS_EX_MEMBRO, "date": "2026-02-01", "note": None},
+            {"status": STATUS_ATTIVO, "date": "2026-03-01", "note": None},
+        ],
+    )
+    events = [e for e in reversed(event_log.get_events(conn)) if e["kind"] in ("history", "status")]
+    assert [e["kind"] for e in events] == ["history", "status"]
+    assert (events[1]["from_status"], events[1]["to_status"]) == (STATUS_EX_MEMBRO, STATUS_ATTIVO)
+    assert event_log.tone(events[1]) == event_log.TONE_GOOD
+    # ricostruendo senza cambiare la lista (resta tra gli attuali) non si aggiunge nessun movimento
+    rebuild_status_history(conn, member, [{"status": STATUS_ATTIVO, "date": "2026-01-01", "note": None}])
+    assert [e["kind"] for e in event_log.get_events(conn) if e["kind"] == "status"] == ["status"]
+
+
 def test_editing_a_member_does_not_log_the_name_history_twice(conn):
     member = add_member(conn, "Rossi", "", "", [], STATUS_ATTIVO)
     update_member(conn, member, "Bianchi", "", "", [], None, record_name_changes=True)

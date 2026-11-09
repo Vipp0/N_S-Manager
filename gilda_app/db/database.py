@@ -386,6 +386,8 @@ def rebuild_status_history(conn: sqlite3.Connection, member_id: int, entries: li
     da qui in avanti esattamente come se lo storico fosse stato costruito passo passo.
     entries: lista di {"status", "date" (yyyy-mm-dd o None se sconosciuta), "note"}, non
     vuota, nell'ordine in cui i passaggi sono avvenuti."""
+    row = conn.execute("SELECT status FROM members WHERE id = ?", (member_id,)).fetchone()
+    status_before = row["status"] if row else None
     conn.execute("DELETE FROM status_history WHERE member_id = ?", (member_id,))
     previous_status = None
     for entry in entries:
@@ -408,6 +410,13 @@ def rebuild_status_history(conn: sqlite3.Connection, member_id: int, entries: li
         (entries[-1]["status"], entries[0]["date"], member_id),
     )
     _log_history(conn, member_id, "status_rebuilt")
+    if status_before is not None and status_before != entries[-1]["status"]:
+        # La ricostruzione ha anche cambiato la lista del membro: nel registro deve comparire come il movimento
+        # che è (rientro, uscita, ban...), non solo come correzione dello storico.
+        event_log.log_event(
+            conn, event_log.KIND_STATUS, member_id, event_log.member_name(conn, member_id),
+            from_status=status_before, to_status=entries[-1]["status"],
+        )
     conn.commit()
 
 
